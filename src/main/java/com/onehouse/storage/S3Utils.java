@@ -5,7 +5,7 @@ import static com.onehouse.storage.storageConstants.S3_PATH_PATTERN;
 import java.util.regex.Matcher;
 
 public class S3Utils {
-  public static String getPathFromS3Url(String s3Path) {
+  public String getPathFromS3Url(String s3Path) {
     String prefix = null;
 
     // Remove the scheme and bucket name from the S3 path
@@ -21,7 +21,7 @@ public class S3Utils {
     return prefix;
   }
 
-  public static String getS3BucketNameFromS3Url(String s3Path) {
+  public String getS3BucketNameFromS3Url(String s3Path) {
     Matcher matcher = S3_PATH_PATTERN.matcher(s3Path);
     if (matcher.matches()) {
       return matcher.group(1);
