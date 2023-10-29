@@ -1,52 +1,46 @@
 package com.onehouse.storage;
 
+import static com.onehouse.storage.storageConstants.GCS_PATH_PATTERN;
+
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
 import com.google.inject.Inject;
-import com.onehouse.config.Config;
-import com.onehouse.config.ConfigV1;
-import com.onehouse.config.common.FileSystemConfiguration;
-import com.onehouse.config.common.GCSConfig;
-
-import javax.annotation.Nonnull;
+import com.onehouse.storage.models.File;
+import com.onehouse.storage.providers.GcsClientProvider;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import javax.annotation.Nonnull;
 
 public class GCSAsyncStorageLister implements AsyncStorageLister {
-  private final Storage storageClient;
+  private final GcsClientProvider gcsClientProvider;
   private final ExecutorService executorService;
-  // gcs path format "gs:// [bucket] /path/to/file"
-  private static final Pattern GCS_PATH_PATTERN = Pattern.compile("^gs://([^/]+)/.*");
 
   @Inject
-  public GCSAsyncStorageLister(@Nonnull ExecutorService executorService, @Nonnull Config config) {
-    FileSystemConfiguration fileSystemConfiguration =
-        ((ConfigV1) config).getFileSystemConfiguration();
-    validateGcsConfig(fileSystemConfiguration.getGcsConfig());
-    //TODO: support gcpKey based auth
-    this.storageClient =
-        StorageOptions.newBuilder()
-            .setProjectId(fileSystemConfiguration.getGcsConfig().getProjectId())
-            .build()
-            .getService();
+  public GCSAsyncStorageLister(
+      @Nonnull ExecutorService executorService, @Nonnull GcsClientProvider gcsClientProvider) {
+    this.gcsClientProvider = gcsClientProvider;
     this.executorService = executorService;
   }
 
   @Override
-  public CompletableFuture<List<String>> listFiles(String gcsPath) {
+  public CompletableFuture<List<File>> listFiles(String gcsPath) {
     return CompletableFuture.supplyAsync(
         () -> {
-          Bucket bucket = storageClient.get(getGcsBucketNameFromPath(gcsPath));
+          Bucket bucket = gcsClientProvider.getGcsClient().get(getGcsBucketNameFromPath(gcsPath));
           Iterable<Blob> blobs = bucket.list(Storage.BlobListOption.prefix(gcsPath)).iterateAll();
           return StreamSupport.stream(blobs.spliterator(), false)
-              .map(Blob::getName)
+              .map(
+                  blob ->
+                      File.builder()
+                          .filename(blob.getName())
+                          .createdAt(Instant.ofEpochMilli(blob.getCreateTime()))
+                          .build())
               .collect(Collectors.toList());
         },
         executorService);
@@ -58,15 +52,5 @@ public class GCSAsyncStorageLister implements AsyncStorageLister {
       return matcher.group(1);
     }
     throw new IllegalArgumentException("Invalid GCS path: " + gcsPath);
-  }
-
-  private void validateGcsConfig(GCSConfig gcsConfig) {
-    if (gcsConfig == null) {
-      throw new IllegalArgumentException("Gcs config not found");
-    }
-    // https://cloud.google.com/compute/docs/naming-resources#resource-name-format
-    if (!gcsConfig.getProjectId().matches("^[a-z]([-a-z0-9]*[a-z0-9])$")) {
-      throw new IllegalArgumentException("Invalid GCP project ID: " + gcsConfig.getProjectId());
-    }
   }
 }
