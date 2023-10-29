@@ -1,1 +1,0 @@
-# hudi-metadata-extractor
