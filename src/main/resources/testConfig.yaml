@@ -1,0 +1,33 @@
+version: V1
+
+onehouseClientConfig:
+  projectId: 0c043996-9e42-4904-95b9-f98918ebeda4
+  apiKey: WJ3wiaZLsX0mDrrDVpNakQ==
+  apiSecret: /v+WFnHYsaWDIXPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=
+  userUuid: KypBAFHY2LVuAPvzDauoTxvB5UP2
+
+fileSystemConfiguration:
+  s3Config:
+    region: us-west-2
+
+metadataExtractorConfig:
+  parserConfig:
+    - lake: lake1
+      databases:
+        - name: database1
+          basePaths:
+          -
+            s3://acme-lake/test/
+          excludePaths:
+          -
+            s3://acme-lake/test/sensitive
+        - name: database2
+          basePaths:
+          -
+            s3://acme-lake/staging/
+    - lake: lake2
+      databases:
+        - name: database1
+          basePaths:
+          -
+            s3://onehouse-prodlake-bb0073a0-c155-3127-86ed-e3f13e5299d1/onehouse-prodlake-s3/
