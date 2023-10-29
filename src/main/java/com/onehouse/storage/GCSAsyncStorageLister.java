@@ -1,6 +1,6 @@
 package com.onehouse.storage;
 
-import static com.onehouse.storage.storageConstants.GCS_PATH_PATTERN;
+import static com.onehouse.storage.StorageConstants.GCS_PATH_PATTERN;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Bucket;
