@@ -22,6 +22,7 @@ public class TableDiscoverer {
   private final MetadataExtractorConfig metadataExtractorConfig;
   private final ExecutorService executorService;
   private static final String HOODIE_FOLDER_NAME = ".Hoodie";
+  private final List<String> excludedPrefixes;
 
   @Inject
   public TableDiscoverer(
@@ -31,10 +32,12 @@ public class TableDiscoverer {
     this.asyncStorageLister = asyncStorageLister;
     this.metadataExtractorConfig = ((ConfigV1) config).getMetadataExtractorConfig();
     this.executorService = executorService;
+    this.excludedPrefixes = metadataExtractorConfig.getPathsToExclude();
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
     List<CompletableFuture<Set<Table>>> discoveredTablesFuture = new ArrayList<>();
+    List<String> pathsToExclude = new ArrayList<>();
 
     for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
       for (Database database : parserConfig.getDatabases()) {
@@ -66,22 +69,27 @@ public class TableDiscoverer {
               List<CompletableFuture<Void>> recursiveFutures = new ArrayList<>();
 
               if (isTableFolder(listedFiles)) {
-                tablePaths.add(
+                Table table =
                     Table.builder()
                         .tablePath(path)
                         .databaseName(databaseName)
                         .lakeName(lakeName)
-                        .build());
+                        .build();
+                if (!isExcluded(table.getTablePath())) {
+                  tablePaths.add(table);
+                }
                 return CompletableFuture.completedFuture(tablePaths);
               }
 
               for (File file : listedFiles) {
                 if (file.getIsDirectory()) {
                   String filePath = getNestedFilePath(path, file);
-                  CompletableFuture<Void> recursiveFuture =
-                      discoverTablesInPath(filePath, lakeName, databaseName)
-                          .thenAccept(tablePaths::addAll);
-                  recursiveFutures.add(recursiveFuture);
+                  if (!isExcluded(filePath)) {
+                    CompletableFuture<Void> recursiveFuture =
+                        discoverTablesInPath(filePath, lakeName, databaseName)
+                            .thenAccept(tablePaths::addAll);
+                    recursiveFutures.add(recursiveFuture);
+                  }
                 }
               }
 
@@ -100,5 +108,9 @@ public class TableDiscoverer {
         "%s/%s",
         basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath,
         file.getFilename());
+  }
+
+  private boolean isExcluded(String filePath) {
+    return excludedPrefixes.stream().anyMatch(filePath::startsWith);
   }
 }

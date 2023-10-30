@@ -11,4 +11,5 @@ import lombok.extern.jackson.Jacksonized;
 @Jacksonized
 public class MetadataExtractorConfig {
   @NonNull private List<ParserConfig> parserConfig;
+  private List<String> pathsToExclude;
 }

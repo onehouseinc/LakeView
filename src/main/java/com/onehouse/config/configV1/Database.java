@@ -12,5 +12,4 @@ import lombok.extern.jackson.Jacksonized;
 public class Database {
   @NonNull private String name;
   @NonNull private List<String> basePaths;
-  private List<String> excludePaths;
 }

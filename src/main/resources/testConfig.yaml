@@ -12,6 +12,8 @@ fileSystemConfiguration:
     region: us-west-2
 
 metadataExtractorConfig:
+  pathsToExclude:
+    - s3://acme-lake/test/sensitive
   parserConfig:
     - lake: lake1
       databases:
@@ -19,9 +21,6 @@ metadataExtractorConfig:
           basePaths:
           -
             s3://acme-lake/test/
-          excludePaths:
-          -
-            s3://acme-lake/test/sensitive
         - name: database2
           basePaths:
           -
