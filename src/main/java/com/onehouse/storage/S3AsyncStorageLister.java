@@ -11,21 +11,21 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 
 public class S3AsyncStorageLister implements AsyncStorageLister {
   private final S3AsyncClientProvider s3AsyncClientProvider;
-  private final S3Utils s3Utils;
+  private final StorageUtils storageUtils;
 
   @Inject
   public S3AsyncStorageLister(
-      @Nonnull S3AsyncClientProvider s3AsyncClientProvider, @Nonnull S3Utils s3Utils) {
+      @Nonnull S3AsyncClientProvider s3AsyncClientProvider, @Nonnull StorageUtils storageUtils) {
     this.s3AsyncClientProvider = s3AsyncClientProvider;
-    this.s3Utils = s3Utils;
+    this.storageUtils = storageUtils;
   }
 
   @Override
   public CompletableFuture<List<File>> listFiles(String s3path) {
     ListObjectsV2Request listObjectsV2Request =
         ListObjectsV2Request.builder()
-            .bucket(s3Utils.getS3BucketNameFromS3Url(s3path))
-            .prefix(s3Utils.getPathFromS3Url(s3path))
+            .bucket(storageUtils.getS3BucketNameFromS3Url(s3path))
+            .prefix(storageUtils.getPathFromUrl(s3path))
             .build();
     return s3AsyncClientProvider
         .getS3AsyncClient()

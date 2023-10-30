@@ -1,7 +1,5 @@
 package com.onehouse.storage;
 
-import static com.onehouse.storage.StorageConstants.GCS_PATH_PATTERN;
-
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
@@ -12,28 +10,35 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 
 public class GCSAsyncStorageLister implements AsyncStorageLister {
   private final GcsClientProvider gcsClientProvider;
+  private final StorageUtils storageUtils;
   private final ExecutorService executorService;
 
   @Inject
   public GCSAsyncStorageLister(
-      @Nonnull ExecutorService executorService, @Nonnull GcsClientProvider gcsClientProvider) {
+      @Nonnull GcsClientProvider gcsClientProvider,
+      @Nonnull StorageUtils storageUtils,
+      @Nonnull ExecutorService executorService) {
     this.gcsClientProvider = gcsClientProvider;
+    this.storageUtils = storageUtils;
     this.executorService = executorService;
   }
 
   @Override
-  public CompletableFuture<List<File>> listFiles(String gcsPath) {
+  public CompletableFuture<List<File>> listFiles(String gcsUrl) {
     return CompletableFuture.supplyAsync(
         () -> {
-          Bucket bucket = gcsClientProvider.getGcsClient().get(getGcsBucketNameFromPath(gcsPath));
-          Iterable<Blob> blobs = bucket.list(Storage.BlobListOption.prefix(gcsPath)).iterateAll();
+          Bucket bucket =
+              gcsClientProvider.getGcsClient().get(storageUtils.getGcsBucketNameFromPath(gcsUrl));
+          Iterable<Blob> blobs =
+              bucket
+                  .list(Storage.BlobListOption.prefix(storageUtils.getPathFromUrl(gcsUrl)))
+                  .iterateAll();
           return StreamSupport.stream(blobs.spliterator(), false)
               .map(
                   blob ->
@@ -45,13 +50,5 @@ public class GCSAsyncStorageLister implements AsyncStorageLister {
               .collect(Collectors.toList());
         },
         executorService);
-  }
-
-  private String getGcsBucketNameFromPath(String gcsPath) {
-    Matcher matcher = GCS_PATH_PATTERN.matcher(gcsPath);
-    if (matcher.matches()) {
-      return matcher.group(1);
-    }
-    throw new IllegalArgumentException("Invalid GCS path: " + gcsPath);
   }
 }

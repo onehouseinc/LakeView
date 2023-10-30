@@ -1,17 +1,18 @@
 package com.onehouse.storage;
 
+import static com.onehouse.storage.StorageConstants.GCS_PATH_PATTERN;
 import static com.onehouse.storage.StorageConstants.S3_PATH_PATTERN;
 
 import java.util.regex.Matcher;
 
-public class S3Utils {
-  public String getPathFromS3Url(String s3Path) {
+public class StorageUtils {
+  public String getPathFromUrl(String url) {
     String prefix = null;
 
     // Remove the scheme and bucket name from the S3 path
-    int startIndex = s3Path.indexOf('/', 5); // Skip 's3://'
+    int startIndex = url.indexOf('/', 5); // Skip 's3://'
     if (startIndex != -1) {
-      prefix = s3Path.substring(startIndex + 1);
+      prefix = url.substring(startIndex + 1);
     }
     // Ensure the prefix ends with a '/'
     if (!prefix.endsWith("/")) {
@@ -27,5 +28,13 @@ public class S3Utils {
       return matcher.group(1);
     }
     throw new IllegalArgumentException("Invalid AWS S3 path: " + s3Path);
+  }
+
+  public String getGcsBucketNameFromPath(String gcsUrl) {
+    Matcher matcher = GCS_PATH_PATTERN.matcher(gcsUrl);
+    if (matcher.matches()) {
+      return matcher.group(1);
+    }
+    throw new IllegalArgumentException("Invalid GCS path: " + gcsUrl);
   }
 }

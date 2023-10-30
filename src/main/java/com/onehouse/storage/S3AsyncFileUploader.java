@@ -15,24 +15,24 @@ public class S3AsyncFileUploader {
 
   private final S3AsyncClientProvider s3AsyncClientProvider;
   private final OkHttpClient okHttpClient;
-  private final S3Utils s3Utils;
+  private final StorageUtils storageUtils;
 
   @Inject
   public S3AsyncFileUploader(
       @Nonnull S3AsyncClientProvider s3AsyncClientProvider,
       @Nonnull OkHttpClient okHttpClient,
-      @Nonnull S3Utils s3Utils) {
+      @Nonnull StorageUtils storageUtils) {
     this.s3AsyncClientProvider = s3AsyncClientProvider;
     this.okHttpClient = okHttpClient;
-    this.s3Utils = s3Utils;
+    this.storageUtils = storageUtils;
   }
 
   public CompletableFuture<Void> uploadFileToPresignedUrl(String presignedUrl, String s3FileUrl) {
 
     GetObjectRequest getObjectRequest =
         GetObjectRequest.builder()
-            .bucket(s3Utils.getS3BucketNameFromS3Url(s3FileUrl))
-            .key(s3Utils.getPathFromS3Url(s3FileUrl))
+            .bucket(storageUtils.getS3BucketNameFromS3Url(s3FileUrl))
+            .key(storageUtils.getPathFromUrl(s3FileUrl))
             .build();
 
     return s3AsyncClientProvider

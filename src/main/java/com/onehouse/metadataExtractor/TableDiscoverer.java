@@ -21,7 +21,7 @@ public class TableDiscoverer {
   private final AsyncStorageLister asyncStorageLister;
   private final MetadataExtractorConfig metadataExtractorConfig;
   private final ExecutorService executorService;
-  private static final String HOODIE_FOLDER_NAME = ".Hoodie";
+  private static final String HOODIE_FOLDER_NAME = ".hoodie";
   private final List<String> excludedPrefixes;
 
   @Inject
@@ -100,7 +100,7 @@ public class TableDiscoverer {
   }
 
   private static boolean isTableFolder(List<File> listedFiles) {
-    return listedFiles.stream().anyMatch(file -> file.getFilename().equals(HOODIE_FOLDER_NAME));
+    return listedFiles.stream().anyMatch(file -> file.getFilename().startsWith(HOODIE_FOLDER_NAME));
   }
 
   private static String getNestedFilePath(String basePath, File file) {
