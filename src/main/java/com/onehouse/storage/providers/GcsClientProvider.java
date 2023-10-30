@@ -2,6 +2,7 @@ package com.onehouse.storage.providers;
 
 import static com.onehouse.storage.StorageConstants.GCP_RESOURCE_NAME_FORMAT;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.inject.Inject;
@@ -9,6 +10,8 @@ import com.onehouse.config.Config;
 import com.onehouse.config.ConfigV1;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.config.common.GCSConfig;
+import java.io.FileInputStream;
+import java.io.IOException;
 import javax.annotation.Nonnull;
 import lombok.Getter;
 
@@ -22,12 +25,17 @@ public class GcsClientProvider {
     FileSystemConfiguration fileSystemConfiguration =
         ((ConfigV1) config).getFileSystemConfiguration();
     validateGcsConfig(fileSystemConfiguration.getGcsConfig());
-    // TODO: support gcpKey based auth
-    this.gcsClient =
-        StorageOptions.newBuilder()
-            .setProjectId(fileSystemConfiguration.getGcsConfig().getProjectId())
-            .build()
-            .getService();
+    try (FileInputStream serviceAccountStream =
+        new FileInputStream(fileSystemConfiguration.getGcsConfig().getGcpKey())) {
+      this.gcsClient =
+          StorageOptions.newBuilder()
+              .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
+              .setProjectId(fileSystemConfiguration.getGcsConfig().getProjectId())
+              .build()
+              .getService();
+    } catch (IOException e) {
+      throw new RuntimeException("Error reading service account JSON key file", e);
+    }
   }
 
   private void validateGcsConfig(GCSConfig gcsConfig) {

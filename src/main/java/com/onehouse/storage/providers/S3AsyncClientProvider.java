@@ -8,9 +8,12 @@ import com.onehouse.config.common.S3Config;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
 import lombok.Getter;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.SdkAdvancedAsyncClientOption;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 
 @Getter
 public class S3AsyncClientProvider {
@@ -21,9 +24,20 @@ public class S3AsyncClientProvider {
     FileSystemConfiguration fileSystemConfiguration =
         ((ConfigV1) config).getFileSystemConfiguration();
     validateS3Config(fileSystemConfiguration.getS3Config());
-    // TODO: support accesskey based auth if provided
+
+    S3AsyncClientBuilder s3AsyncClientBuilder = S3AsyncClient.builder();
+
+    if (!fileSystemConfiguration.getS3Config().getAccessKey().isBlank()
+        && !fileSystemConfiguration.getS3Config().getAccessSecret().isBlank()) {
+      AwsBasicCredentials awsCredentials =
+          AwsBasicCredentials.create(
+              fileSystemConfiguration.getS3Config().getAccessKey(),
+              fileSystemConfiguration.getS3Config().getAccessSecret());
+      s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
+    }
+
     this.s3AsyncClient =
-        S3AsyncClient.builder()
+        s3AsyncClientBuilder
             .region(Region.of(fileSystemConfiguration.getS3Config().getRegion()))
             .asyncConfiguration(
                 b ->
