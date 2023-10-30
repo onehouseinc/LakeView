@@ -38,6 +38,7 @@ public class S3AsyncStorageLister implements AsyncStorageLister {
                             File.builder()
                                 .filename(s3Object.key())
                                 .createdAt(s3Object.lastModified())
+                                .isDirectory(s3Object.key().endsWith("/"))
                                 .build())
                     .collect(Collectors.toList()));
   }

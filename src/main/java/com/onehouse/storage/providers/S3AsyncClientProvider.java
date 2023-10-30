@@ -2,9 +2,9 @@ package com.onehouse.storage.providers;
 
 import com.google.inject.Inject;
 import com.onehouse.config.Config;
-import com.onehouse.config.ConfigV1;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.config.common.S3Config;
+import com.onehouse.config.configV1.ConfigV1;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
 import lombok.Getter;

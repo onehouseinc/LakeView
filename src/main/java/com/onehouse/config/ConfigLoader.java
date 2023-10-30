@@ -3,6 +3,7 @@ package com.onehouse.config;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.onehouse.config.configV1.ConfigV1;
 import java.io.InputStream;
 
 public class ConfigLoader {

@@ -10,4 +10,5 @@ import lombok.NonNull;
 public class File {
   @NonNull private String filename;
   @NonNull private Instant createdAt;
+  @NonNull private Boolean isDirectory;
 }

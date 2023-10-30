@@ -40,6 +40,7 @@ public class GCSAsyncStorageLister implements AsyncStorageLister {
                       File.builder()
                           .filename(blob.getName())
                           .createdAt(Instant.ofEpochMilli(blob.getCreateTime()))
+                          .isDirectory(blob.isDirectory())
                           .build())
               .collect(Collectors.toList());
         },
