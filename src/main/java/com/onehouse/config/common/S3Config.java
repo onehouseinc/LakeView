@@ -6,8 +6,8 @@ import lombok.NonNull;
 import lombok.extern.jackson.Jacksonized;
 
 @Builder
-@Jacksonized
 @Getter
+@Jacksonized
 public class S3Config {
   @NonNull private String region;
   // optional to be used for quick testing

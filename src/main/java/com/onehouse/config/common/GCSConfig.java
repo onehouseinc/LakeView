@@ -6,8 +6,8 @@ import lombok.NonNull;
 import lombok.extern.jackson.Jacksonized;
 
 @Builder
-@Jacksonized
 @Getter
+@Jacksonized
 public class GCSConfig {
   @NonNull private String projectId;
   @NonNull private String gcpKey;

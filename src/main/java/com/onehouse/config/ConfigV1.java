@@ -9,6 +9,7 @@ import lombok.NonNull;
 import lombok.extern.jackson.Jacksonized;
 
 @Builder
+@Getter
 @Jacksonized
 class Database {
   @NonNull private String name;
@@ -17,12 +18,14 @@ class Database {
 }
 
 @Builder
+@Getter
 @Jacksonized
 class MetadataExtractorConfig {
   @NonNull private List<ParserConfig> parserConfig;
 }
 
 @Builder
+@Getter
 @Jacksonized
 class ParserConfig {
   @NonNull private String lake;
@@ -30,8 +33,8 @@ class ParserConfig {
 }
 
 @Builder
-@Jacksonized
 @Getter
+@Jacksonized
 public class ConfigV1 implements Config {
   @NonNull private String version;
   @NonNull private OnehouseClientConfig onehouseClientConfig;

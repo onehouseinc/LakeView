@@ -5,8 +5,8 @@ import lombok.Getter;
 import lombok.extern.jackson.Jacksonized;
 
 @Builder
-@Jacksonized
 @Getter
+@Jacksonized
 public class FileSystemConfiguration {
   private S3Config s3Config;
   private GCSConfig gcsConfig;
