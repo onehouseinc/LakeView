@@ -1,5 +1,7 @@
 package com.onehouse.metadataExtractor;
 
+import static com.onehouse.metadataExtractor.Constants.HOODIE_FOLDER_NAME;
+
 import com.google.inject.Inject;
 import com.onehouse.config.Config;
 import com.onehouse.config.configV1.ConfigV1;
@@ -17,15 +19,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
 
-public class TableDiscoverer {
+public class TableDiscoveryService {
   private final AsyncStorageLister asyncStorageLister;
   private final MetadataExtractorConfig metadataExtractorConfig;
   private final ExecutorService executorService;
-  private static final String HOODIE_FOLDER_NAME = ".hoodie";
   private final List<String> excludedPrefixes;
 
   @Inject
-  public TableDiscoverer(
+  public TableDiscoveryService(
       @Nonnull AsyncStorageLister asyncStorageLister,
       @Nonnull Config config,
       @Nonnull ExecutorService executorService) {

@@ -1,6 +1,7 @@
 package com.onehouse.api.request;
 
 import java.util.List;
+import java.util.UUID;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
@@ -10,6 +11,7 @@ import lombok.extern.jackson.Jacksonized;
 @Getter
 @Jacksonized
 public class GenerateCommitMetadataUploadUrlRequest {
-  @NonNull private final String tableBasePath;
+  @NonNull private final UUID tableId;
+  @NonNull private final CommitType commitType;
   @NonNull private final List<String> commitInstants;
 }

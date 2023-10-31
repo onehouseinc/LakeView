@@ -1,5 +1,6 @@
 package com.onehouse.api.request;
 
+import java.util.UUID;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
@@ -9,9 +10,15 @@ import lombok.extern.jackson.Jacksonized;
 @Getter
 @Jacksonized
 public class InitializeTableMetricsCheckpointRequest {
+  @NonNull private final UUID tableId;
   @NonNull private final String tableBasePath;
   @NonNull private final String tableName;
   private final String lakeName;
   private final String databaseName;
-  private final String tableType; // MOR | COW
+  private final TableType tableType;
+
+  public enum TableType {
+    MOR,
+    COW
+  }
 }

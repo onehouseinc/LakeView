@@ -53,7 +53,7 @@ public class OnehouseApiClient {
   public CompletableFuture<InitializeTableMetricsCheckpointResponse>
       initializeTableMetricsCheckpoint(InitializeTableMetricsCheckpointRequest request) {
     return asyncPost(
-        MessageFormat.format(INITIALIZE_TABLE_METRICS_CHECKPOINT, request.getTableBasePath()),
+        MessageFormat.format(INITIALIZE_TABLE_METRICS_CHECKPOINT, request.getTableId()),
         mapper.writeValueAsString(request),
         InitializeTableMetricsCheckpointResponse.class);
   }
@@ -70,7 +70,7 @@ public class OnehouseApiClient {
   public CompletableFuture<UpsertTableMetricsCheckpointResponse> upsertTableMetricsCheckpoint(
       UpsertTableMetricsCheckpointRequest request) {
     return asyncPost(
-        MessageFormat.format(UPSERT_TABLE_METRICS_CHECKPOINT, request.getTableBasePath()),
+        MessageFormat.format(UPSERT_TABLE_METRICS_CHECKPOINT, request.getTableId()),
         mapper.writeValueAsString(request),
         UpsertTableMetricsCheckpointResponse.class);
   }
@@ -79,7 +79,7 @@ public class OnehouseApiClient {
   public CompletableFuture<GenerateCommitMetadataUploadUrlResponse> generateCommitMetadataUploadUrl(
       GenerateCommitMetadataUploadUrlRequest request) {
     return asyncPost(
-        MessageFormat.format(GENERATE_COMMIT_METADATA_UPLOAD_URL, request.getTableBasePath()),
+        MessageFormat.format(GENERATE_COMMIT_METADATA_UPLOAD_URL, request.getTableId()),
         mapper.writeValueAsString(request),
         GenerateCommitMetadataUploadUrlResponse.class);
   }

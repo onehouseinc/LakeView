@@ -8,6 +8,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Singleton;
 import okhttp3.Dispatcher;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 public class RuntimeModule extends AbstractModule {
   private static final Logger logger = LoggerFactory.getLogger(RuntimeModule.class);
   private static final int IO_WORKLOAD_NUM_THREAD_MULTIPLIER = 5;
+  private static final int HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS = 5;
 
   @Retention(RetentionPolicy.RUNTIME)
   @BindingAnnotation
@@ -31,7 +33,12 @@ public class RuntimeModule extends AbstractModule {
   @Singleton
   static OkHttpClient providesOkHttpClient(@SharedIOExecutor ExecutorService executorService) {
     Dispatcher dispatcher = new Dispatcher(executorService);
-    return new OkHttpClient.Builder().dispatcher(dispatcher).build();
+    return new OkHttpClient.Builder()
+        .readTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .connectTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .dispatcher(dispatcher)
+        .build();
   }
 
   // TODO: remove if unused
