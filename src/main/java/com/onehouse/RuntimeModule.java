@@ -3,6 +3,7 @@ package com.onehouse;
 import com.google.inject.AbstractModule;
 import com.google.inject.BindingAnnotation;
 import com.google.inject.Provides;
+import com.onehouse.config.Config;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.concurrent.ExecutorService;
@@ -20,6 +21,11 @@ public class RuntimeModule extends AbstractModule {
   private static final Logger logger = LoggerFactory.getLogger(RuntimeModule.class);
   private static final int IO_WORKLOAD_NUM_THREAD_MULTIPLIER = 5;
   private static final int HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS = 5;
+  private final Config config;
+
+  public RuntimeModule(Config config) {
+    this.config = config;
+  }
 
   @Retention(RetentionPolicy.RUNTIME)
   @BindingAnnotation
@@ -102,5 +108,10 @@ public class RuntimeModule extends AbstractModule {
         // NOTE: It's squarely important to make sure
         // that `asyncMode` is true in async applications
         true);
+  }
+
+  @Override
+  protected void configure() {
+    bind(Config.class).toInstance(config);
   }
 }
