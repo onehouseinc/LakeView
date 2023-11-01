@@ -11,7 +11,8 @@ import lombok.extern.jackson.Jacksonized;
 @Setter
 @Jacksonized
 public class Checkpoint {
-  private final Instant lastProcessedTime;
-  private final String lastSuccessfulCommit;
+  private final int batchId;
+  private final Instant checkpoint;
   private final Boolean isArchivedCommitsProcessed;
+  private final String lastUploadedFile;
 }

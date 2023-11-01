@@ -7,6 +7,6 @@ import lombok.extern.jackson.Jacksonized;
 
 @Builder
 @Jacksonized
-public class GenerateCommitMetadataUploadUrlResponse {
+public class GenerateCommitMetadataUploadUrlResponse extends ApiResponse {
   @NonNull private final List<String> uploadUrls;
 }

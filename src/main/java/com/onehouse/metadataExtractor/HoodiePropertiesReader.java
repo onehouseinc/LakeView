@@ -1,10 +1,10 @@
 package com.onehouse.metadataExtractor;
 
 import com.google.inject.Inject;
+import com.onehouse.api.request.TableType;
+import com.onehouse.metadataExtractor.models.ParsedHudiProperties;
 import com.onehouse.storage.AsyncStorageReader;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
@@ -16,7 +16,7 @@ public class HoodiePropertiesReader {
     this.asyncStorageReader = asyncStorageReader;
   }
 
-  public CompletableFuture<Map<String, String>> readHoodieProperties(String path) {
+  public CompletableFuture<ParsedHudiProperties> readHoodieProperties(String path) {
     return asyncStorageReader
         .readFile(path)
         .thenApplyAsync(
@@ -27,10 +27,10 @@ public class HoodiePropertiesReader {
               } catch (IOException e) {
                 throw new RuntimeException("Failed to load properties file", e);
               }
-              Map<String, String> propertiesMap = new HashMap<>();
-              propertiesMap.put("tableName", properties.getProperty("hoodie.table.name"));
-              propertiesMap.put("tableType", properties.getProperty("hoodie.table.type"));
-              return propertiesMap;
+              return ParsedHudiProperties.builder()
+                  .tableName(properties.getProperty("hoodie.table.name"))
+                  .tableType(TableType.valueOf(properties.getProperty("hoodie.table.type")))
+                  .build();
             });
   }
 }

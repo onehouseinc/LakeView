@@ -12,6 +12,6 @@ import lombok.extern.jackson.Jacksonized;
 @Jacksonized
 public class GenerateCommitMetadataUploadUrlRequest {
   @NonNull private final UUID tableId;
-  @NonNull private final CommitType commitType;
+  @NonNull private final CommitTimelineType commitTimelineType;
   @NonNull private final List<String> commitInstants;
 }

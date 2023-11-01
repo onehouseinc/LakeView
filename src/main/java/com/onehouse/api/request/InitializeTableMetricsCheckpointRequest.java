@@ -16,9 +16,4 @@ public class InitializeTableMetricsCheckpointRequest {
   private final String lakeName;
   private final String databaseName;
   private final TableType tableType;
-
-  public enum TableType {
-    MOR,
-    COW
-  }
 }

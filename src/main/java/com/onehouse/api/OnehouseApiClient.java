@@ -17,6 +17,7 @@ import com.google.inject.Inject;
 import com.onehouse.api.request.GenerateCommitMetadataUploadUrlRequest;
 import com.onehouse.api.request.InitializeTableMetricsCheckpointRequest;
 import com.onehouse.api.request.UpsertTableMetricsCheckpointRequest;
+import com.onehouse.api.response.ApiResponse;
 import com.onehouse.api.response.GenerateCommitMetadataUploadUrlResponse;
 import com.onehouse.api.response.GetTableMetricsCheckpointResponse;
 import com.onehouse.api.response.InitializeTableMetricsCheckpointResponse;
@@ -26,6 +27,7 @@ import com.onehouse.config.common.OnehouseClientConfig;
 import com.onehouse.config.configV1.ConfigV1;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
@@ -60,9 +62,9 @@ public class OnehouseApiClient {
 
   @SneakyThrows
   public CompletableFuture<GetTableMetricsCheckpointResponse> getTableMetricsCheckpoint(
-      String tableBasePath) {
+      String tableId) {
     return asyncGet(
-        MessageFormat.format(GET_TABLE_METRICS_CHECKPOINT, tableBasePath),
+        MessageFormat.format(GET_TABLE_METRICS_CHECKPOINT, tableId),
         GetTableMetricsCheckpointResponse.class);
   }
 
@@ -132,8 +134,18 @@ public class OnehouseApiClient {
         throw new RuntimeException(ioException);
       }
     } else {
-      throw new RuntimeException(
-          "Unexpected response: " + response.code() + " " + response.message());
+      try {
+        T errorResponse = typeReference.getDeclaredConstructor().newInstance();
+        if (errorResponse instanceof ApiResponse) {
+          ((ApiResponse) errorResponse).setError(response.code(), response.message());
+        }
+        return errorResponse;
+      } catch (InstantiationException
+          | IllegalAccessException
+          | NoSuchMethodException
+          | InvocationTargetException e) {
+        throw new RuntimeException("Failed to instantiate error response object", e);
+      }
     }
   }
 }

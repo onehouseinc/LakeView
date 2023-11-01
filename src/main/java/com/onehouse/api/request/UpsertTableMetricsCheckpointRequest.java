@@ -13,6 +13,6 @@ import lombok.extern.jackson.Jacksonized;
 public class UpsertTableMetricsCheckpointRequest {
   @NonNull private final UUID tableId;
   @NonNull private final String Checkpoint;
-  @NonNull private final List<String> filesProcessed;
-  @NonNull private final CommitType processedCommitsType;
+  @NonNull private final List<String> filesUploaded;
+  @NonNull private final CommitTimelineType commitTimelineType;
 }

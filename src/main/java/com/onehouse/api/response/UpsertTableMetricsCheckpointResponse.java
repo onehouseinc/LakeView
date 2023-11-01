@@ -6,6 +6,6 @@ import lombok.extern.jackson.Jacksonized;
 
 @Builder
 @Jacksonized
-public class UpsertTableMetricsCheckpointResponse {
+public class UpsertTableMetricsCheckpointResponse extends ApiResponse {
   @NonNull private final String checkpoint;
 }
