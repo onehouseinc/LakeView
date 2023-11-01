@@ -136,50 +136,14 @@ public class TableMetadataUploaderService {
 
   private CompletableFuture<Void> processInstantsInTimeline(
       UUID tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
-    String pathPrefix =
-        CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
-            ? HOODIE_FOLDER_NAME + '/' + ARCHIVED_FOLDER_NAME + '/'
-            : HOODIE_FOLDER_NAME + '/';
-    String directoryUrl = storageUtils.constructFilePath(table.getAbsoluteTableUrl(), pathPrefix);
+    String pathSuffix = getPathSuffix(commitTimelineType);
+
+    String directoryUrl = storageUtils.constructFilePath(table.getAbsoluteTableUrl(), pathSuffix);
     return asyncStorageLister
         .listFiles(directoryUrl)
         .thenCompose(
             filesList -> {
-              List<File> filteredAndSortedFiles =
-                  filesList.stream()
-                      .filter(file -> !file.getIsDirectory()) // filter out directories
-                      .filter(
-                          file ->
-                              !file.getFilename()
-                                  .startsWith(
-                                      HOODIE_PROPERTIES_FILE)) // hoodie properties file is uploaded
-                      // only once
-                      .filter(file -> !file.getCreatedAt().isBefore(checkpoint.getCheckpoint()))
-                      .sorted(
-                          Comparator.comparing(File::getCreatedAt).thenComparing(File::getFilename))
-                      .collect(Collectors.toList());
-
-              // index of the last file which was uploaded
-              OptionalInt lastUploadedIndexOpt =
-                  IntStream.range(0, filteredAndSortedFiles.size())
-                      .filter(
-                          i ->
-                              filteredAndSortedFiles
-                                  .get(i)
-                                  .getFilename()
-                                  .equals(checkpoint.getLastUploadedFile()))
-                      .findFirst();
-
-              List<File> filesToProcess =
-                  lastUploadedIndexOpt.isPresent()
-                      ? filteredAndSortedFiles.subList(
-                          lastUploadedIndexOpt.getAsInt() + 1, filteredAndSortedFiles.size())
-                      : filteredAndSortedFiles;
-              if (checkpoint.getBatchId() == 0) {
-                File HudiPropertiesFile =
-                    File.builder().filename(HOODIE_PROPERTIES_FILE).isDirectory(false).build();
-                filesToProcess.add(0, HudiPropertiesFile);
-              }
+              List<File> filesToProcess = getFilesToProcess(filesList, checkpoint);
 
               List<List<File>> batches =
                   Lists.partition(filesToProcess, PRESIGNED_URL_REQUEST_BATCH_SIZE);
@@ -195,52 +159,17 @@ public class TableMetadataUploaderService {
                                     File lastUploadedFile = batch.get(batch.size() - 1);
                                     processBatch(tableId, batch, commitTimelineType, directoryUrl)
                                         .thenCompose(
-                                            ignore -> {
-                                              // TODO: update checkpoint
-                                              Checkpoint updatedCheckpoint =
-                                                  Checkpoint.builder()
-                                                      .batchId(
-                                                          checkpoint.getBatchId() + batchIndex + 1)
-                                                      .lastUploadedFile(
-                                                          lastUploadedFile.getFilename())
-                                                      .checkpoint(lastUploadedFile.getCreatedAt())
-                                                      .isArchivedCommitsProcessed(
-                                                          CommitTimelineType
-                                                              .COMMIT_TIMELINE_TYPE_ARCHIVED
-                                                              .equals(commitTimelineType))
-                                                      .isArchivedCommitsProcessed(
-                                                          batchIndex >= numBatches - 1) // TODO: handle case where new archived commit is added during upload
-                                                      .build();
-                                              try {
-                                                return onehouseApiClient
-                                                    .upsertTableMetricsCheckpoint(
-                                                        UpsertTableMetricsCheckpointRequest
-                                                            .builder()
-                                                            .commitTimelineType(commitTimelineType)
-                                                            .tableId(tableId)
-                                                            .Checkpoint(
-                                                                mapper.writeValueAsString(
-                                                                    updatedCheckpoint))
-                                                            .filesUploaded(
-                                                                batch.stream()
-                                                                    .map(File::getFilename)
-                                                                    .collect(Collectors.toList()))
-                                                            .build())
-                                                    .thenCompose(
-                                                        upsertTableMetricsCheckpointResponse -> {
-                                                          if (upsertTableMetricsCheckpointResponse
-                                                              .isFailure()) {
-                                                            throw new RuntimeException(
-                                                                "failed to update checkpoint: "
-                                                                    + upsertTableMetricsCheckpointResponse
-                                                                        .getCause());
-                                                          }
-                                                          return null;
-                                                        });
-                                              } catch (JsonProcessingException e) {
-                                                throw new RuntimeException(e);
-                                              }
-                                            });
+                                            ignore ->
+                                                updateCheckpointAfterProcessingBatch(
+                                                    tableId,
+                                                    checkpoint,
+                                                    numBatches,
+                                                    batchIndex,
+                                                    lastUploadedFile,
+                                                    batch.stream()
+                                                        .map(File::getFilename)
+                                                        .collect(Collectors.toList()),
+                                                    commitTimelineType));
                                   },
                                   executorService))
                       .collect(Collectors.toList());
@@ -276,6 +205,90 @@ public class TableMetadataUploaderService {
 
               return CompletableFuture.allOf(uploadFutures.toArray(new CompletableFuture[0]));
             });
+  }
+
+  private CompletableFuture<Void> updateCheckpointAfterProcessingBatch(
+      UUID tableId,
+      Checkpoint PreviousCheckpoint,
+      int numBatches,
+      int batchIndex,
+      File lastUploadedFile,
+      List<String> filesUploaded,
+      CommitTimelineType commitTimelineType) {
+
+    Checkpoint updatedCheckpoint =
+        Checkpoint.builder()
+            .batchId(PreviousCheckpoint.getBatchId() + batchIndex + 1)
+            .lastUploadedFile(lastUploadedFile.getFilename())
+            .checkpoint(lastUploadedFile.getCreatedAt())
+            .isArchivedCommitsProcessed(
+                CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType))
+            .isArchivedCommitsProcessed(batchIndex >= numBatches - 1) // TODO: handle case where
+            // new archived commit is added during upload
+            .build();
+    try {
+      return onehouseApiClient
+          .upsertTableMetricsCheckpoint(
+              UpsertTableMetricsCheckpointRequest.builder()
+                  .commitTimelineType(commitTimelineType)
+                  .tableId(tableId)
+                  .Checkpoint(mapper.writeValueAsString(updatedCheckpoint))
+                  .filesUploaded(filesUploaded)
+                  .build())
+          .thenCompose(
+              upsertTableMetricsCheckpointResponse -> {
+                if (upsertTableMetricsCheckpointResponse.isFailure()) {
+                  throw new RuntimeException(
+                      "failed to update PreviousCheckpoint: "
+                          + upsertTableMetricsCheckpointResponse.getCause());
+                }
+                return null;
+              });
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private String getPathSuffix(CommitTimelineType commitTimelineType) {
+    String pathSuffix = HOODIE_FOLDER_NAME + "/";
+    return CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
+        ? pathSuffix + ARCHIVED_FOLDER_NAME + '/'
+        : pathSuffix;
+  }
+
+  private List<File> getFilesToProcess(List<File> filesList, Checkpoint checkpoint) {
+    List<File> filteredAndSortedFiles =
+        filesList.stream()
+            .filter(file -> !file.getIsDirectory()) // filter out directories
+            .filter( // hoodie properties file is uploaded only once
+                file -> !file.getFilename().startsWith(HOODIE_PROPERTIES_FILE))
+            .filter(file -> !file.getCreatedAt().isBefore(checkpoint.getCheckpoint()))
+            .sorted(Comparator.comparing(File::getCreatedAt).thenComparing(File::getFilename))
+            .collect(Collectors.toList());
+
+    // index of the last file which was uploaded
+    OptionalInt lastUploadedIndexOpt =
+        IntStream.range(0, filteredAndSortedFiles.size())
+            .filter(
+                i ->
+                    filteredAndSortedFiles
+                        .get(i)
+                        .getFilename()
+                        .equals(checkpoint.getLastUploadedFile()))
+            .findFirst();
+
+    List<File> filesToProcess =
+        lastUploadedIndexOpt.isPresent()
+            ? filteredAndSortedFiles.subList(
+                lastUploadedIndexOpt.getAsInt() + 1, filteredAndSortedFiles.size())
+            : filteredAndSortedFiles;
+    if (checkpoint.getBatchId() == 0) {
+      File HudiPropertiesFile =
+          File.builder().filename(HOODIE_PROPERTIES_FILE).isDirectory(false).build();
+      filesToProcess.add(0, HudiPropertiesFile);
+    }
+
+    return filesToProcess;
   }
 
   private String getHoodiePropertiesFilePath(Table table) {
