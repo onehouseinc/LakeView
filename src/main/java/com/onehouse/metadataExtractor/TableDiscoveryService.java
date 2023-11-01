@@ -103,7 +103,7 @@ public class TableDiscoveryService {
 
               for (File file : listedFiles) {
                 if (file.getIsDirectory()) {
-                  String filePath = getNestedFilePath(path, file);
+                  String filePath = storageUtils.constructFilePath(path, file.getFilename());
                   if (!isExcluded(filePath)) {
                     CompletableFuture<Void> recursiveFuture =
                         discoverTablesInPath(filePath, lakeName, databaseName)
@@ -121,13 +121,6 @@ public class TableDiscoveryService {
 
   private static boolean isTableFolder(List<File> listedFiles) {
     return listedFiles.stream().anyMatch(file -> file.getFilename().startsWith(HOODIE_FOLDER_NAME));
-  }
-
-  private static String getNestedFilePath(String basePath, File file) {
-    return String.format(
-        "%s/%s",
-        basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath,
-        file.getFilename());
   }
 
   private String getRelativeTablePathFromUrl(String baseStorageUrl, String tableAbsoluteUrl) {

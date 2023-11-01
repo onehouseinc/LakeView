@@ -22,6 +22,15 @@ public class StorageUtils {
     return prefix;
   }
 
+  public String constructFilePath(String directoryPath, String filePath) {
+    return String.format(
+        "%s/%s",
+        directoryPath.endsWith("/")
+            ? directoryPath.substring(0, directoryPath.length() - 1)
+            : directoryPath,
+        filePath);
+  }
+
   public String getS3BucketNameFromS3Url(String s3Path) {
     Matcher matcher = S3_PATH_PATTERN.matcher(s3Path);
     if (matcher.matches()) {

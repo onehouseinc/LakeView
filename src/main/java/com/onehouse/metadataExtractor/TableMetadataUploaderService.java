@@ -1,50 +1,69 @@
 package com.onehouse.metadataExtractor;
 
+import static com.onehouse.metadataExtractor.Constants.ARCHIVED_FOLDER_NAME;
 import static com.onehouse.metadataExtractor.Constants.HOODIE_FOLDER_NAME;
 import static com.onehouse.metadataExtractor.Constants.HOODIE_PROPERTIES_FILE;
 import static com.onehouse.metadataExtractor.Constants.INITIAL_CHECKPOINT;
+import static com.onehouse.metadataExtractor.Constants.PRESIGNED_URL_REQUEST_BATCH_SIZE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.onehouse.api.OnehouseApiClient;
+import com.onehouse.api.request.CommitTimelineType;
+import com.onehouse.api.request.GenerateCommitMetadataUploadUrlRequest;
 import com.onehouse.api.request.InitializeTableMetricsCheckpointRequest;
+import com.onehouse.api.request.UpsertTableMetricsCheckpointRequest;
 import com.onehouse.metadataExtractor.models.Checkpoint;
 import com.onehouse.metadataExtractor.models.Table;
 import com.onehouse.storage.AsyncStorageLister;
 import com.onehouse.storage.S3AsyncFileUploader;
+import com.onehouse.storage.StorageUtils;
+import com.onehouse.storage.models.File;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TableMetadataUploaderService {
   private final AsyncStorageLister asyncStorageLister;
   private final HoodiePropertiesReader hoodiePropertiesReader;
   private final S3AsyncFileUploader s3AsyncFileUploader;
+  private final StorageUtils storageUtils;
   private final OnehouseApiClient onehouseApiClient;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
+  private static final Logger logger = LoggerFactory.getLogger(TableMetadataUploaderService.class);
 
   @Inject
   public TableMetadataUploaderService(
       @Nonnull AsyncStorageLister asyncStorageLister,
       @Nonnull HoodiePropertiesReader hoodiePropertiesReader,
       @Nonnull S3AsyncFileUploader s3AsyncFileUploader,
+      @Nonnull StorageUtils storageUtils,
       @Nonnull OnehouseApiClient onehouseApiClient,
       @Nonnull ExecutorService executorService) {
     this.asyncStorageLister = asyncStorageLister;
     this.hoodiePropertiesReader = hoodiePropertiesReader;
     this.s3AsyncFileUploader = s3AsyncFileUploader;
+    this.storageUtils = storageUtils;
     this.onehouseApiClient = onehouseApiClient;
     this.executorService = executorService;
     this.mapper = new ObjectMapper();
   }
 
   public CompletableFuture<Void> processTables(Set<Table> tablesToProcess) {
+    logger.debug("uploading metadata of following tables: " + tablesToProcess);
     List<CompletableFuture<Void>> processTablesFuture = new ArrayList<>();
     for (Table table : tablesToProcess) {
       processTablesFuture.add(processTable(table));
@@ -56,13 +75,16 @@ public class TableMetadataUploaderService {
 
   private CompletableFuture<Void> processTable(Table table) {
     UUID tableId = getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUrl());
+    logger.debug("fetching checkpoint for table: " + table);
     return onehouseApiClient
         .getTableMetricsCheckpoint(tableId.toString())
         .thenCompose(
             getTableMetricsCheckpointResponse -> {
+              // TODO: verify that this is the right status code
               if (getTableMetricsCheckpointResponse.isFailure()
-                  && getTableMetricsCheckpointResponse.getStatusCode() == 5) {
+                  && getTableMetricsCheckpointResponse.getStatusCode() == 404) {
                 // checkpoint not found, table needs to be registered
+                logger.debug("checkpoint not found, processing table for the first time: " + table);
                 return hoodiePropertiesReader
                     .readHoodieProperties(getHoodiePropertiesFilePath(table))
                     .thenCompose(
@@ -79,7 +101,7 @@ public class TableMetadataUploaderService {
                     .thenCompose(
                         initializeTableMetricsCheckpointResponse -> {
                           if (!initializeTableMetricsCheckpointResponse.isFailure()) {
-                            return processInstantsInTable(INITIAL_CHECKPOINT);
+                            return processInstantsInTable(tableId, table, INITIAL_CHECKPOINT);
                           }
                           throw new RuntimeException(
                               "Failed to initialise table for processing, " + table);
@@ -88,6 +110,8 @@ public class TableMetadataUploaderService {
               try {
                 // process from previous checkpoint
                 return processInstantsInTable(
+                    tableId,
+                    table,
                     mapper.readValue(
                         getTableMetricsCheckpointResponse.getCheckpoint(), Checkpoint.class));
               } catch (JsonProcessingException e) {
@@ -96,9 +120,162 @@ public class TableMetadataUploaderService {
             });
   }
 
-  private CompletableFuture<Void> processInstantsInTable(Checkpoint checkpoint) {
-    // TODO: fill in code
-    return CompletableFuture.completedFuture(null);
+  private CompletableFuture<Void> processInstantsInTable(
+      UUID tableId, Table table, Checkpoint checkpoint) {
+    if (!checkpoint.getIsArchivedCommitsProcessed()) {
+      return processInstantsInTimeline(
+              tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+          .thenCompose(
+              ignore ->
+                  processInstantsInTimeline(
+                      tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE));
+    }
+    return processInstantsInTimeline(
+        tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+  }
+
+  private CompletableFuture<Void> processInstantsInTimeline(
+      UUID tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
+    String pathPrefix =
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
+            ? HOODIE_FOLDER_NAME + '/' + ARCHIVED_FOLDER_NAME + '/'
+            : HOODIE_FOLDER_NAME + '/';
+    String directoryUrl = storageUtils.constructFilePath(table.getAbsoluteTableUrl(), pathPrefix);
+    return asyncStorageLister
+        .listFiles(directoryUrl)
+        .thenCompose(
+            filesList -> {
+              List<File> filteredAndSortedFiles =
+                  filesList.stream()
+                      .filter(file -> !file.getIsDirectory()) // filter out directories
+                      .filter(
+                          file ->
+                              !file.getFilename()
+                                  .startsWith(
+                                      HOODIE_PROPERTIES_FILE)) // hoodie properties file is uploaded
+                      // only once
+                      .filter(file -> !file.getCreatedAt().isBefore(checkpoint.getCheckpoint()))
+                      .sorted(
+                          Comparator.comparing(File::getCreatedAt).thenComparing(File::getFilename))
+                      .collect(Collectors.toList());
+
+              // index of the last file which was uploaded
+              OptionalInt lastUploadedIndexOpt =
+                  IntStream.range(0, filteredAndSortedFiles.size())
+                      .filter(
+                          i ->
+                              filteredAndSortedFiles
+                                  .get(i)
+                                  .getFilename()
+                                  .equals(checkpoint.getLastUploadedFile()))
+                      .findFirst();
+
+              List<File> filesToProcess =
+                  lastUploadedIndexOpt.isPresent()
+                      ? filteredAndSortedFiles.subList(
+                          lastUploadedIndexOpt.getAsInt() + 1, filteredAndSortedFiles.size())
+                      : filteredAndSortedFiles;
+              if (checkpoint.getBatchId() == 0) {
+                File HudiPropertiesFile =
+                    File.builder().filename(HOODIE_PROPERTIES_FILE).isDirectory(false).build();
+                filesToProcess.add(0, HudiPropertiesFile);
+              }
+
+              List<List<File>> batches =
+                  Lists.partition(filesToProcess, PRESIGNED_URL_REQUEST_BATCH_SIZE);
+              int numBatches = batches.size();
+
+              List<CompletableFuture<Void>> futures =
+                  IntStream.range(0, batches.size())
+                      .mapToObj(
+                          batchIndex ->
+                              CompletableFuture.runAsync(
+                                  () -> {
+                                    List<File> batch = batches.get(batchIndex);
+                                    File lastUploadedFile = batch.get(batch.size() - 1);
+                                    processBatch(tableId, batch, commitTimelineType, directoryUrl)
+                                        .thenCompose(
+                                            ignore -> {
+                                              // TODO: update checkpoint
+                                              Checkpoint updatedCheckpoint =
+                                                  Checkpoint.builder()
+                                                      .batchId(
+                                                          checkpoint.getBatchId() + batchIndex + 1)
+                                                      .lastUploadedFile(
+                                                          lastUploadedFile.getFilename())
+                                                      .checkpoint(lastUploadedFile.getCreatedAt())
+                                                      .isArchivedCommitsProcessed(
+                                                          CommitTimelineType
+                                                              .COMMIT_TIMELINE_TYPE_ARCHIVED
+                                                              .equals(commitTimelineType))
+                                                      .isArchivedCommitsProcessed(
+                                                          batchIndex >= numBatches - 1) // TODO: handle case where new archived commit is added during upload
+                                                      .build();
+                                              try {
+                                                return onehouseApiClient
+                                                    .upsertTableMetricsCheckpoint(
+                                                        UpsertTableMetricsCheckpointRequest
+                                                            .builder()
+                                                            .commitTimelineType(commitTimelineType)
+                                                            .tableId(tableId)
+                                                            .Checkpoint(
+                                                                mapper.writeValueAsString(
+                                                                    updatedCheckpoint))
+                                                            .filesUploaded(
+                                                                batch.stream()
+                                                                    .map(File::getFilename)
+                                                                    .collect(Collectors.toList()))
+                                                            .build())
+                                                    .thenCompose(
+                                                        upsertTableMetricsCheckpointResponse -> {
+                                                          if (upsertTableMetricsCheckpointResponse
+                                                              .isFailure()) {
+                                                            throw new RuntimeException(
+                                                                "failed to update checkpoint: "
+                                                                    + upsertTableMetricsCheckpointResponse
+                                                                        .getCause());
+                                                          }
+                                                          return null;
+                                                        });
+                                              } catch (JsonProcessingException e) {
+                                                throw new RuntimeException(e);
+                                              }
+                                            });
+                                  },
+                                  executorService))
+                      .collect(Collectors.toList());
+
+              return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+            });
+  }
+
+  private CompletableFuture<Void> processBatch(
+      UUID tableId, List<File> batch, CommitTimelineType commitTimelineType, String directoryUrl) {
+    return onehouseApiClient
+        .generateCommitMetadataUploadUrl(
+            GenerateCommitMetadataUploadUrlRequest.builder()
+                .tableId(tableId)
+                .commitInstants(batch.stream().map(File::getFilename).collect(Collectors.toList()))
+                .commitTimelineType(commitTimelineType)
+                .build())
+        .thenCompose(
+            generateCommitMetadataUploadUrlResponse -> {
+              if (generateCommitMetadataUploadUrlResponse.isFailure()) {
+                throw new RuntimeException(
+                    "failed to generate presigned urls: "
+                        + generateCommitMetadataUploadUrlResponse.getCause());
+              }
+
+              List<CompletableFuture<Void>> uploadFutures = new ArrayList<>();
+              for (int i = 0; i < batch.size(); i++) {
+                uploadFutures.add(
+                    s3AsyncFileUploader.uploadFileToPresignedUrl(
+                        generateCommitMetadataUploadUrlResponse.getUploadUrls().get(i),
+                        storageUtils.constructFilePath(directoryUrl, batch.get(i).getFilename())));
+              }
+
+              return CompletableFuture.allOf(uploadFutures.toArray(new CompletableFuture[0]));
+            });
   }
 
   private String getHoodiePropertiesFilePath(Table table) {
