@@ -1,5 +1,8 @@
 package com.onehouse.metadataExtractor;
 
+import static com.onehouse.metadataExtractor.Constants.HOODIE_TABLE_NAME_KEY;
+import static com.onehouse.metadataExtractor.Constants.HOODIE_TABLE_TYPE_KEY;
+
 import com.google.inject.Inject;
 import com.onehouse.api.request.TableType;
 import com.onehouse.metadataExtractor.models.ParsedHudiProperties;
@@ -32,8 +35,8 @@ public class HoodiePropertiesReader {
                 throw new RuntimeException("Failed to load properties file", e);
               }
               return ParsedHudiProperties.builder()
-                  .tableName(properties.getProperty("hoodie.table.name"))
-                  .tableType(TableType.valueOf(properties.getProperty("hoodie.table.type")))
+                  .tableName(properties.getProperty(HOODIE_TABLE_NAME_KEY))
+                  .tableType(TableType.valueOf(properties.getProperty(HOODIE_TABLE_TYPE_KEY)))
                   .build();
             });
   }

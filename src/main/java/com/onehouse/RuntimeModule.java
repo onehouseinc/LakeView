@@ -65,7 +65,7 @@ public class RuntimeModule extends AbstractModule {
   @Singleton
   static ExecutorService providesExecutorService() {
     class ApplicationThreadFactory implements ForkJoinPool.ForkJoinWorkerThreadFactory {
-      private static final String THREAD_GROUP_NAME_TEMPLATE = "metadata-extractor-io-%d";
+      private static final String THREAD_GROUP_NAME_TEMPLATE = "metadata-extractor-%d";
       private final AtomicInteger counter = new AtomicInteger(1);
 
       @Override

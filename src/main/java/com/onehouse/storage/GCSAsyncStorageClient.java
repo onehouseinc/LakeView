@@ -9,7 +9,6 @@ import com.google.cloud.storage.Storage;
 import com.google.inject.Inject;
 import com.onehouse.storage.models.File;
 import com.onehouse.storage.providers.GcsClientProvider;
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.time.Instant;
@@ -20,7 +19,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
-import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,8 +71,7 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
         executorService);
   }
 
-  @Override
-  public CompletableFuture<InputStream> readFileAsInputStream(String gcsUrl) {
+  public CompletableFuture<Blob> readBlob(String gcsUrl) {
     logger.debug(String.format("Reading GCS file: %s", gcsUrl));
     return CompletableFuture.supplyAsync(
         () -> {
@@ -86,7 +83,7 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
                           storageUtils.getGcsBucketNameFromPath(gcsUrl),
                           storageUtils.getPathFromUrl(gcsUrl)));
           if (blob != null) {
-            return Channels.newInputStream(blob.reader());
+            return blob;
           } else {
             throw new RuntimeException("Blob not found");
           }
@@ -94,18 +91,12 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
   }
 
   @Override
-  public CompletableFuture<byte[]> readFileAsBytes(String gcsUrl) {
-    return readFileAsInputStream(gcsUrl).thenApply(this::toByteArray);
+  public CompletableFuture<InputStream> readFileAsInputStream(String gcsUrl) {
+    return readBlob(gcsUrl).thenApply(blob -> Channels.newInputStream(blob.reader()));
   }
 
-  @SneakyThrows
-  private byte[] toByteArray(InputStream inputStream) {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    byte[] buffer = new byte[1024];
-    int read;
-    while ((read = inputStream.read(buffer)) != -1) {
-      baos.write(buffer, 0, read);
-    }
-    return baos.toByteArray();
+  @Override
+  public CompletableFuture<byte[]> readFileAsBytes(String gcsUrl) {
+    return readBlob(gcsUrl).thenApply(Blob::getContent);
   }
 }

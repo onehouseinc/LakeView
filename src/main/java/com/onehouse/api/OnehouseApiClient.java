@@ -11,7 +11,6 @@ import static com.onehouse.api.ApiConstants.ONEHOUSE_USER_UUID_KEY;
 import static com.onehouse.api.ApiConstants.PROJECT_UID_KEY;
 import static com.onehouse.api.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.onehouse.api.request.GenerateCommitMetadataUploadUrlRequest;
@@ -128,10 +127,8 @@ public class OnehouseApiClient {
           return mapper.readValue(response.body().string(), typeReference);
         }
         return null;
-      } catch (JsonProcessingException jsonProcessingException) {
+      } catch (IOException jsonProcessingException) {
         throw new UncheckedIOException("Failed to deserialize", jsonProcessingException);
-      } catch (IOException ioException) {
-        throw new RuntimeException(ioException);
       }
     } else {
       try {

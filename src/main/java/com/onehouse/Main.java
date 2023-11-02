@@ -5,18 +5,22 @@ import com.google.inject.Injector;
 import com.onehouse.config.Config;
 import com.onehouse.config.ConfigLoader;
 import com.onehouse.metadataExtractor.TableDiscoveryAndUploadJob;
+import java.util.concurrent.ExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Main {
 
   private static TableDiscoveryAndUploadJob job;
+  private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
-  public static void main(String[] args) {
-    //    if (args.length != 1) {
-    //      System.err.println("Usage: java Main <config-file-path>");
-    //      System.exit(1);
-    //    }
+  public static void main(String[] args) throws ExecutionException, InterruptedException {
+    logger.info("Starting table metadata extractor service");
+    if (args.length != 1) {
+      System.err.println("Usage: java Main <config-file-path>");
+      System.exit(1);
+    }
 
-    //    String configFilePath = args[0];
     String configFilePath = "/testConfig.yaml";
     Config config = ConfigLoader.loadConfig(configFilePath);
 

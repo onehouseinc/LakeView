@@ -6,8 +6,8 @@ plugins {
 }
 spotless {
     java {
-        googleJavaFormat()  // Use the Google Java Format
-        removeUnusedImports()  // Remove any unused imports
+        googleJavaFormat()
+        removeUnusedImports()
     }
 }
 

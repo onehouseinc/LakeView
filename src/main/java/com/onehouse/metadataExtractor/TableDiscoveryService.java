@@ -54,6 +54,12 @@ public class TableDiscoveryService {
     for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
       for (Database database : parserConfig.getDatabases()) {
         for (String basePath : database.getBasePaths()) {
+
+          if (isExcluded(basePath)) {
+            throw new IllegalArgumentException(
+                "Provided base path cannot be part of paths to excluded");
+          }
+
           discoveredTablesFuture.add(
               Pair.of(
                   basePath,

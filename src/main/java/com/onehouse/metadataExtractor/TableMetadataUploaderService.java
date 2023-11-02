@@ -74,8 +74,8 @@ public class TableMetadataUploaderService {
   }
 
   private CompletableFuture<Void> processTable(Table table) {
-    UUID tableId = getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUrl());
     logger.debug("Fetching checkpoint for table: " + table);
+    UUID tableId = getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUrl());
     return onehouseApiClient
         .getTableMetricsCheckpoint(tableId.toString())
         .thenCompose(
@@ -94,7 +94,10 @@ public class TableMetadataUploaderService {
                                     .tableId(tableId)
                                     .tableName(properties.getTableName())
                                     .tableType(properties.getTableType())
-                                    .tableBasePath(table.getRelativeTablePath())
+                                    .tableBasePath(
+                                        table.getRelativeTablePath()) // sending relative instead of
+                                    // absolute path to avoid
+                                    // sending sensitive data
                                     .databaseName(table.getDatabaseName())
                                     .lakeName(table.getLakeName())
                                     .build()))
@@ -104,7 +107,9 @@ public class TableMetadataUploaderService {
                             return processInstantsInTable(tableId, table, INITIAL_CHECKPOINT);
                           }
                           throw new RuntimeException(
-                              "Failed to initialise table for processing, " + table);
+                              String.format(
+                                  "Failed to initialise table for processing, Exception: %s , Table: %s",
+                                  initializeTableMetricsCheckpointResponse.getCause(), table));
                         });
               }
               try {
@@ -123,6 +128,8 @@ public class TableMetadataUploaderService {
   private CompletableFuture<Void> processInstantsInTable(
       UUID tableId, Table table, Checkpoint checkpoint) {
     if (!checkpoint.getIsArchivedCommitsProcessed()) {
+      // if archived commits are not uploaded, we upload those first before moving to active
+      // timeline
       return processInstantsInTimeline(
               tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
           .thenCompose(
@@ -143,42 +150,49 @@ public class TableMetadataUploaderService {
         .listFiles(directoryUrl)
         .thenCompose(
             filesList -> {
-              List<File> filesToProcess = getFilesToProcess(filesList, checkpoint);
+              List<File> filesToProcess =
+                  getFilesToUploadBasedOnPreviousCheckpoint(filesList, checkpoint);
 
               List<List<File>> batches =
                   Lists.partition(filesToProcess, PRESIGNED_URL_REQUEST_BATCH_SIZE);
               int numBatches = batches.size();
 
-              List<CompletableFuture<Void>> futures =
-                  IntStream.range(0, batches.size())
-                      .mapToObj(
-                          batchIndex ->
-                              CompletableFuture.runAsync(
-                                  () -> {
-                                    List<File> batch = batches.get(batchIndex);
-                                    File lastUploadedFile = batch.get(batch.size() - 1);
-                                    processBatch(tableId, batch, commitTimelineType, directoryUrl)
-                                        .thenCompose(
-                                            ignore ->
-                                                updateCheckpointAfterProcessingBatch(
-                                                    tableId,
-                                                    checkpoint,
-                                                    numBatches,
-                                                    batchIndex,
-                                                    lastUploadedFile,
-                                                    batch.stream()
-                                                        .map(File::getFilename)
-                                                        .collect(Collectors.toList()),
-                                                    commitTimelineType));
-                                  },
-                                  executorService))
-                      .collect(Collectors.toList());
+              // processing batches while maintaining the sequential order
+              CompletableFuture<Void> sequentialBatchProcessingFuture =
+                  CompletableFuture.completedFuture(null);
+              int batchIndex = 0;
+              for (List<File> batch : batches) {
+                int finalBatchIndex = batchIndex;
+                sequentialBatchProcessingFuture =
+                    sequentialBatchProcessingFuture.thenComposeAsync(
+                        ignored1 -> {
+                          File lastUploadedFile = batch.get(batch.size() - 1);
+                          return uploadBatch(tableId, batch, commitTimelineType, directoryUrl)
+                              .thenComposeAsync(
+                                  ignored2 ->
+                                      // update checkpoint after uploading each batch for quick
+                                      // recovery in case of failures
+                                      updateCheckpointAfterProcessingBatch(
+                                          tableId,
+                                          checkpoint,
+                                          numBatches,
+                                          finalBatchIndex,
+                                          lastUploadedFile,
+                                          batch.stream()
+                                              .map(File::getFilename)
+                                              .collect(Collectors.toList()),
+                                          commitTimelineType),
+                                  executorService);
+                        },
+                        executorService);
+                batchIndex += 1;
+              }
 
-              return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+              return sequentialBatchProcessingFuture;
             });
   }
 
-  private CompletableFuture<Void> processBatch(
+  private CompletableFuture<Void> uploadBatch(
       UUID tableId, List<File> batch, CommitTimelineType commitTimelineType, String directoryUrl) {
     return onehouseApiClient
         .generateCommitMetadataUploadUrl(
@@ -191,8 +205,9 @@ public class TableMetadataUploaderService {
             generateCommitMetadataUploadUrlResponse -> {
               if (generateCommitMetadataUploadUrlResponse.isFailure()) {
                 throw new RuntimeException(
-                    "failed to generate presigned urls: "
-                        + generateCommitMetadataUploadUrlResponse.getCause());
+                    String.format(
+                        "failed to generate presigned urls: %s",
+                        generateCommitMetadataUploadUrlResponse.getCause()));
               }
 
               List<CompletableFuture<Void>> uploadFutures = new ArrayList<>();
@@ -245,7 +260,7 @@ public class TableMetadataUploaderService {
                 return null;
               });
     } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("failed to serialise checkpoint", e);
     }
   }
 
@@ -256,7 +271,8 @@ public class TableMetadataUploaderService {
         : pathSuffix;
   }
 
-  private List<File> getFilesToProcess(List<File> filesList, Checkpoint checkpoint) {
+  private List<File> getFilesToUploadBasedOnPreviousCheckpoint(
+      List<File> filesList, Checkpoint checkpoint) {
     List<File> filteredAndSortedFiles =
         filesList.stream()
             .filter(file -> !file.getIsDirectory()) // filter out directories
