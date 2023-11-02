@@ -1,15 +1,14 @@
 package com.onehouse.config.configV1;
 
 import java.util.List;
-import lombok.Builder;
+import java.util.Optional;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.extern.jackson.Jacksonized;
+import lombok.Setter;
 
-@Builder
 @Getter
-@Jacksonized
+@Setter
 public class MetadataExtractorConfig {
   @NonNull private List<ParserConfig> parserConfig;
-  private List<String> pathsToExclude;
+  private Optional<List<String>> pathsToExclude = Optional.empty();
 }

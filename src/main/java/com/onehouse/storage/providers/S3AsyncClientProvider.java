@@ -27,12 +27,12 @@ public class S3AsyncClientProvider {
 
     S3AsyncClientBuilder s3AsyncClientBuilder = S3AsyncClient.builder();
 
-    if (!fileSystemConfiguration.getS3Config().getAccessKey().isBlank()
-        && !fileSystemConfiguration.getS3Config().getAccessSecret().isBlank()) {
+    if (fileSystemConfiguration.getS3Config().getAccessKey().isPresent()
+        && fileSystemConfiguration.getS3Config().getAccessSecret().isPresent()) {
       AwsBasicCredentials awsCredentials =
           AwsBasicCredentials.create(
-              fileSystemConfiguration.getS3Config().getAccessKey(),
-              fileSystemConfiguration.getS3Config().getAccessSecret());
+              fileSystemConfiguration.getS3Config().getAccessKey().get(),
+              fileSystemConfiguration.getS3Config().getAccessSecret().get());
       s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
     }
 
@@ -51,7 +51,7 @@ public class S3AsyncClientProvider {
       throw new IllegalArgumentException("S3 Config not found");
     }
 
-    if (!s3Config.getRegion().isBlank()) {
+    if (s3Config.getRegion().isBlank()) {
       throw new IllegalArgumentException("Aws region cannot be empty");
     }
   }

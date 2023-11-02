@@ -1,5 +1,6 @@
 package com.onehouse.storage.providers;
 
+import com.google.inject.Inject;
 import com.onehouse.config.Config;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
@@ -10,6 +11,7 @@ public class ClientProviderFactory {
   private GcsClientProvider gcsClientProvider;
   private S3AsyncClientProvider s3AsyncClientProvider;
 
+  @Inject
   public ClientProviderFactory(@Nonnull Config config, @Nonnull ExecutorService executorService) {
     this.config = config;
     this.executorService = executorService;

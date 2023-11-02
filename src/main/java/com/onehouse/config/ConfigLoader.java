@@ -3,6 +3,7 @@ package com.onehouse.config;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.onehouse.config.configV1.ConfigV1;
 import java.io.InputStream;
 
@@ -10,6 +11,7 @@ public class ConfigLoader {
 
   public static Config loadConfig(String configFile) {
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    mapper.registerModule(new Jdk8Module());
     try (InputStream in = ConfigLoader.class.getResourceAsStream(configFile)) {
       JsonNode rootNode = mapper.readTree(in);
       ConfigVersion version = ConfigVersion.valueOf(rootNode.get("version").asText());

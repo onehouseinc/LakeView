@@ -4,14 +4,12 @@ import com.onehouse.config.Config;
 import com.onehouse.config.ConfigVersion;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.config.common.OnehouseClientConfig;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.extern.jackson.Jacksonized;
+import lombok.Setter;
 
-@Builder
 @Getter
-@Jacksonized
+@Setter
 public class ConfigV1 implements Config {
   @NonNull private String version;
   @NonNull private OnehouseClientConfig onehouseClientConfig;
