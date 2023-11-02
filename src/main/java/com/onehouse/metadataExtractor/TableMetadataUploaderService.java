@@ -17,7 +17,7 @@ import com.onehouse.api.request.InitializeTableMetricsCheckpointRequest;
 import com.onehouse.api.request.UpsertTableMetricsCheckpointRequest;
 import com.onehouse.metadataExtractor.models.Checkpoint;
 import com.onehouse.metadataExtractor.models.Table;
-import com.onehouse.storage.AsyncStorageLister;
+import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.PresignedUrlFileUploader;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
@@ -36,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TableMetadataUploaderService {
-  private final AsyncStorageLister asyncStorageLister;
+  private final AsyncStorageClient asyncStorageClient;
   private final HoodiePropertiesReader hoodiePropertiesReader;
   private final PresignedUrlFileUploader presignedUrlFileUploader;
   private final StorageUtils storageUtils;
@@ -47,13 +47,13 @@ public class TableMetadataUploaderService {
 
   @Inject
   public TableMetadataUploaderService(
-      @Nonnull AsyncStorageLister asyncStorageLister,
+      @Nonnull AsyncStorageClient asyncStorageClient,
       @Nonnull HoodiePropertiesReader hoodiePropertiesReader,
       @Nonnull PresignedUrlFileUploader presignedUrlFileUploader,
       @Nonnull StorageUtils storageUtils,
       @Nonnull OnehouseApiClient onehouseApiClient,
       @Nonnull ExecutorService executorService) {
-    this.asyncStorageLister = asyncStorageLister;
+    this.asyncStorageClient = asyncStorageClient;
     this.hoodiePropertiesReader = hoodiePropertiesReader;
     this.presignedUrlFileUploader = presignedUrlFileUploader;
     this.storageUtils = storageUtils;
@@ -139,7 +139,7 @@ public class TableMetadataUploaderService {
     String pathSuffix = getPathSuffix(commitTimelineType);
 
     String directoryUrl = storageUtils.constructFilePath(table.getAbsoluteTableUrl(), pathSuffix);
-    return asyncStorageLister
+    return asyncStorageClient
         .listFiles(directoryUrl)
         .thenCompose(
             filesList -> {

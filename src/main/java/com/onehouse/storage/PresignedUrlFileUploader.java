@@ -10,18 +10,18 @@ import okhttp3.RequestBody;
 
 public class PresignedUrlFileUploader {
 
-  private final AsyncStorageReader asyncStorageReader;
+  private final AsyncStorageClient asyncStorageClient;
   private final OkHttpClient okHttpClient;
 
   @Inject
   public PresignedUrlFileUploader(
-      @Nonnull AsyncStorageReader asyncStorageReader, @Nonnull OkHttpClient okHttpClient) {
-    this.asyncStorageReader = asyncStorageReader;
+      @Nonnull AsyncStorageClient asyncStorageClient, @Nonnull OkHttpClient okHttpClient) {
+    this.asyncStorageClient = asyncStorageClient;
     this.okHttpClient = okHttpClient;
   }
 
   public CompletableFuture<Void> uploadFileToPresignedUrl(String presignedUrl, String fileUrl) {
-    return asyncStorageReader
+    return asyncStorageClient
         .readFileAsBytes(fileUrl)
         .thenComposeAsync(
             response -> {

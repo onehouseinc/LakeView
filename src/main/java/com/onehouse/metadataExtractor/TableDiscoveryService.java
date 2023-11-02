@@ -9,7 +9,7 @@ import com.onehouse.config.configV1.Database;
 import com.onehouse.config.configV1.MetadataExtractorConfig;
 import com.onehouse.config.configV1.ParserConfig;
 import com.onehouse.metadataExtractor.models.Table;
-import com.onehouse.storage.AsyncStorageLister;
+import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
 import java.nio.file.Path;
@@ -25,7 +25,7 @@ import javax.annotation.Nonnull;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class TableDiscoveryService {
-  private final AsyncStorageLister asyncStorageLister;
+  private final AsyncStorageClient asyncStorageClient;
   private final StorageUtils storageUtils;
   private final MetadataExtractorConfig metadataExtractorConfig;
   private final ExecutorService executorService;
@@ -33,11 +33,11 @@ public class TableDiscoveryService {
 
   @Inject
   public TableDiscoveryService(
-      @Nonnull AsyncStorageLister asyncStorageLister,
+      @Nonnull AsyncStorageClient asyncStorageClient,
       @Nonnull StorageUtils storageUtils,
       @Nonnull Config config,
       @Nonnull ExecutorService executorService) {
-    this.asyncStorageLister = asyncStorageLister;
+    this.asyncStorageClient = asyncStorageClient;
     this.storageUtils = storageUtils;
     this.metadataExtractorConfig = ((ConfigV1) config).getMetadataExtractorConfig();
     this.executorService = executorService;
@@ -81,7 +81,7 @@ public class TableDiscoveryService {
 
   private CompletableFuture<Set<Table>> discoverTablesInPath(
       String path, String lakeName, String databaseName) {
-    return asyncStorageLister
+    return asyncStorageClient
         .listFiles(path)
         .thenComposeAsync(
             listedFiles -> {

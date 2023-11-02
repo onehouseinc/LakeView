@@ -5,14 +5,12 @@ import com.google.inject.Provides;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.config.configV1.ConfigV1;
-import com.onehouse.storage.AsyncStorageLister;
-import com.onehouse.storage.AsyncStorageReader;
-import com.onehouse.storage.GCSAsyncStorageLister;
-import com.onehouse.storage.GCSAsyncStorageReader;
-import com.onehouse.storage.S3AsyncStorageLister;
-import com.onehouse.storage.S3AsyncStorageReader;
+import com.onehouse.storage.AsyncStorageClient;
+import com.onehouse.storage.GCSAsyncStorageClient;
+import com.onehouse.storage.S3AsyncStorageClient;
 import com.onehouse.storage.StorageUtils;
-import com.onehouse.storage.providers.ClientProviderFactory;
+import com.onehouse.storage.providers.GcsClientProvider;
+import com.onehouse.storage.providers.S3AsyncClientProvider;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
@@ -48,42 +46,19 @@ public class RuntimeModule extends AbstractModule {
 
   @Provides
   @Singleton
-  static AsyncStorageLister providesAsyncStorageLister(
-      Config config,
-      ClientProviderFactory clientProviderFactory,
-      StorageUtils storageUtils,
-      ExecutorService executorService) {
+  static AsyncStorageClient providesAsyncStorageClient(
+      Config config, StorageUtils storageUtils, ExecutorService executorService) {
     FileSystemConfiguration fileSystemConfiguration =
         ((ConfigV1) config).getFileSystemConfiguration();
     if (fileSystemConfiguration.getS3Config() != null) {
-      return new S3AsyncStorageLister(
-          clientProviderFactory.getS3AsyncClientProvider(), storageUtils);
+      return new S3AsyncStorageClient(
+          new S3AsyncClientProvider(config, executorService), storageUtils);
     } else if (fileSystemConfiguration.getGcsConfig() != null) {
-      return new GCSAsyncStorageLister(
-          clientProviderFactory.getGcsClientProvider(), storageUtils, executorService);
+      return new GCSAsyncStorageClient(
+          new GcsClientProvider(config), storageUtils, executorService);
     }
     throw new IllegalArgumentException(
-        "Config should have either one of S3/Gcs filesystem configs");
-  }
-
-  @Provides
-  @Singleton
-  static AsyncStorageReader providesAsyncStorageReader(
-      Config config,
-      ClientProviderFactory clientProviderFactory,
-      StorageUtils storageUtils,
-      ExecutorService executorService) {
-    FileSystemConfiguration fileSystemConfiguration =
-        ((ConfigV1) config).getFileSystemConfiguration();
-    if (fileSystemConfiguration.getS3Config() != null) {
-      return new S3AsyncStorageReader(
-          clientProviderFactory.getS3AsyncClientProvider(), storageUtils);
-    } else if (fileSystemConfiguration.getGcsConfig() != null) {
-      return new GCSAsyncStorageReader(
-          clientProviderFactory.getGcsClientProvider(), storageUtils, executorService);
-    }
-    throw new IllegalArgumentException(
-        "Config should have either one of S3/Gcs filesystem configs");
+        "Config should have either one of S3/GCS filesystem configs");
   }
 
   @Provides

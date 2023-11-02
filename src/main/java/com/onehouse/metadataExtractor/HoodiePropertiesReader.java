@@ -3,21 +3,21 @@ package com.onehouse.metadataExtractor;
 import com.google.inject.Inject;
 import com.onehouse.api.request.TableType;
 import com.onehouse.metadataExtractor.models.ParsedHudiProperties;
-import com.onehouse.storage.AsyncStorageReader;
+import com.onehouse.storage.AsyncStorageClient;
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
 public class HoodiePropertiesReader {
-  private final AsyncStorageReader asyncStorageReader;
+  private final AsyncStorageClient asyncStorageClient;
 
   @Inject
-  public HoodiePropertiesReader(AsyncStorageReader asyncStorageReader) {
-    this.asyncStorageReader = asyncStorageReader;
+  public HoodiePropertiesReader(AsyncStorageClient asyncStorageClient) {
+    this.asyncStorageClient = asyncStorageClient;
   }
 
   public CompletableFuture<ParsedHudiProperties> readHoodieProperties(String path) {
-    return asyncStorageReader
+    return asyncStorageClient
         .readFileAsInputStream(path)
         .thenApplyAsync(
             inputStream -> {
