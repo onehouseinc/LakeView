@@ -8,6 +8,8 @@ import com.onehouse.config.configV1.ConfigV1;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.SdkAdvancedAsyncClientOption;
@@ -18,9 +20,11 @@ import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 @Getter
 public class S3AsyncClientProvider {
   private final S3AsyncClient s3AsyncClient;
+  private static final Logger logger = LoggerFactory.getLogger(S3AsyncClientProvider.class);
 
   @Inject
   public S3AsyncClientProvider(@Nonnull Config config, @Nonnull ExecutorService executorService) {
+    logger.debug("Instantiating S3 storage client");
     FileSystemConfiguration fileSystemConfiguration =
         ((ConfigV1) config).getFileSystemConfiguration();
     validateS3Config(fileSystemConfiguration.getS3Config());
@@ -29,6 +33,7 @@ public class S3AsyncClientProvider {
 
     if (fileSystemConfiguration.getS3Config().getAccessKey().isPresent()
         && fileSystemConfiguration.getS3Config().getAccessSecret().isPresent()) {
+      logger.debug("Using provided accessKey and accessSecret for authentication");
       AwsBasicCredentials awsCredentials =
           AwsBasicCredentials.create(
               fileSystemConfiguration.getS3Config().getAccessKey().get(),

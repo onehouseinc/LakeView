@@ -9,6 +9,6 @@ import lombok.NonNull;
 @Getter
 public class File {
   @NonNull private String filename;
-  @NonNull private Instant createdAt;
+  @NonNull private Instant lastModifiedAt;
   @NonNull private Boolean isDirectory;
 }

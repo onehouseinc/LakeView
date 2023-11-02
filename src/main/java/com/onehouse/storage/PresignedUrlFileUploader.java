@@ -7,11 +7,13 @@ import javax.annotation.Nonnull;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PresignedUrlFileUploader {
-
   private final AsyncStorageClient asyncStorageClient;
   private final OkHttpClient okHttpClient;
+  private static final Logger logger = LoggerFactory.getLogger(PresignedUrlFileUploader.class);
 
   @Inject
   public PresignedUrlFileUploader(
@@ -21,6 +23,7 @@ public class PresignedUrlFileUploader {
   }
 
   public CompletableFuture<Void> uploadFileToPresignedUrl(String presignedUrl, String fileUrl) {
+    logger.debug(String.format("Uploading %s to retrieved presigned url", presignedUrl));
     return asyncStorageClient
         .readFileAsBytes(fileUrl)
         .thenComposeAsync(

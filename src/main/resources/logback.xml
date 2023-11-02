@@ -5,6 +5,10 @@
         </encoder>
     </appender>
 
+    <logger name="software.amazon" level="info"/>
+    <logger name="com.google.cloud" level="info"/>
+    <logger name="io.netty" level="info" />
+
     <root level="debug">
         <appender-ref ref="STDOUT" />
     </root>

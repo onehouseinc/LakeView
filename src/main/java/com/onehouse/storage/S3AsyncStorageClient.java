@@ -1,5 +1,7 @@
 package com.onehouse.storage;
 
+import static com.onehouse.storage.StorageConstants.LIST_API_FILE_LIMIT;
+
 import com.google.inject.Inject;
 import com.onehouse.storage.models.File;
 import com.onehouse.storage.providers.S3AsyncClientProvider;
@@ -10,6 +12,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.BytesWrapper;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
@@ -20,6 +24,7 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 public class S3AsyncStorageClient implements AsyncStorageClient {
   private final S3AsyncClientProvider s3AsyncClientProvider;
   private final StorageUtils storageUtils;
+  private static final Logger logger = LoggerFactory.getLogger(S3AsyncStorageClient.class);
 
   @Inject
   public S3AsyncStorageClient(
@@ -29,14 +34,20 @@ public class S3AsyncStorageClient implements AsyncStorageClient {
   }
 
   @Override
-  public CompletableFuture<List<File>> listFiles(String s3path) {
-    String BucketName = storageUtils.getS3BucketNameFromS3Url(s3path);
-    String prefix = storageUtils.getPathFromUrl(s3path);
+  public CompletableFuture<List<File>> listFiles(String s3Url) {
+    logger.debug(String.format("Listing files in %s", s3Url));
+    String BucketName = storageUtils.getS3BucketNameFromS3Url(s3Url);
+    String prefix = storageUtils.getPathFromUrl(s3Url);
 
     // ensure prefix which is not the root dir always ends with "/"
     prefix = !Objects.equals(prefix, "") && !prefix.endsWith("/") ? prefix + "/" : prefix;
     ListObjectsV2Request listObjectsV2Request =
-        ListObjectsV2Request.builder().bucket(BucketName).prefix(prefix).delimiter("/").build();
+        ListObjectsV2Request.builder()
+            .bucket(BucketName)
+            .prefix(prefix)
+            .maxKeys(LIST_API_FILE_LIMIT)
+            .delimiter("/")
+            .build();
     String finalPrefix = prefix;
     return s3AsyncClientProvider
         .getS3AsyncClient()
@@ -49,7 +60,7 @@ public class S3AsyncStorageClient implements AsyncStorageClient {
                           s3Object ->
                               File.builder()
                                   .filename(s3Object.key().replaceFirst(finalPrefix, ""))
-                                  .createdAt(s3Object.lastModified())
+                                  .lastModifiedAt(s3Object.lastModified())
                                   .isDirectory(false)
                                   .build())
                       .collect(Collectors.toList());
@@ -60,7 +71,7 @@ public class S3AsyncStorageClient implements AsyncStorageClient {
                               File.builder()
                                   .filename(commonPrefix.prefix().replaceFirst(finalPrefix, ""))
                                   .isDirectory(true)
-                                  .createdAt(Instant.EPOCH)
+                                  .lastModifiedAt(Instant.EPOCH)
                                   .build())
                       .collect(Collectors.toList()));
               return files;
@@ -78,6 +89,7 @@ public class S3AsyncStorageClient implements AsyncStorageClient {
   }
 
   private CompletableFuture<ResponseBytes<GetObjectResponse>> readFileFromS3(String s3Url) {
+    logger.debug(String.format("Reading S3 file:  %s", s3Url));
     GetObjectRequest getObjectRequest =
         GetObjectRequest.builder()
             .bucket(storageUtils.getS3BucketNameFromS3Url(s3Url))

@@ -14,14 +14,18 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import javax.annotation.Nonnull;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Getter
 public class GcsClientProvider {
 
   private final Storage gcsClient;
+  private static final Logger logger = LoggerFactory.getLogger(GcsClientProvider.class);
 
   @Inject
   public GcsClientProvider(@Nonnull Config config) {
+    logger.debug("Instantiating GCS storage client");
     FileSystemConfiguration fileSystemConfiguration =
         ((ConfigV1) config).getFileSystemConfiguration();
     validateGcsConfig(fileSystemConfiguration.getGcsConfig());

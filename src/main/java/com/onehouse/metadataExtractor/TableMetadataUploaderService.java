@@ -63,7 +63,7 @@ public class TableMetadataUploaderService {
   }
 
   public CompletableFuture<Void> processTables(Set<Table> tablesToProcess) {
-    logger.debug("uploading metadata of following tables: " + tablesToProcess);
+    logger.debug("Uploading metadata of following tables: " + tablesToProcess);
     List<CompletableFuture<Void>> processTablesFuture = new ArrayList<>();
     for (Table table : tablesToProcess) {
       processTablesFuture.add(processTable(table));
@@ -75,7 +75,7 @@ public class TableMetadataUploaderService {
 
   private CompletableFuture<Void> processTable(Table table) {
     UUID tableId = getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUrl());
-    logger.debug("fetching checkpoint for table: " + table);
+    logger.debug("Fetching checkpoint for table: " + table);
     return onehouseApiClient
         .getTableMetricsCheckpoint(tableId.toString())
         .thenCompose(
@@ -84,7 +84,7 @@ public class TableMetadataUploaderService {
               if (getTableMetricsCheckpointResponse.isFailure()
                   && getTableMetricsCheckpointResponse.getStatusCode() == 404) {
                 // checkpoint not found, table needs to be registered
-                logger.debug("checkpoint not found, processing table for the first time: " + table);
+                logger.debug("Checkpoint not found, processing table for the first time: " + table);
                 return hoodiePropertiesReader
                     .readHoodieProperties(getHoodiePropertiesFilePath(table))
                     .thenCompose(
@@ -220,7 +220,7 @@ public class TableMetadataUploaderService {
         Checkpoint.builder()
             .batchId(PreviousCheckpoint.getBatchId() + batchIndex + 1)
             .lastUploadedFile(lastUploadedFile.getFilename())
-            .checkpoint(lastUploadedFile.getCreatedAt())
+            .checkpoint(lastUploadedFile.getLastModifiedAt())
             .isArchivedCommitsProcessed(
                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType))
             .isArchivedCommitsProcessed(batchIndex >= numBatches - 1) // TODO: handle case where
@@ -262,8 +262,8 @@ public class TableMetadataUploaderService {
             .filter(file -> !file.getIsDirectory()) // filter out directories
             .filter( // hoodie properties file is uploaded only once
                 file -> !file.getFilename().startsWith(HOODIE_PROPERTIES_FILE))
-            .filter(file -> !file.getCreatedAt().isBefore(checkpoint.getCheckpoint()))
-            .sorted(Comparator.comparing(File::getCreatedAt).thenComparing(File::getFilename))
+            .filter(file -> !file.getLastModifiedAt().isBefore(checkpoint.getCheckpoint()))
+            .sorted(Comparator.comparing(File::getLastModifiedAt).thenComparing(File::getFilename))
             .collect(Collectors.toList());
 
     // index of the last file which was uploaded

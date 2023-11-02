@@ -23,6 +23,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TableDiscoveryService {
   private final AsyncStorageClient asyncStorageClient;
@@ -30,6 +32,7 @@ public class TableDiscoveryService {
   private final MetadataExtractorConfig metadataExtractorConfig;
   private final ExecutorService executorService;
   private final List<String> excludedPrefixes;
+  private static final Logger logger = LoggerFactory.getLogger(TableDiscoveryService.class);
 
   @Inject
   public TableDiscoveryService(
@@ -45,6 +48,7 @@ public class TableDiscoveryService {
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
+    logger.debug(String.format("Starting table discover service, excluding %s", excludedPrefixes));
     List<Pair<String, CompletableFuture<Set<Table>>>> discoveredTablesFuture = new ArrayList<>();
 
     for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
@@ -58,7 +62,11 @@ public class TableDiscoveryService {
       }
     }
 
-    return CompletableFuture.allOf(discoveredTablesFuture.toArray(new CompletableFuture[0]))
+    return CompletableFuture.allOf(
+            discoveredTablesFuture.stream()
+                .map(Pair::getRight)
+                .collect(Collectors.toList())
+                .toArray(new CompletableFuture[0]))
         .thenApply(
             ignored -> {
               Set<Table> allTablePaths = ConcurrentHashMap.newKeySet();
@@ -81,6 +89,7 @@ public class TableDiscoveryService {
 
   private CompletableFuture<Set<Table>> discoverTablesInPath(
       String path, String lakeName, String databaseName) {
+    logger.debug(String.format("Discovering tables in %s", path));
     return asyncStorageClient
         .listFiles(path)
         .thenComposeAsync(

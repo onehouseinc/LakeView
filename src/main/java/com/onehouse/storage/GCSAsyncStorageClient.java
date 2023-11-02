@@ -1,5 +1,7 @@
 package com.onehouse.storage;
 
+import static com.onehouse.storage.StorageConstants.LIST_API_FILE_LIMIT;
+
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Bucket;
@@ -19,11 +21,14 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import lombok.SneakyThrows;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GCSAsyncStorageClient implements AsyncStorageClient {
   private final GcsClientProvider gcsClientProvider;
   private final StorageUtils storageUtils;
   private final ExecutorService executorService;
+  private static final Logger logger = LoggerFactory.getLogger(GCSAsyncStorageClient.class);
 
   @Inject
   public GCSAsyncStorageClient(
@@ -39,6 +44,7 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
   public CompletableFuture<List<File>> listFiles(String gcsUrl) {
     return CompletableFuture.supplyAsync(
         () -> {
+          logger.debug(String.format("listing files in %s", gcsUrl));
           Bucket bucket =
               gcsClientProvider.getGcsClient().get(storageUtils.getGcsBucketNameFromPath(gcsUrl));
           String prefix = storageUtils.getPathFromUrl(gcsUrl);
@@ -48,7 +54,9 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
           Iterable<Blob> blobs =
               bucket
                   .list(
-                      Storage.BlobListOption.prefix(prefix), Storage.BlobListOption.delimiter("/"))
+                      Storage.BlobListOption.prefix(prefix),
+                      Storage.BlobListOption.delimiter("/"),
+                      Storage.BlobListOption.pageSize(LIST_API_FILE_LIMIT))
                   .iterateAll();
           String finalPrefix = prefix;
           return StreamSupport.stream(blobs.spliterator(), false)
@@ -56,7 +64,7 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
                   blob ->
                       File.builder()
                           .filename(blob.getName().replaceFirst(finalPrefix, ""))
-                          .createdAt(
+                          .lastModifiedAt(
                               Instant.ofEpochMilli(!blob.isDirectory() ? blob.getCreateTime() : 0))
                           .isDirectory(blob.isDirectory())
                           .build())
@@ -67,6 +75,7 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
 
   @Override
   public CompletableFuture<InputStream> readFileAsInputStream(String gcsUrl) {
+    logger.debug(String.format("Reading GCS file: %s", gcsUrl));
     return CompletableFuture.supplyAsync(
         () -> {
           Blob blob =

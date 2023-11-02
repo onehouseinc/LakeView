@@ -10,7 +10,7 @@ public class StorageUtils {
     String prefix = "";
 
     // Remove the scheme and bucket name from the S3 path
-    int startIndex = url.indexOf('/', 5); // Skip 's3://'
+    int startIndex = url.indexOf('/', 5); // Skip 's3://' and 'gs://'
     if (startIndex != -1) {
       prefix = url.substring(startIndex + 1);
     }
