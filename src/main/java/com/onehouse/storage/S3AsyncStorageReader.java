@@ -6,8 +6,10 @@ import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
 import software.amazon.awssdk.core.BytesWrapper;
+import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 public class S3AsyncStorageReader implements AsyncStorageReader {
   private final S3AsyncClientProvider s3AsyncClientProvider;
@@ -21,16 +23,24 @@ public class S3AsyncStorageReader implements AsyncStorageReader {
   }
 
   @Override
-  public CompletableFuture<InputStream> readFile(String s3Path) {
+  public CompletableFuture<InputStream> readFileAsInputStream(String s3Url) {
+    return readFileFromS3(s3Url).thenApplyAsync(BytesWrapper::asInputStream);
+  }
+
+  @Override
+  public CompletableFuture<byte[]> readFileAsBytes(String s3Url) {
+    return readFileFromS3(s3Url).thenApplyAsync(BytesWrapper::asByteArray);
+  }
+
+  private CompletableFuture<ResponseBytes<GetObjectResponse>> readFileFromS3(String s3Url) {
     GetObjectRequest getObjectRequest =
         GetObjectRequest.builder()
-            .bucket(storageUtils.getS3BucketNameFromS3Url(s3Path))
-            .key(storageUtils.getPathFromUrl(s3Path))
+            .bucket(storageUtils.getS3BucketNameFromS3Url(s3Url))
+            .key(storageUtils.getPathFromUrl(s3Url))
             .build();
 
     return s3AsyncClientProvider
         .getS3AsyncClient()
-        .getObject(getObjectRequest, AsyncResponseTransformer.toBytes())
-        .thenApplyAsync(BytesWrapper::asInputStream);
+        .getObject(getObjectRequest, AsyncResponseTransformer.toBytes());
   }
 }

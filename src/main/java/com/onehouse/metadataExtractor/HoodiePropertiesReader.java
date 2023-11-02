@@ -18,7 +18,7 @@ public class HoodiePropertiesReader {
 
   public CompletableFuture<ParsedHudiProperties> readHoodieProperties(String path) {
     return asyncStorageReader
-        .readFile(path)
+        .readFileAsInputStream(path)
         .thenApplyAsync(
             inputStream -> {
               Properties properties = new Properties();

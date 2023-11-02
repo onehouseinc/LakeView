@@ -1,11 +1,18 @@
 package com.onehouse;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.BindingAnnotation;
 import com.google.inject.Provides;
 import com.onehouse.config.Config;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+import com.onehouse.config.common.FileSystemConfiguration;
+import com.onehouse.config.configV1.ConfigV1;
+import com.onehouse.storage.AsyncStorageLister;
+import com.onehouse.storage.AsyncStorageReader;
+import com.onehouse.storage.GCSAsyncStorageLister;
+import com.onehouse.storage.GCSAsyncStorageReader;
+import com.onehouse.storage.S3AsyncStorageLister;
+import com.onehouse.storage.S3AsyncStorageReader;
+import com.onehouse.storage.StorageUtils;
+import com.onehouse.storage.providers.ClientProviderFactory;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
@@ -27,17 +34,9 @@ public class RuntimeModule extends AbstractModule {
     this.config = config;
   }
 
-  @Retention(RetentionPolicy.RUNTIME)
-  @BindingAnnotation
-  @interface ApplicationExecutor {}
-
-  @Retention(RetentionPolicy.RUNTIME)
-  @BindingAnnotation
-  @interface SharedIOExecutor {}
-
   @Provides
   @Singleton
-  static OkHttpClient providesOkHttpClient(@SharedIOExecutor ExecutorService executorService) {
+  static OkHttpClient providesOkHttpClient(ExecutorService executorService) {
     Dispatcher dispatcher = new Dispatcher(executorService);
     return new OkHttpClient.Builder()
         .readTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -47,43 +46,51 @@ public class RuntimeModule extends AbstractModule {
         .build();
   }
 
-  // TODO: remove if unused
   @Provides
   @Singleton
-  @ApplicationExecutor
-  static ExecutorService providesApplicationExecutor() {
-    class ApplicationThreadFactory implements ForkJoinPool.ForkJoinWorkerThreadFactory {
-      private static final String THREAD_GROUP_NAME_TEMPLATE = "metadata-extractor-%d";
-      private final AtomicInteger counter = new AtomicInteger(1);
-
-      @Override
-      public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
-        return new ForkJoinWorkerThread(pool) {
-          {
-            setName(String.format(THREAD_GROUP_NAME_TEMPLATE, counter.getAndIncrement()));
-          }
-        };
-      }
+  static AsyncStorageLister providesAsyncStorageLister(
+      Config config,
+      ClientProviderFactory clientProviderFactory,
+      StorageUtils storageUtils,
+      ExecutorService executorService) {
+    FileSystemConfiguration fileSystemConfiguration =
+        ((ConfigV1) config).getFileSystemConfiguration();
+    if (fileSystemConfiguration.getS3Config() != null) {
+      return new S3AsyncStorageLister(
+          clientProviderFactory.getS3AsyncClientProvider(), storageUtils);
+    } else if (fileSystemConfiguration.getGcsConfig() != null) {
+      return new GCSAsyncStorageLister(
+          clientProviderFactory.getGcsClientProvider(), storageUtils, executorService);
     }
-
-    return new ForkJoinPool(
-        Runtime.getRuntime().availableProcessors(),
-        new ApplicationThreadFactory(),
-        (thread, throwable) -> {
-          logger.error(
-              String.format("Uncaught exception in a thread (%s)", thread.getName()), throwable);
-        },
-        // NOTE: It's squarely important to make sure
-        // that `asyncMode` is true in async applications
-        true);
+    throw new IllegalArgumentException(
+        "Config should have either one of S3/Gcs filesystem configs");
   }
 
   @Provides
   @Singleton
-  @SharedIOExecutor
-  static ExecutorService providesSharedIOExecutor() {
+  static AsyncStorageReader providesAsyncStorageReader(
+      Config config,
+      ClientProviderFactory clientProviderFactory,
+      StorageUtils storageUtils,
+      ExecutorService executorService) {
+    FileSystemConfiguration fileSystemConfiguration =
+        ((ConfigV1) config).getFileSystemConfiguration();
+    if (fileSystemConfiguration.getS3Config() != null) {
+      return new S3AsyncStorageReader(
+          clientProviderFactory.getS3AsyncClientProvider(), storageUtils);
+    } else if (fileSystemConfiguration.getGcsConfig() != null) {
+      return new GCSAsyncStorageReader(
+          clientProviderFactory.getGcsClientProvider(), storageUtils, executorService);
+    }
+    throw new IllegalArgumentException(
+        "Config should have either one of S3/Gcs filesystem configs");
+  }
+
+  @Provides
+  @Singleton
+  static ExecutorService providesExecutorService() {
     class ApplicationThreadFactory implements ForkJoinPool.ForkJoinWorkerThreadFactory {
-      private static final String THREAD_GROUP_NAME_TEMPLATE = "gw-shared-io-%d";
+      private static final String THREAD_GROUP_NAME_TEMPLATE = "metadata-extractor-io-%d";
       private final AtomicInteger counter = new AtomicInteger(1);
 
       @Override
@@ -98,7 +105,7 @@ public class RuntimeModule extends AbstractModule {
 
     return new ForkJoinPool(
         Runtime.getRuntime().availableProcessors()
-            * IO_WORKLOAD_NUM_THREAD_MULTIPLIER, // more threads in IO thread pool due to nature of
+            * IO_WORKLOAD_NUM_THREAD_MULTIPLIER, // more threads as most operation are IO intensive
         // workload
         new ApplicationThreadFactory(),
         (thread, throwable) -> {

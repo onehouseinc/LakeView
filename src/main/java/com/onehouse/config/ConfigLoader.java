@@ -23,9 +23,4 @@ public class ConfigLoader {
       throw new RuntimeException("Failed to load config", e);
     }
   }
-
-  public static void main(String[] args) {
-    Config config = loadConfig("/testConfig.yaml");
-    System.out.println(config.getVersion());
-  }
 }

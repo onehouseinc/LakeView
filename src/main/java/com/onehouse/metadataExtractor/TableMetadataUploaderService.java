@@ -18,7 +18,7 @@ import com.onehouse.api.request.UpsertTableMetricsCheckpointRequest;
 import com.onehouse.metadataExtractor.models.Checkpoint;
 import com.onehouse.metadataExtractor.models.Table;
 import com.onehouse.storage.AsyncStorageLister;
-import com.onehouse.storage.S3AsyncFileUploader;
+import com.onehouse.storage.PresignedUrlFileUploader;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 public class TableMetadataUploaderService {
   private final AsyncStorageLister asyncStorageLister;
   private final HoodiePropertiesReader hoodiePropertiesReader;
-  private final S3AsyncFileUploader s3AsyncFileUploader;
+  private final PresignedUrlFileUploader presignedUrlFileUploader;
   private final StorageUtils storageUtils;
   private final OnehouseApiClient onehouseApiClient;
   private final ExecutorService executorService;
@@ -49,13 +49,13 @@ public class TableMetadataUploaderService {
   public TableMetadataUploaderService(
       @Nonnull AsyncStorageLister asyncStorageLister,
       @Nonnull HoodiePropertiesReader hoodiePropertiesReader,
-      @Nonnull S3AsyncFileUploader s3AsyncFileUploader,
+      @Nonnull PresignedUrlFileUploader presignedUrlFileUploader,
       @Nonnull StorageUtils storageUtils,
       @Nonnull OnehouseApiClient onehouseApiClient,
       @Nonnull ExecutorService executorService) {
     this.asyncStorageLister = asyncStorageLister;
     this.hoodiePropertiesReader = hoodiePropertiesReader;
-    this.s3AsyncFileUploader = s3AsyncFileUploader;
+    this.presignedUrlFileUploader = presignedUrlFileUploader;
     this.storageUtils = storageUtils;
     this.onehouseApiClient = onehouseApiClient;
     this.executorService = executorService;
@@ -198,7 +198,7 @@ public class TableMetadataUploaderService {
               List<CompletableFuture<Void>> uploadFutures = new ArrayList<>();
               for (int i = 0; i < batch.size(); i++) {
                 uploadFutures.add(
-                    s3AsyncFileUploader.uploadFileToPresignedUrl(
+                    presignedUrlFileUploader.uploadFileToPresignedUrl(
                         generateCommitMetadataUploadUrlResponse.getUploadUrls().get(i),
                         storageUtils.constructFilePath(directoryUrl, batch.get(i).getFilename())));
               }
