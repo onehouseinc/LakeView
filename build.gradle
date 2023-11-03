@@ -73,8 +73,8 @@ tasks.sonar {
     onlyIf { System.env.'GITHUB_ACTIONS' }
 }
 
-tasks.getByPath('sonarqube').setDependsOn([])
-tasks.getByPath('sonarqube').setMustRunAfter([])
+tasks.getByPath('sonar').setDependsOn([])
+tasks.getByPath('sonar').setMustRunAfter([])
 
 group = 'com.onehouse'
 version = '1.0-SNAPSHOT'
