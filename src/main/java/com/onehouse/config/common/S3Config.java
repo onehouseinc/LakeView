@@ -13,6 +13,6 @@ public class S3Config {
   @NonNull private String region;
 
   // optional to be used for quick testing
-  private Optional<String> accessKey = Optional.empty();
-  private Optional<String> accessSecret = Optional.empty();
+  @Builder.Default private Optional<String> accessKey = Optional.empty();
+  @Builder.Default private Optional<String> accessSecret = Optional.empty();
 }
