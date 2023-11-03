@@ -4,7 +4,7 @@ plugins {
     id "io.freefair.lombok" version "8.4"
     id 'com.diffplug.spotless' version '6.22.0'
     id 'com.github.johnrengelman.shadow' version '7.1.0'
-    id 'org.sonarqube' version '3.3'
+    id 'org.sonarqube' version '4.4.1.3373'
 }
 
 spotless {
@@ -49,7 +49,7 @@ tasks.register('jacocoRootReport', JacocoReport) {
 
 sonarqube {
     properties {
-        property "sonar.projectKey", "onehouseinc_gateway-controller"
+        property "sonar.projectKey", "onehouseinc_hudi-metadata-extractor"
         property "sonar.organization", "onehouseinc"
         property "sonar.host.url", "https://sonarcloud.io"
         property "sonar.scm.provider", "git"
