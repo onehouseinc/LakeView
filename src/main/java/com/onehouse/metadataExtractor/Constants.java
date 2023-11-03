@@ -15,8 +15,8 @@ public class Constants {
   public static final Checkpoint INITIAL_CHECKPOINT =
       Checkpoint.builder()
           .batchId(0)
-          .checkpoint(Instant.EPOCH)
+          .checkpointTimestamp(Instant.EPOCH)
           .lastUploadedFile("")
-          .isArchivedCommitsProcessed(false)
+          .archivedCommitsProcessed(false)
           .build();
 }

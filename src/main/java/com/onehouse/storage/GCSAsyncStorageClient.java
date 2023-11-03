@@ -1,7 +1,5 @@
 package com.onehouse.storage;
 
-import static com.onehouse.storage.StorageConstants.LIST_API_FILE_LIMIT;
-
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Bucket;
@@ -39,22 +37,20 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
   }
 
   @Override
-  public CompletableFuture<List<File>> listFiles(String gcsUrl) {
+  public CompletableFuture<List<File>> listAllFilesInDir(String gcsUri) {
     return CompletableFuture.supplyAsync(
         () -> {
-          logger.debug(String.format("listing files in %s", gcsUrl));
+          logger.debug(String.format("listing files in %s", gcsUri));
           Bucket bucket =
-              gcsClientProvider.getGcsClient().get(storageUtils.getGcsBucketNameFromPath(gcsUrl));
-          String prefix = storageUtils.getPathFromUrl(gcsUrl);
+              gcsClientProvider.getGcsClient().get(storageUtils.getGcsBucketNameFromPath(gcsUri));
+          String prefix = storageUtils.getPathFromUrl(gcsUri);
 
           // ensure prefix which is not the root dir always ends with "/"
           prefix = !Objects.equals(prefix, "") && !prefix.endsWith("/") ? prefix + "/" : prefix;
           Iterable<Blob> blobs =
               bucket
                   .list(
-                      Storage.BlobListOption.prefix(prefix),
-                      Storage.BlobListOption.delimiter("/"),
-                      Storage.BlobListOption.pageSize(LIST_API_FILE_LIMIT))
+                      Storage.BlobListOption.prefix(prefix), Storage.BlobListOption.delimiter("/"))
                   .iterateAll();
           String finalPrefix = prefix;
           return StreamSupport.stream(blobs.spliterator(), false)
@@ -71,8 +67,8 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
         executorService);
   }
 
-  public CompletableFuture<Blob> readBlob(String gcsUrl) {
-    logger.debug(String.format("Reading GCS file: %s", gcsUrl));
+  public CompletableFuture<Blob> readBlob(String gcsUri) {
+    logger.debug(String.format("Reading GCS file: %s", gcsUri));
     return CompletableFuture.supplyAsync(
         () -> {
           Blob blob =
@@ -80,8 +76,8 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
                   .getGcsClient()
                   .get(
                       BlobId.of(
-                          storageUtils.getGcsBucketNameFromPath(gcsUrl),
-                          storageUtils.getPathFromUrl(gcsUrl)));
+                          storageUtils.getGcsBucketNameFromPath(gcsUri),
+                          storageUtils.getPathFromUrl(gcsUri)));
           if (blob != null) {
             return blob;
           } else {
@@ -91,12 +87,12 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
   }
 
   @Override
-  public CompletableFuture<InputStream> readFileAsInputStream(String gcsUrl) {
-    return readBlob(gcsUrl).thenApply(blob -> Channels.newInputStream(blob.reader()));
+  public CompletableFuture<InputStream> readFileAsInputStream(String gcsUri) {
+    return readBlob(gcsUri).thenApply(blob -> Channels.newInputStream(blob.reader()));
   }
 
   @Override
-  public CompletableFuture<byte[]> readFileAsBytes(String gcsUrl) {
-    return readBlob(gcsUrl).thenApply(Blob::getContent);
+  public CompletableFuture<byte[]> readFileAsBytes(String gcsUri) {
+    return readBlob(gcsUri).thenApply(Blob::getContent);
   }
 }

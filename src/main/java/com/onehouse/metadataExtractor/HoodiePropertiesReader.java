@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 public class HoodiePropertiesReader {
   private final AsyncStorageClient asyncStorageClient;
-  private static final Logger logger = LoggerFactory.getLogger(HoodiePropertiesReader.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HoodiePropertiesReader.class);
 
   @Inject
   public HoodiePropertiesReader(AsyncStorageClient asyncStorageClient) {
@@ -23,7 +23,7 @@ public class HoodiePropertiesReader {
   }
 
   public CompletableFuture<ParsedHudiProperties> readHoodieProperties(String path) {
-    logger.debug(String.format("parsing %s file", path));
+    LOGGER.debug(String.format("parsing %s file", path));
     return asyncStorageClient
         .readFileAsInputStream(path)
         .thenApplyAsync(

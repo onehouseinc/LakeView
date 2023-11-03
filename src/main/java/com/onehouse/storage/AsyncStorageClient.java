@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface AsyncStorageClient {
-  CompletableFuture<List<File>> listFiles(String path);
+  CompletableFuture<List<File>> listAllFilesInDir(String path);
 
   CompletableFuture<InputStream> readFileAsInputStream(String path);
 

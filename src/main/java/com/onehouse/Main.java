@@ -21,7 +21,7 @@ public class Main {
       System.exit(1);
     }
 
-    String configFilePath = "/testConfig.yaml";
+    String configFilePath = args[0];
     Config config = ConfigLoader.loadConfig(configFilePath);
 
     Injector injector = Guice.createInjector(new RuntimeModule(config));

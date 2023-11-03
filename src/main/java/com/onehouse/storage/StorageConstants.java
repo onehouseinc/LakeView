@@ -9,5 +9,4 @@ public class StorageConstants {
   public static final Pattern GCS_PATH_PATTERN = Pattern.compile("^gs://([^/]+)(/.*)?");
   // https://cloud.google.com/compute/docs/naming-resources#resource-name-format
   public static final String GCP_RESOURCE_NAME_FORMAT = "^[a-z]([-a-z0-9]*[a-z0-9])$";
-  public static final int LIST_API_FILE_LIMIT = 5000;
 }

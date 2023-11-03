@@ -26,13 +26,17 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/*
+ * Discovers hudi tables by Parsing all folders (including nested folders) in provided base paths
+ * excluded paths will be skipped.
+ */
 public class TableDiscoveryService {
   private final AsyncStorageClient asyncStorageClient;
   private final StorageUtils storageUtils;
   private final MetadataExtractorConfig metadataExtractorConfig;
   private final ExecutorService executorService;
   private final List<String> excludedPrefixes;
-  private static final Logger logger = LoggerFactory.getLogger(TableDiscoveryService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TableDiscoveryService.class);
 
   @Inject
   public TableDiscoveryService(
@@ -48,7 +52,7 @@ public class TableDiscoveryService {
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
-    logger.debug(String.format("Starting table discover service, excluding %s", excludedPrefixes));
+    LOGGER.debug(String.format("Starting table discover service, excluding %s", excludedPrefixes));
     List<Pair<String, CompletableFuture<Set<Table>>>> discoveredTablesFuture = new ArrayList<>();
 
     for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
@@ -84,7 +88,7 @@ public class TableDiscoveryService {
                                 table.toBuilder()
                                     .relativeTablePath(
                                         getRelativeTablePathFromUrl(
-                                            pair.getLeft(), table.getAbsoluteTableUrl()))
+                                            pair.getLeft(), table.getAbsoluteTableUri()))
                                     .build())
                         .collect(Collectors.toSet());
                 allTablePaths.addAll(discoveredTables);
@@ -95,22 +99,22 @@ public class TableDiscoveryService {
 
   private CompletableFuture<Set<Table>> discoverTablesInPath(
       String path, String lakeName, String databaseName) {
-    logger.debug(String.format("Discovering tables in %s", path));
+    LOGGER.debug(String.format("Discovering tables in %s", path));
     return asyncStorageClient
-        .listFiles(path)
+        .listAllFilesInDir(path)
         .thenComposeAsync(
             listedFiles -> {
               Set<Table> tablePaths = ConcurrentHashMap.newKeySet();
               List<CompletableFuture<Void>> recursiveFutures = new ArrayList<>();
 
-              if (isTableFolder(listedFiles)) {
+              if (isHudiTableFolder(listedFiles)) {
                 Table table =
                     Table.builder()
-                        .absoluteTableUrl(path)
+                        .absoluteTableUri(path)
                         .databaseName(databaseName)
                         .lakeName(lakeName)
                         .build();
-                if (!isExcluded(table.getAbsoluteTableUrl())) {
+                if (!isExcluded(table.getAbsoluteTableUri())) {
                   tablePaths.add(table);
                 }
                 return CompletableFuture.completedFuture(tablePaths);
@@ -134,7 +138,11 @@ public class TableDiscoveryService {
             executorService);
   }
 
-  private static boolean isTableFolder(List<File> listedFiles) {
+  /*
+   *  checks the contents of a folder to see if it is a hudi table or not
+   *  a folder is a hudi table if it contains .hoodie folder within it
+   */
+  private static boolean isHudiTableFolder(List<File> listedFiles) {
     return listedFiles.stream().anyMatch(file -> file.getFilename().startsWith(HOODIE_FOLDER_NAME));
   }
 

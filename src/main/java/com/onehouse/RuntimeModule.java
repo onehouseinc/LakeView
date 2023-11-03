@@ -52,7 +52,7 @@ public class RuntimeModule extends AbstractModule {
         ((ConfigV1) config).getFileSystemConfiguration();
     if (fileSystemConfiguration.getS3Config() != null) {
       return new S3AsyncStorageClient(
-          new S3AsyncClientProvider(config, executorService), storageUtils);
+          new S3AsyncClientProvider(config, executorService), storageUtils, executorService);
     } else if (fileSystemConfiguration.getGcsConfig() != null) {
       return new GCSAsyncStorageClient(
           new GcsClientProvider(config), storageUtils, executorService);

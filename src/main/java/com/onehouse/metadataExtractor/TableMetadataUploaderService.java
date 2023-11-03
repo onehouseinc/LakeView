@@ -35,6 +35,9 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/*
+ * Uploads Instants in the active and archived timeline for the tables which were discovered
+ */
 public class TableMetadataUploaderService {
   private final AsyncStorageClient asyncStorageClient;
   private final HoodiePropertiesReader hoodiePropertiesReader;
@@ -43,7 +46,7 @@ public class TableMetadataUploaderService {
   private final OnehouseApiClient onehouseApiClient;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
-  private static final Logger logger = LoggerFactory.getLogger(TableMetadataUploaderService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TableMetadataUploaderService.class);
 
   @Inject
   public TableMetadataUploaderService(
@@ -62,20 +65,20 @@ public class TableMetadataUploaderService {
     this.mapper = new ObjectMapper();
   }
 
-  public CompletableFuture<Void> processTables(Set<Table> tablesToProcess) {
-    logger.debug("Uploading metadata of following tables: " + tablesToProcess);
+  public CompletableFuture<Void> uploadInstantsInTables(Set<Table> tablesToProcess) {
+    LOGGER.debug("Uploading metadata of following tables: " + tablesToProcess);
     List<CompletableFuture<Void>> processTablesFuture = new ArrayList<>();
     for (Table table : tablesToProcess) {
-      processTablesFuture.add(processTable(table));
+      processTablesFuture.add(uploadInstantsInTable(table));
     }
 
     return CompletableFuture.allOf(processTablesFuture.toArray(new CompletableFuture[0]))
         .thenApply(ignored -> null);
   }
 
-  private CompletableFuture<Void> processTable(Table table) {
-    logger.debug("Fetching checkpoint for table: " + table);
-    UUID tableId = getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUrl());
+  private CompletableFuture<Void> uploadInstantsInTable(Table table) {
+    LOGGER.debug("Fetching checkpoint for table: " + table);
+    UUID tableId = getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUri());
     return onehouseApiClient
         .getTableMetricsCheckpoint(tableId.toString())
         .thenCompose(
@@ -84,7 +87,7 @@ public class TableMetadataUploaderService {
               if (getTableMetricsCheckpointResponse.isFailure()
                   && getTableMetricsCheckpointResponse.getStatusCode() == 404) {
                 // checkpoint not found, table needs to be registered
-                logger.debug("Checkpoint not found, processing table for the first time: " + table);
+                LOGGER.debug("Checkpoint not found, processing table for the first time: " + table);
                 return hoodiePropertiesReader
                     .readHoodieProperties(getHoodiePropertiesFilePath(table))
                     .thenCompose(
@@ -104,7 +107,8 @@ public class TableMetadataUploaderService {
                     .thenCompose(
                         initializeTableMetricsCheckpointResponse -> {
                           if (!initializeTableMetricsCheckpointResponse.isFailure()) {
-                            return processInstantsInTable(tableId, table, INITIAL_CHECKPOINT);
+                            return uploadNewInstantsSinceCheckpoint(
+                                tableId, table, INITIAL_CHECKPOINT);
                           }
                           throw new RuntimeException(
                               String.format(
@@ -114,7 +118,7 @@ public class TableMetadataUploaderService {
               }
               try {
                 // process from previous checkpoint
-                return processInstantsInTable(
+                return uploadNewInstantsSinceCheckpoint(
                     tableId,
                     table,
                     mapper.readValue(
@@ -125,29 +129,31 @@ public class TableMetadataUploaderService {
             });
   }
 
-  private CompletableFuture<Void> processInstantsInTable(
+  private CompletableFuture<Void> uploadNewInstantsSinceCheckpoint(
       UUID tableId, Table table, Checkpoint checkpoint) {
-    if (!checkpoint.getIsArchivedCommitsProcessed()) {
+    if (!checkpoint.getArchivedCommitsProcessed()) {
       // if archived commits are not uploaded, we upload those first before moving to active
       // timeline
-      return processInstantsInTimeline(
+      return uploadInstantsInTimeline(
               tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
           .thenCompose(
               ignore ->
-                  processInstantsInTimeline(
+                  uploadInstantsInTimeline(
                       tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE));
     }
-    return processInstantsInTimeline(
+    // commits in archived timeline are uploaded only once, when the table is registered for the
+    // first time.
+    return uploadInstantsInTimeline(
         tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
 
-  private CompletableFuture<Void> processInstantsInTimeline(
+  private CompletableFuture<Void> uploadInstantsInTimeline(
       UUID tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
     String pathSuffix = getPathSuffix(commitTimelineType);
 
-    String directoryUrl = storageUtils.constructFilePath(table.getAbsoluteTableUrl(), pathSuffix);
+    String directoryUrl = storageUtils.constructFilePath(table.getAbsoluteTableUri(), pathSuffix);
     return asyncStorageClient
-        .listFiles(directoryUrl)
+        .listAllFilesInDir(directoryUrl)
         .thenCompose(
             filesList -> {
               List<File> filesToProcess =
@@ -235,10 +241,10 @@ public class TableMetadataUploaderService {
         Checkpoint.builder()
             .batchId(PreviousCheckpoint.getBatchId() + batchIndex + 1)
             .lastUploadedFile(lastUploadedFile.getFilename())
-            .checkpoint(lastUploadedFile.getLastModifiedAt())
-            .isArchivedCommitsProcessed(
+            .checkpointTimestamp(lastUploadedFile.getLastModifiedAt())
+            .archivedCommitsProcessed(
                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType))
-            .isArchivedCommitsProcessed(batchIndex >= numBatches - 1) // TODO: handle case where
+            .archivedCommitsProcessed(batchIndex >= numBatches - 1) // TODO: handle case where
             // new archived commit is added during upload
             .build();
     try {
@@ -247,7 +253,7 @@ public class TableMetadataUploaderService {
               UpsertTableMetricsCheckpointRequest.builder()
                   .commitTimelineType(commitTimelineType)
                   .tableId(tableId)
-                  .Checkpoint(mapper.writeValueAsString(updatedCheckpoint))
+                  .checkpoint(mapper.writeValueAsString(updatedCheckpoint))
                   .filesUploaded(filesUploaded)
                   .build())
           .thenCompose(
@@ -278,7 +284,7 @@ public class TableMetadataUploaderService {
             .filter(file -> !file.getIsDirectory()) // filter out directories
             .filter( // hoodie properties file is uploaded only once
                 file -> !file.getFilename().startsWith(HOODIE_PROPERTIES_FILE))
-            .filter(file -> !file.getLastModifiedAt().isBefore(checkpoint.getCheckpoint()))
+            .filter(file -> !file.getLastModifiedAt().isBefore(checkpoint.getCheckpointTimestamp()))
             .sorted(Comparator.comparing(File::getLastModifiedAt).thenComparing(File::getFilename))
             .collect(Collectors.toList());
 
@@ -308,7 +314,7 @@ public class TableMetadataUploaderService {
   }
 
   private String getHoodiePropertiesFilePath(Table table) {
-    String basePath = table.getAbsoluteTableUrl();
+    String basePath = table.getAbsoluteTableUri();
     return String.format(
         "%s/%s/%s",
         basePath.endsWith("/") ? basePath.substring(0, basePath.length() - 1) : basePath,

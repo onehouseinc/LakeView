@@ -18,7 +18,7 @@ public class TableDiscoveryAndUploadJob {
   private final TableMetadataUploaderService tableMetadataUploaderService;
   private final ScheduledExecutorService scheduler;
   private final Object lock = new Object();
-  private static final Logger logger = LoggerFactory.getLogger(TableDiscoveryAndUploadJob.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TableDiscoveryAndUploadJob.class);
   private Set<Table> tablesToProcess;
 
   @Inject
@@ -51,7 +51,7 @@ public class TableDiscoveryAndUploadJob {
             })
         .exceptionally(
             ex -> {
-              logger.error("Error discovering tables: " + ex.getMessage());
+              LOGGER.error("Error discovering tables: " + ex.getMessage());
               return null;
             });
   }
@@ -63,10 +63,10 @@ public class TableDiscoveryAndUploadJob {
     }
     if (tables != null && !tables.isEmpty()) {
       tableMetadataUploaderService
-          .processTables(tables)
+          .uploadInstantsInTables(tables)
           .exceptionally(
               ex -> {
-                logger.error("Error processing tables: " + ex.getMessage());
+                LOGGER.error("Error uploading instants in tables: " + ex.getMessage());
                 return null;
               });
     }

@@ -30,7 +30,7 @@ public class GcsClientProvider {
         ((ConfigV1) config).getFileSystemConfiguration();
     validateGcsConfig(fileSystemConfiguration.getGcsConfig());
     try (FileInputStream serviceAccountStream =
-        new FileInputStream(fileSystemConfiguration.getGcsConfig().getGcpKey())) {
+        new FileInputStream(fileSystemConfiguration.getGcsConfig().getGcpServiceAccountKeyPath())) {
       this.gcsClient =
           StorageOptions.newBuilder()
               .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
