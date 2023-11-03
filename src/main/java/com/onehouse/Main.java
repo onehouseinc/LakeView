@@ -14,7 +14,7 @@ public class Main {
   private static TableDiscoveryAndUploadJob job;
   private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
-  public static void main(String[] args) throws ExecutionException, InterruptedException {
+  public static void main(String[] args){
     logger.info("Starting table metadata extractor service");
     if (args.length != 1) {
       System.err.println("Usage: java Main <config-file-path>");
