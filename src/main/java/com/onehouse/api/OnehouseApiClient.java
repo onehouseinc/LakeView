@@ -12,6 +12,7 @@ import static com.onehouse.api.ApiConstants.PROJECT_UID_KEY;
 import static com.onehouse.api.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.api.request.GenerateCommitMetadataUploadUrlRequest;
 import com.onehouse.api.request.InitializeTableMetricsCheckpointRequest;
@@ -95,7 +96,8 @@ public class OnehouseApiClient {
     return headersBuilder.build();
   }
 
-  private <T> CompletableFuture<T> asyncGet(String apiEndpoint, Class<T> typeReference) {
+  @VisibleForTesting
+  <T> CompletableFuture<T> asyncGet(String apiEndpoint, Class<T> typeReference) {
     Request request =
         new Request.Builder().url(ONEHOUSE_API_ENDPOINT + apiEndpoint).headers(headers).build();
 
@@ -104,8 +106,8 @@ public class OnehouseApiClient {
     return callback.future.thenApply(response -> handleResponse(response, typeReference));
   }
 
-  private <T> CompletableFuture<T> asyncPost(
-      String apiEndpoint, String json, Class<T> typeReference) {
+  @VisibleForTesting
+  <T> CompletableFuture<T> asyncPost(String apiEndpoint, String json, Class<T> typeReference) {
     RequestBody body = RequestBody.create(json, MediaType.parse("application/json; charset=utf-8"));
 
     Request request =

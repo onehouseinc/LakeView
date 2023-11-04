@@ -1,6 +1,6 @@
 package com.onehouse.api.response;
 
-import lombok.Data;
+import lombok.Builder;
 
-@Data
+@Builder
 public class InitializeTableMetricsCheckpointResponse extends ApiResponse {}
