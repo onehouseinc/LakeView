@@ -9,7 +9,7 @@ import java.io.InputStream;
 
 public class ConfigLoader {
 
-  public static Config loadConfig(String configFile) {
+  public Config loadConfig(String configFile) {
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     mapper.registerModule(new Jdk8Module());
     try (InputStream in = ConfigLoader.class.getResourceAsStream(configFile)) {
