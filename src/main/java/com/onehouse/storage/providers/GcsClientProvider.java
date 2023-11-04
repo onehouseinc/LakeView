@@ -9,7 +9,7 @@ import com.google.inject.Inject;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.config.common.GCSConfig;
-import com.onehouse.config.configV1.ConfigV1;
+import com.onehouse.config.configv1.ConfigV1;
 import java.io.FileInputStream;
 import java.io.IOException;
 import javax.annotation.Nonnull;

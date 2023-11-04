@@ -4,7 +4,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.FileSystemConfiguration;
-import com.onehouse.config.configV1.ConfigV1;
+import com.onehouse.config.configv1.ConfigV1;
 import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.GCSAsyncStorageClient;
 import com.onehouse.storage.S3AsyncStorageClient;
