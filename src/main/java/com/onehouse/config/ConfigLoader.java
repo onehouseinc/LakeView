@@ -4,12 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.onehouse.config.configV1.ConfigV1;
+import com.onehouse.config.configv1.ConfigV1;
 import java.io.InputStream;
 
 public class ConfigLoader {
 
-  public static Config loadConfig(String configFile) {
+  public Config loadConfig(String configFile) {
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     mapper.registerModule(new Jdk8Module());
     try (InputStream in = ConfigLoader.class.getResourceAsStream(configFile)) {

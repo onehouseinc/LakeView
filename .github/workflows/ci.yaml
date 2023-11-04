@@ -1,0 +1,48 @@
+name: Java CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'hot-fix-*'
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: ${{ !contains(github.ref, 'main') }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          token: ${{ secrets.CI_PAT }}
+      - name: Set up JDK 17 (for sonar analysis) & 11 (default)
+        uses: actions/setup-java@v3
+        with:
+          java-version: |
+            17
+            11
+          distribution: 'adopt'
+          cache: gradle
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+      - name: Test
+        run: ./gradlew clean check jacocoRootReport
+      - name: Publish Coverage
+        run: |
+          # As sonar scanner analysis should be done by jdk 17
+          export JAVA_HOME="${{env.JAVA_HOME_17_X64}}"
+          if [ ${{ github.event_name }} == 'pull_request' ]; then
+            ./gradlew -Psonar_token=${{ secrets.SONAR_TOKEN }} -Ppullrequest_key=${{ github.event.number }} -Ppullrequest_branch=${{ github.HEAD_REF }} -Ppullrequest_base=${{ github.BASE_REF }} sonarqube
+          else
+            ./gradlew -Psonar_token=${{ secrets.SONAR_TOKEN }} -Pbranch_name=${{ github.HEAD_REF }} sonarqube
+          fi
