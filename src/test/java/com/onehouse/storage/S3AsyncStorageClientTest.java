@@ -102,8 +102,7 @@ class S3AsyncStorageClientTest {
   }
 
   @Test
-  void testReadFileAsInputStream()
-      throws ExecutionException, InterruptedException, IOException {
+  void testReadFileAsInputStream() throws ExecutionException, InterruptedException, IOException {
     byte[] fileContent = "file content".getBytes(StandardCharsets.UTF_8);
 
     stubReadFileFromS3(fileContent);
