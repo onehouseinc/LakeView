@@ -2,6 +2,7 @@ package com.onehouse.config.common;
 
 import java.util.Optional;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.jackson.Jacksonized;
@@ -9,6 +10,7 @@ import lombok.extern.jackson.Jacksonized;
 @Builder
 @Getter
 @Jacksonized
+@EqualsAndHashCode
 public class S3Config {
   @NonNull private String region;
 
