@@ -26,7 +26,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
 
 @ExtendWith(MockitoExtension.class)
-public class S3AsyncStorageClientTest {
+class S3AsyncStorageClientTest {
   @Mock private S3AsyncClientProvider mockS3AsyncClientProvider;
   @Mock private StorageUtils mockStorageUtils;
   @Mock private S3AsyncClient mockS3AsyncClient;
@@ -102,7 +102,7 @@ public class S3AsyncStorageClientTest {
   }
 
   @Test
-  public void testReadFileAsInputStream()
+  void testReadFileAsInputStream()
       throws ExecutionException, InterruptedException, IOException {
     byte[] fileContent = "file content".getBytes(StandardCharsets.UTF_8);
 
@@ -115,7 +115,7 @@ public class S3AsyncStorageClientTest {
   }
 
   @Test
-  public void testReadFileAsBytes() throws ExecutionException, InterruptedException, IOException {
+  void testReadFileAsBytes() throws ExecutionException, InterruptedException, IOException {
     byte[] fileContent = "file content".getBytes(StandardCharsets.UTF_8);
 
     stubReadFileFromS3(fileContent);

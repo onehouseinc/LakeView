@@ -23,7 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class GCSAsyncStorageClientTest {
+class GCSAsyncStorageClientTest {
 
   @Mock private GcsClientProvider mockGcsClientProvider;
   @Mock private StorageUtils mockStorageUtils;
@@ -48,7 +48,7 @@ public class GCSAsyncStorageClientTest {
   }
 
   @Test
-  public void testListAllFilesInDir() throws ExecutionException, InterruptedException {
+  void testListAllFilesInDir() throws ExecutionException, InterruptedException {
     String fileName = "file1";
     String dirName = "dir1/";
 
@@ -82,7 +82,7 @@ public class GCSAsyncStorageClientTest {
   }
 
   @Test
-  public void testReadBlob() throws ExecutionException, InterruptedException, IOException {
+  void testReadBlob() throws ExecutionException, InterruptedException, IOException {
     when(mockGcsClient.get(BlobId.of(TEST_BUCKET, TEST_KEY))).thenReturn(mockBlob1);
 
     Blob blob = gcsAsyncStorageClient.readBlob(GCS_URI).get();

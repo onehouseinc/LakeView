@@ -4,11 +4,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
-public class StorageUtilsTest {
+class StorageUtilsTest {
   StorageUtils storageUtils = new StorageUtils();
 
   @Test
-  public void testGetPathFromUrl() {
+  void testGetPathFromUrl() {
     assertEquals("path/to/file", storageUtils.getPathFromUrl("s3://bucket/path/to/file"));
     assertEquals("path/to/file", storageUtils.getPathFromUrl("gs://bucket/path/to/file"));
     assertEquals("", storageUtils.getPathFromUrl("s3://bucket"));
@@ -16,7 +16,7 @@ public class StorageUtilsTest {
   }
 
   @Test
-  public void testGetBucketNameFromUri() {
+  void testGetBucketNameFromUri() {
     assertEquals("bucket", storageUtils.getBucketNameFromUri("s3://bucket/path/to/file"));
     assertEquals("bucket", storageUtils.getBucketNameFromUri("gs://bucket/path/to/file"));
     assertThrows(

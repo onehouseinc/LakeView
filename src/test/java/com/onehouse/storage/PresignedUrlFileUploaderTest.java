@@ -17,9 +17,9 @@ import okhttp3.Request;
 import okhttp3.Response;
 import org.junit.jupiter.api.Test;
 
-public class PresignedUrlFileUploaderTest {
+class PresignedUrlFileUploaderTest {
   @Test
-  public void testUploadFileToPresignedUrl() throws ExecutionException, InterruptedException {
+  void testUploadFileToPresignedUrl() throws ExecutionException, InterruptedException {
     String fileUri = "s3://bucket/file";
     String presignedUrl = "https://presigned-url";
     byte[] readFileResponse = new byte[] {};

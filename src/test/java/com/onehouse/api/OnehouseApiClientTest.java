@@ -6,7 +6,6 @@ import static com.onehouse.api.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
 import static com.onehouse.api.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
@@ -107,9 +106,9 @@ class OnehouseApiClientTest {
                 InitializeTableMetricsCheckpointResponse.builder().build()))
         .when(onehouseApiClientSpy)
         .asyncPost(
-            eq(MessageFormat.format(INITIALIZE_TABLE_METRICS_CHECKPOINT, tableId)),
-            eq(MAPPER.writeValueAsString(request)),
-            eq(InitializeTableMetricsCheckpointResponse.class));
+            (MessageFormat.format(INITIALIZE_TABLE_METRICS_CHECKPOINT, tableId)),
+            (MAPPER.writeValueAsString(request)),
+            (InitializeTableMetricsCheckpointResponse.class));
     InitializeTableMetricsCheckpointResponse response =
         onehouseApiClientSpy.initializeTableMetricsCheckpoint(request).get();
     assertNotNull(response);
@@ -126,8 +125,8 @@ class OnehouseApiClientTest {
                 GetTableMetricsCheckpointResponse.builder().checkpoint("").build()))
         .when(onehouseApiClientSpy)
         .asyncGet(
-            eq(MessageFormat.format(GET_TABLE_METRICS_CHECKPOINT, tableId)),
-            eq(GetTableMetricsCheckpointResponse.class));
+            (MessageFormat.format(GET_TABLE_METRICS_CHECKPOINT, tableId)),
+            (GetTableMetricsCheckpointResponse.class));
     GetTableMetricsCheckpointResponse response =
         onehouseApiClientSpy.getTableMetricsCheckpoint(String.valueOf(tableId)).get();
     assertNotNull(response);
@@ -151,9 +150,9 @@ class OnehouseApiClientTest {
                 UpsertTableMetricsCheckpointResponse.builder().build()))
         .when(onehouseApiClientSpy)
         .asyncPost(
-            eq(MessageFormat.format(UPSERT_TABLE_METRICS_CHECKPOINT, tableId)),
-            eq(MAPPER.writeValueAsString(request)),
-            eq(UpsertTableMetricsCheckpointResponse.class));
+            (MessageFormat.format(UPSERT_TABLE_METRICS_CHECKPOINT, tableId)),
+            (MAPPER.writeValueAsString(request)),
+            (UpsertTableMetricsCheckpointResponse.class));
     UpsertTableMetricsCheckpointResponse response =
         onehouseApiClientSpy.upsertTableMetricsCheckpoint(request).get();
     assertNotNull(response);
@@ -176,9 +175,9 @@ class OnehouseApiClientTest {
                 GenerateCommitMetadataUploadUrlResponse.builder().uploadUrls(List.of()).build()))
         .when(onehouseApiClientSpy)
         .asyncPost(
-            eq(MessageFormat.format(GENERATE_COMMIT_METADATA_UPLOAD_URL, tableId)),
-            eq(MAPPER.writeValueAsString(request)),
-            eq(GenerateCommitMetadataUploadUrlResponse.class));
+            (MessageFormat.format(GENERATE_COMMIT_METADATA_UPLOAD_URL, tableId)),
+            (MAPPER.writeValueAsString(request)),
+            (GenerateCommitMetadataUploadUrlResponse.class));
     GenerateCommitMetadataUploadUrlResponse response =
         onehouseApiClientSpy.generateCommitMetadataUploadUrl(request).get();
     assertNotNull(response);
