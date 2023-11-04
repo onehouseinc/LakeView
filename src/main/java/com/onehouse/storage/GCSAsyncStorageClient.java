@@ -4,6 +4,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.storage.models.File;
 import com.onehouse.storage.providers.GcsClientProvider;
@@ -42,7 +43,7 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
         () -> {
           logger.debug(String.format("listing files in %s", gcsUri));
           Bucket bucket =
-              gcsClientProvider.getGcsClient().get(storageUtils.getGcsBucketNameFromPath(gcsUri));
+              gcsClientProvider.getGcsClient().get(storageUtils.getBucketNameFromUri(gcsUri));
           String prefix = storageUtils.getPathFromUrl(gcsUri);
 
           // ensure prefix which is not the root dir always ends with "/"
@@ -59,7 +60,7 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
                       File.builder()
                           .filename(blob.getName().replaceFirst(finalPrefix, ""))
                           .lastModifiedAt(
-                              Instant.ofEpochMilli(!blob.isDirectory() ? blob.getCreateTime() : 0))
+                              Instant.ofEpochMilli(!blob.isDirectory() ? blob.getUpdateTime() : 0))
                           .isDirectory(blob.isDirectory())
                           .build())
               .collect(Collectors.toList());
@@ -67,7 +68,8 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
         executorService);
   }
 
-  public CompletableFuture<Blob> readBlob(String gcsUri) {
+  @VisibleForTesting
+  CompletableFuture<Blob> readBlob(String gcsUri) {
     logger.debug(String.format("Reading GCS file: %s", gcsUri));
     return CompletableFuture.supplyAsync(
         () -> {
@@ -76,7 +78,7 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
                   .getGcsClient()
                   .get(
                       BlobId.of(
-                          storageUtils.getGcsBucketNameFromPath(gcsUri),
+                          storageUtils.getBucketNameFromUri(gcsUri),
                           storageUtils.getPathFromUrl(gcsUri)));
           if (blob != null) {
             return blob;

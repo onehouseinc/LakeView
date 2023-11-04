@@ -29,7 +29,8 @@ public class PresignedUrlFileUploader {
         .thenComposeAsync(
             response -> {
               RequestBody requestBody = RequestBody.create(response);
-              Request request = new Request.Builder().url(presignedUrl).put(requestBody).build();
+              Request request;
+              request = new Request.Builder().url(presignedUrl).put(requestBody).build();
 
               OkHttpResponseFuture callback = new OkHttpResponseFuture();
               okHttpClient.newCall(request).enqueue(callback);

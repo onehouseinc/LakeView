@@ -7,7 +7,6 @@ import com.onehouse.config.common.S3Config;
 import com.onehouse.config.configv1.ConfigV1;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
-import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -17,9 +16,10 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 
-@Getter
 public class S3AsyncClientProvider {
-  private final S3AsyncClient s3AsyncClient;
+  private final S3Config s3Config;
+  private final ExecutorService executorService;
+  private static S3AsyncClient s3AsyncClient;
   private static final Logger logger = LoggerFactory.getLogger(S3AsyncClientProvider.class);
 
   @Inject
@@ -28,27 +28,35 @@ public class S3AsyncClientProvider {
     FileSystemConfiguration fileSystemConfiguration =
         ((ConfigV1) config).getFileSystemConfiguration();
     validateS3Config(fileSystemConfiguration.getS3Config());
+    this.s3Config = fileSystemConfiguration.getS3Config();
+    this.executorService = executorService;
+  }
 
+  protected S3AsyncClient createS3AsyncClient() {
     S3AsyncClientBuilder s3AsyncClientBuilder = S3AsyncClient.builder();
 
-    if (fileSystemConfiguration.getS3Config().getAccessKey().isPresent()
-        && fileSystemConfiguration.getS3Config().getAccessSecret().isPresent()) {
+    if (s3Config.getAccessKey().isPresent() && s3Config.getAccessSecret().isPresent()) {
       logger.debug("Using provided accessKey and accessSecret for authentication");
       AwsBasicCredentials awsCredentials =
           AwsBasicCredentials.create(
-              fileSystemConfiguration.getS3Config().getAccessKey().get(),
-              fileSystemConfiguration.getS3Config().getAccessSecret().get());
+              s3Config.getAccessKey().get(), s3Config.getAccessSecret().get());
       s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
     }
 
-    this.s3AsyncClient =
-        s3AsyncClientBuilder
-            .region(Region.of(fileSystemConfiguration.getS3Config().getRegion()))
-            .asyncConfiguration(
-                b ->
-                    b.advancedOption(
-                        SdkAdvancedAsyncClientOption.FUTURE_COMPLETION_EXECUTOR, executorService))
-            .build();
+    return s3AsyncClientBuilder
+        .region(Region.of(s3Config.getRegion()))
+        .asyncConfiguration(
+            b ->
+                b.advancedOption(
+                    SdkAdvancedAsyncClientOption.FUTURE_COMPLETION_EXECUTOR, executorService))
+        .build();
+  }
+
+  public S3AsyncClient getS3AsyncClient() {
+    if (s3AsyncClient == null) {
+      s3AsyncClient = createS3AsyncClient();
+    }
+    return s3AsyncClient;
   }
 
   private void validateS3Config(S3Config s3Config) {

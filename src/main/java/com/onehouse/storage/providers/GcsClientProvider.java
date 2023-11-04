@@ -20,7 +20,8 @@ import org.slf4j.LoggerFactory;
 @Getter
 public class GcsClientProvider {
 
-  private final Storage gcsClient;
+  private final GCSConfig gcsConfig;
+  private static Storage gcsClient;
   private static final Logger logger = LoggerFactory.getLogger(GcsClientProvider.class);
 
   @Inject
@@ -29,17 +30,27 @@ public class GcsClientProvider {
     FileSystemConfiguration fileSystemConfiguration =
         ((ConfigV1) config).getFileSystemConfiguration();
     validateGcsConfig(fileSystemConfiguration.getGcsConfig());
+    this.gcsConfig = fileSystemConfiguration.getGcsConfig();
+  }
+
+  protected Storage createGcsClient() {
     try (FileInputStream serviceAccountStream =
-        new FileInputStream(fileSystemConfiguration.getGcsConfig().getGcpServiceAccountKeyPath())) {
-      this.gcsClient =
-          StorageOptions.newBuilder()
-              .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
-              .setProjectId(fileSystemConfiguration.getGcsConfig().getProjectId())
-              .build()
-              .getService();
+        new FileInputStream(gcsConfig.getGcpServiceAccountKeyPath())) {
+      return StorageOptions.newBuilder()
+          .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
+          .setProjectId(gcsConfig.getProjectId())
+          .build()
+          .getService();
     } catch (IOException e) {
       throw new RuntimeException("Error reading service account JSON key file", e);
     }
+  }
+
+  public Storage getGcsClient() {
+    if (gcsClient == null) {
+      gcsClient = createGcsClient();
+    }
+    return gcsClient;
   }
 
   private void validateGcsConfig(GCSConfig gcsConfig) {
@@ -49,6 +60,11 @@ public class GcsClientProvider {
 
     if (!gcsConfig.getProjectId().matches(GCP_RESOURCE_NAME_FORMAT)) {
       throw new IllegalArgumentException("Invalid GCP project ID: " + gcsConfig.getProjectId());
+    }
+
+    if (gcsConfig.getGcpServiceAccountKeyPath().isBlank()) {
+      throw new IllegalArgumentException(
+          "Invalid GCP Service Account Key Path: " + gcsConfig.getGcpServiceAccountKeyPath());
     }
   }
 }
