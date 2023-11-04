@@ -51,11 +51,14 @@ public class RuntimeModule extends AbstractModule {
     FileSystemConfiguration fileSystemConfiguration =
         ((ConfigV1) config).getFileSystemConfiguration();
     if (fileSystemConfiguration.getS3Config() != null) {
-      return new S3AsyncStorageClient(
-          new S3AsyncClientProvider(config, executorService), storageUtils, executorService);
+      S3AsyncClientProvider s3AsyncClientProvider =
+          new S3AsyncClientProvider(config, executorService);
+      s3AsyncClientProvider.getS3AsyncClient(); // to initialise the client
+      return new S3AsyncStorageClient(s3AsyncClientProvider, storageUtils, executorService);
     } else if (fileSystemConfiguration.getGcsConfig() != null) {
-      return new GCSAsyncStorageClient(
-          new GcsClientProvider(config), storageUtils, executorService);
+      GcsClientProvider gcsClientProvider = new GcsClientProvider(config);
+      gcsClientProvider.getGcsClient();
+      return new GCSAsyncStorageClient(gcsClientProvider, storageUtils, executorService);
     }
     throw new IllegalArgumentException(
         "Config should have either one of S3/GCS filesystem configs");

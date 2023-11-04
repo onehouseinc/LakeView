@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 @Getter
 public class GcsClientProvider {
-
   private final GCSConfig gcsConfig;
   private static Storage gcsClient;
   private static final Logger logger = LoggerFactory.getLogger(GcsClientProvider.class);
