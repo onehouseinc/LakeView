@@ -1,13 +1,14 @@
 package com.onehouse.api.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NonNull;
-import lombok.extern.jackson.Jacksonized;
+import lombok.NoArgsConstructor;
 
 @Builder
 @Getter
-@Jacksonized
+@AllArgsConstructor
+@NoArgsConstructor
 public class GetTableMetricsCheckpointResponse extends ApiResponse {
-  @NonNull private final String checkpoint;
+  private String checkpoint;
 }

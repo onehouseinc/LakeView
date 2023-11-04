@@ -5,6 +5,7 @@ import static com.onehouse.api.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
 import static com.onehouse.api.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
 import static com.onehouse.api.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -25,7 +26,6 @@ import com.onehouse.config.common.OnehouseClientConfig;
 import com.onehouse.config.configv1.ConfigV1;
 import java.text.MessageFormat;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import lombok.SneakyThrows;
@@ -53,6 +53,8 @@ class OnehouseApiClientTest {
   @Mock private Call call;
   private OnehouseApiClient onehouseApiClient;
 
+  private static final int FAILURE_STATUS_CODE = 500;
+  private static final String FAILURE_ERROR = "call failed";
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   @BeforeEach
@@ -70,20 +72,46 @@ class OnehouseApiClientTest {
   void testAsyncPost() {
     String apiEndpoint = "/testEndpoint";
     String requestJson = "{\"key\":\"value\"}";
-    stubOkHttpCall(apiEndpoint);
-    CompletableFuture<Map> futureResult =
-        onehouseApiClient.asyncPost(apiEndpoint, requestJson, Map.class);
-    Map<String, String> result = futureResult.join();
-    assertEquals("responseValue", result.get("responseKey"));
+    stubOkHttpCall(apiEndpoint, false);
+    CompletableFuture<GetTableMetricsCheckpointResponse> futureResult =
+        onehouseApiClient.asyncPost(
+            apiEndpoint, requestJson, GetTableMetricsCheckpointResponse.class);
+    GetTableMetricsCheckpointResponse result = futureResult.join();
+    assertEquals("checkpoint", result.getCheckpoint());
+  }
+
+  @Test
+  void testAsyncPostFailure() {
+    String apiEndpoint = "/testEndpoint";
+    String requestJson = "{\"key\":\"value\"}";
+    stubOkHttpCall(apiEndpoint, true);
+    CompletableFuture<GetTableMetricsCheckpointResponse> futureResult =
+        onehouseApiClient.asyncPost(
+            apiEndpoint, requestJson, GetTableMetricsCheckpointResponse.class);
+    GetTableMetricsCheckpointResponse result = futureResult.join();
+    assertTrue(result.isFailure());
+    assertEquals(FAILURE_STATUS_CODE, result.getStatusCode());
   }
 
   @Test
   void testAsyncGet() {
     String apiEndpoint = "/testEndpoint";
-    stubOkHttpCall(apiEndpoint);
-    CompletableFuture<Map> futureResult = onehouseApiClient.asyncGet(apiEndpoint, Map.class);
-    Map<String, String> result = futureResult.join();
-    assertEquals("responseValue", result.get("responseKey"));
+    stubOkHttpCall(apiEndpoint, false);
+    CompletableFuture<GetTableMetricsCheckpointResponse> futureResult =
+        onehouseApiClient.asyncGet(apiEndpoint, GetTableMetricsCheckpointResponse.class);
+    GetTableMetricsCheckpointResponse result = futureResult.join();
+    assertEquals("checkpoint", result.getCheckpoint());
+  }
+
+  @Test
+  void testAsyncGetFailure() {
+    String apiEndpoint = "/testEndpoint";
+    stubOkHttpCall(apiEndpoint, true);
+    CompletableFuture<GetTableMetricsCheckpointResponse> futureResult =
+        onehouseApiClient.asyncGet(apiEndpoint, GetTableMetricsCheckpointResponse.class);
+    GetTableMetricsCheckpointResponse result = futureResult.join();
+    assertTrue(result.isFailure());
+    assertEquals(FAILURE_STATUS_CODE, result.getStatusCode());
   }
 
   @ParameterizedTest
@@ -183,18 +211,29 @@ class OnehouseApiClientTest {
     assertNotNull(response);
   }
 
-  private void stubOkHttpCall(String apiEndpoint) {
-    String responseBodyContent = "{\"responseKey\":\"responseValue\"}";
+  private void stubOkHttpCall(String apiEndpoint, boolean isFailure) {
+    String responseBodyContent = "{\"checkpoint\":\"checkpoint\"}";
     ResponseBody responseBody =
         ResponseBody.create(responseBodyContent, MediaType.parse("application/json"));
-    Response response =
-        new Response.Builder()
-            .code(200)
-            .message("OK")
-            .request(new Request.Builder().url("http://example.com" + apiEndpoint).build())
-            .protocol(Protocol.HTTP_1_1)
-            .body(responseBody)
-            .build();
+    Response response;
+    if (isFailure) {
+      response =
+          new Response.Builder()
+              .code(FAILURE_STATUS_CODE)
+              .message(FAILURE_ERROR)
+              .request(new Request.Builder().url("http://example.com" + apiEndpoint).build())
+              .protocol(Protocol.HTTP_1_1)
+              .build();
+    } else {
+      response =
+          new Response.Builder()
+              .code(200)
+              .message("OK")
+              .request(new Request.Builder().url("http://example.com" + apiEndpoint).build())
+              .protocol(Protocol.HTTP_1_1)
+              .body(responseBody)
+              .build();
+    }
 
     when(okHttpClient.newCall(any(Request.class))).thenReturn(call);
     doAnswer(
