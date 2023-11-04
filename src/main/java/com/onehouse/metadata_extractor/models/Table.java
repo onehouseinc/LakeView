@@ -1,4 +1,4 @@
-package com.onehouse.metadataExtractor.models;
+package com.onehouse.metadata_extractor.models;
 
 import lombok.Builder;
 import lombok.Getter;

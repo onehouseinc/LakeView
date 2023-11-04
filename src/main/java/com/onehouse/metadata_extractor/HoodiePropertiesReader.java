@@ -1,11 +1,11 @@
-package com.onehouse.metadataExtractor;
+package com.onehouse.metadata_extractor;
 
-import static com.onehouse.metadataExtractor.Constants.HOODIE_TABLE_NAME_KEY;
-import static com.onehouse.metadataExtractor.Constants.HOODIE_TABLE_TYPE_KEY;
+import static com.onehouse.metadata_extractor.Constants.HOODIE_TABLE_NAME_KEY;
+import static com.onehouse.metadata_extractor.Constants.HOODIE_TABLE_TYPE_KEY;
 
 import com.google.inject.Inject;
 import com.onehouse.api.request.TableType;
-import com.onehouse.metadataExtractor.models.ParsedHudiProperties;
+import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
 import com.onehouse.storage.AsyncStorageClient;
 import java.io.IOException;
 import java.util.Properties;

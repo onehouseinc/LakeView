@@ -67,7 +67,7 @@ public class S3AsyncStorageClient implements AsyncStorageClient {
               // process response
               files.addAll(processListObjectsV2Response(listObjectsV2Response, prefix));
               String newContinuationToken =
-                  listObjectsV2Response.isTruncated()
+                  Boolean.TRUE.equals(listObjectsV2Response.isTruncated())
                       ? listObjectsV2Response.nextContinuationToken()
                       : null;
               if (newContinuationToken != null) {

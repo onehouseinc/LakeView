@@ -27,7 +27,6 @@ import software.amazon.awssdk.services.s3.model.*;
 
 @ExtendWith(MockitoExtension.class)
 public class S3AsyncStorageClientTest {
-
   @Mock private S3AsyncClientProvider mockS3AsyncClientProvider;
   @Mock private StorageUtils mockStorageUtils;
   @Mock private S3AsyncClient mockS3AsyncClient;

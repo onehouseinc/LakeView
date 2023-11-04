@@ -3,6 +3,8 @@ package com.onehouse.storage;
 import java.util.regex.Pattern;
 
 public class StorageConstants {
+  private StorageConstants() {}
+
   // typical s3 path: "s3://bucket-name/path/to/object"
   // gcs path format "gs:// [bucket] /path/to/file"
   public static final Pattern OBJECT_STORAGE_URI_PATTERN =

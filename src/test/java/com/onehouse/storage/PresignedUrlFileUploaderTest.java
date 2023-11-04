@@ -18,7 +18,6 @@ import okhttp3.Response;
 import org.junit.jupiter.api.Test;
 
 public class PresignedUrlFileUploaderTest {
-
   @Test
   public void testUploadFileToPresignedUrl() throws ExecutionException, InterruptedException {
     String fileUri = "s3://bucket/file";

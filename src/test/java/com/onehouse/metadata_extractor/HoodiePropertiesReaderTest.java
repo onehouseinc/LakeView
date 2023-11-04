@@ -1,10 +1,10 @@
-package com.onehouse.metadataExtractor;
+package com.onehouse.metadata_extractor;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 import com.onehouse.api.request.TableType;
-import com.onehouse.metadataExtractor.models.ParsedHudiProperties;
+import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
 import com.onehouse.storage.AsyncStorageClient;
 import java.io.ByteArrayInputStream;
 import java.util.concurrent.CompletableFuture;
@@ -17,13 +17,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class HoodiePropertiesReaderTest {
-
   @Mock private AsyncStorageClient asyncStorageClient;
-
   @InjectMocks private HoodiePropertiesReader hoodiePropertiesReader;
 
   @Test
-  void shouldReadHoodieProperties() throws ExecutionException, InterruptedException {
+  void testReadHoodieProperties() throws ExecutionException, InterruptedException {
     String path = "some/path/to/properties/file";
     String propertiesContent = "hoodie.table.name=test_table\nhoodie.table.type=COPY_ON_WRITE";
     ByteArrayInputStream inputStream = new ByteArrayInputStream(propertiesContent.getBytes());

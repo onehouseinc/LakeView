@@ -16,13 +16,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class GcsClientProviderTest {
-
   @Mock private ConfigV1 config;
-
   @Mock private FileSystemConfiguration fileSystemConfiguration;
-
   @Mock private GCSConfig gcsConfig;
-
   @Mock private Storage mockStorage;
 
   @BeforeEach

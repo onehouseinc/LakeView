@@ -1,9 +1,11 @@
-package com.onehouse.metadataExtractor;
+package com.onehouse.metadata_extractor;
 
-import com.onehouse.metadataExtractor.models.Checkpoint;
+import com.onehouse.metadata_extractor.models.Checkpoint;
 import java.time.Instant;
 
 public class Constants {
+  private Constants() {}
+
   public static final String HOODIE_FOLDER_NAME = ".hoodie";
   public static final String ARCHIVED_FOLDER_NAME = "archived";
   public static final String HOODIE_PROPERTIES_FILE = "hoodie.properties";

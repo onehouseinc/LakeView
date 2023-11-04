@@ -18,17 +18,13 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 
 @ExtendWith(MockitoExtension.class)
 class S3AsyncClientProviderTest {
-
   @Mock private ConfigV1 config;
-
   @Mock private FileSystemConfiguration fileSystemConfiguration;
-
   @Mock private S3Config s3Config;
-
   @Mock private ExecutorService executorService;
 
   @Test
-  void shouldThrowExceptionWhenS3ConfigIsNull() {
+  void throwExceptionWhenS3ConfigIsNull() {
     when(config.getFileSystemConfiguration()).thenReturn(fileSystemConfiguration);
     when(fileSystemConfiguration.getS3Config()).thenReturn(null);
 
@@ -41,7 +37,7 @@ class S3AsyncClientProviderTest {
   }
 
   @Test
-  void shouldThrowExceptionWhenRegionIsBlank() {
+  void throwExceptionWhenRegionIsBlank() {
     when(config.getFileSystemConfiguration()).thenReturn(fileSystemConfiguration);
     when(fileSystemConfiguration.getS3Config()).thenReturn(s3Config);
     when(s3Config.getRegion()).thenReturn("");
@@ -55,18 +51,16 @@ class S3AsyncClientProviderTest {
   }
 
   @Test
-  void shouldCreateS3AsyncClientWithCredentialsWhenProvided() {
+  void testCreateS3AsyncClientWithCredentialsWhenProvided() {
     when(config.getFileSystemConfiguration()).thenReturn(fileSystemConfiguration);
     when(fileSystemConfiguration.getS3Config()).thenReturn(s3Config);
     when(s3Config.getRegion()).thenReturn("us-west-2");
 
     S3AsyncClientProvider s3AsyncClientProviderSpy =
         Mockito.spy(new S3AsyncClientProvider(config, executorService));
-
     S3AsyncClient s3AsyncClient = Mockito.mock(S3AsyncClient.class);
 
     doReturn(s3AsyncClient).when(s3AsyncClientProviderSpy).createS3AsyncClient();
-
     S3AsyncClient result = s3AsyncClientProviderSpy.getS3AsyncClient();
 
     assertSame(s3AsyncClient, result);

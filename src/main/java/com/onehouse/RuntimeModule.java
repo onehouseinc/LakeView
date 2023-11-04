@@ -84,8 +84,10 @@ public class RuntimeModule extends AbstractModule {
         // workload
         new ApplicationThreadFactory(),
         (thread, throwable) -> {
-          logger.error(
-              String.format("Uncaught exception in a thread (%s)", thread.getName()), throwable);
+          if (throwable != null) {
+            logger.error(
+                String.format("Uncaught exception in a thread (%s)", thread.getName()), throwable);
+          }
         },
         // NOTE: It's squarely important to make sure
         // that `asyncMode` is true in async applications

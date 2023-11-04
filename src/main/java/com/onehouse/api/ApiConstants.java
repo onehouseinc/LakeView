@@ -1,6 +1,9 @@
 package com.onehouse.api;
 
 public class ApiConstants {
+
+  private ApiConstants() {}
+
   public static final String ONEHOUSE_API_ENDPOINT = "https://api.onehouse.ai";
 
   // API Endpoints

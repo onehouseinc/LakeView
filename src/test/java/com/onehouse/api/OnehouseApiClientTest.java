@@ -48,16 +48,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class OnehouseApiClientTest {
-
   @Mock private OkHttpClient okHttpClient;
-
   @Mock private ConfigV1 config;
-
   @Mock private OnehouseClientConfig onehouseClientConfig;
-
+  @Mock private Call call;
   private OnehouseApiClient onehouseApiClient;
 
-  @Mock private Call call;
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   @BeforeEach
@@ -89,30 +85,6 @@ class OnehouseApiClientTest {
     CompletableFuture<Map> futureResult = onehouseApiClient.asyncGet(apiEndpoint, Map.class);
     Map<String, String> result = futureResult.join();
     assertEquals("responseValue", result.get("responseKey"));
-  }
-
-  private void stubOkHttpCall(String apiEndpoint) {
-    String responseBodyContent = "{\"responseKey\":\"responseValue\"}";
-    ResponseBody responseBody =
-        ResponseBody.create(responseBodyContent, MediaType.parse("application/json"));
-    Response response =
-        new Response.Builder()
-            .code(200)
-            .message("OK")
-            .request(new Request.Builder().url("http://example.com" + apiEndpoint).build())
-            .protocol(Protocol.HTTP_1_1)
-            .body(responseBody)
-            .build();
-
-    when(okHttpClient.newCall(any(Request.class))).thenReturn(call);
-    doAnswer(
-            invocation -> {
-              Callback callback = invocation.getArgument(0);
-              callback.onResponse(call, response);
-              return null;
-            })
-        .when(call)
-        .enqueue(any(Callback.class));
   }
 
   @ParameterizedTest
@@ -210,5 +182,29 @@ class OnehouseApiClientTest {
     GenerateCommitMetadataUploadUrlResponse response =
         onehouseApiClientSpy.generateCommitMetadataUploadUrl(request).get();
     assertNotNull(response);
+  }
+
+  private void stubOkHttpCall(String apiEndpoint) {
+    String responseBodyContent = "{\"responseKey\":\"responseValue\"}";
+    ResponseBody responseBody =
+        ResponseBody.create(responseBodyContent, MediaType.parse("application/json"));
+    Response response =
+        new Response.Builder()
+            .code(200)
+            .message("OK")
+            .request(new Request.Builder().url("http://example.com" + apiEndpoint).build())
+            .protocol(Protocol.HTTP_1_1)
+            .body(responseBody)
+            .build();
+
+    when(okHttpClient.newCall(any(Request.class))).thenReturn(call);
+    doAnswer(
+            invocation -> {
+              Callback callback = invocation.getArgument(0);
+              callback.onResponse(call, response);
+              return null;
+            })
+        .when(call)
+        .enqueue(any(Callback.class));
   }
 }

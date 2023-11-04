@@ -1,4 +1,4 @@
-package com.onehouse.metadataExtractor.models;
+package com.onehouse.metadata_extractor.models;
 
 import com.onehouse.api.request.TableType;
 import lombok.Builder;
