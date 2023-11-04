@@ -1,0 +1,115 @@
+plugins {
+    id 'java'
+    id 'application'
+    id "io.freefair.lombok" version "8.4"
+    id 'com.diffplug.spotless' version '6.22.0'
+    id 'com.github.johnrengelman.shadow' version '7.1.0'
+    id 'org.sonarqube' version '4.4.1.3373'
+}
+
+spotless {
+    java {
+        googleJavaFormat()
+        removeUnusedImports()
+    }
+}
+
+apply plugin: 'jacoco'
+
+jacoco {
+    toolVersion = "0.8.8" //jacoco version
+}
+
+test {
+    finalizedBy jacocoTestReport // report is always generated after tests run
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+tasks.register('jacocoRootReport', JacocoReport) {
+
+    description = 'Generates an aggregate report from all subprojects'
+    dependsOn subprojects.test
+
+    additionalSourceDirs.from = files(subprojects.sourceSets.main.allSource.srcDirs)
+    sourceDirectories.from = files(subprojects.sourceSets.main.allSource.srcDirs)
+    classDirectories.from = files(subprojects.sourceSets.main.output)
+    executionData.from = files(subprojects.jacocoTestReport.executionData)
+
+    reports {
+        html.required = true // human readable
+        xml.required = true // required by sonarqube
+    }
+}
+
+sonarqube {
+    properties {
+        property "sonar.gradle.skipCompile", "true"
+        property "sonar.projectKey", "onehouseinc_hudi-metadata-extractor"
+        property "sonar.organization", "onehouseinc"
+        property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.scm.provider", "git"
+        property "sonar.token", project.getProperty("sonar_token")
+        if (project.hasProperty("pullrequest_key")) {
+            property "sonar.pullrequest.key", project.getProperty("pullrequest_key")
+            property "sonar.pullrequest.branch", project.getProperty("pullrequest_branch")
+            property "sonar.pullrequest.base", project.getProperty("pullrequest_base")
+            property "sonar.pullrequest.github.repository", "https://github.com/onehouseinc/gateway-controller"
+        } else {
+            property "sonar.branch.name", project.getProperty("branch_name")
+        }
+        property "sonar.verbose", "true"
+    }
+}
+
+tasks.sonar {
+    group = 'Sonarqube coverage reports'
+    description = 'Uploads the aggregated coverage report to sonarcloud'
+
+    onlyIf { System.env.'GITHUB_ACTIONS' }
+}
+
+tasks.getByPath('sonar').setDependsOn([])
+tasks.getByPath('sonar').setMustRunAfter([])
+
+group = 'com.onehouse'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.inject:guice:5.0.1'
+    implementation "ch.qos.logback:logback-classic:1.2.6"
+    implementation 'com.squareup.okhttp3:okhttp:4.11.0'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.12.3'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.15.3'
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+    implementation('org.apache.commons:commons-lang3:3.13.0')
+
+
+    implementation platform('software.amazon.awssdk:bom:2.21.8')
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'com.google.cloud:google-cloud-storage:2.12.0'
+
+    testImplementation 'org.mockito:mockito-core:3.11.2'
+    testImplementation(platform('org.junit:junit-bom:5.10.0'))
+    testImplementation('org.junit.jupiter:junit-jupiter')
+}
+
+application {
+    mainClassName = 'com.onehouse.Main'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
