@@ -25,12 +25,10 @@ test {
 }
 
 jacocoTestReport {
-    jacocoTestReport {
-        afterEvaluate {
-            classDirectories.setFrom(files(classDirectories.files.collect {
-                fileTree(dir: it, exclude: 'com/onehouse/constants/**')
-            }))
-        }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['com/onehouse/constants/**', 'com/onehouse/**/models/**'])
+        }))
     }
 
     reports {
@@ -72,6 +70,7 @@ sonarqube {
             property "sonar.branch.name", project.getProperty("branch_name")
         }
         property "sonar.verbose", "true"
+        property 'sonar.coverage.exclusions', ['com/onehouse/constants/**', 'com/onehouse/**/models/**']
     }
 }
 
