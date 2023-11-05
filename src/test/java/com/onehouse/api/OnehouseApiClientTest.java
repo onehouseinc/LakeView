@@ -194,7 +194,7 @@ class OnehouseApiClientTest {
     OnehouseApiClient onehouseApiClientSpy = spy(onehouseApiClient);
     GenerateCommitMetadataUploadUrlRequest request =
         GenerateCommitMetadataUploadUrlRequest.builder()
-            .tableId(tableId)
+            .tableId(tableId.toString())
             .commitTimelineType(commitTimelineType)
             .commitInstants(List.of())
             .build();

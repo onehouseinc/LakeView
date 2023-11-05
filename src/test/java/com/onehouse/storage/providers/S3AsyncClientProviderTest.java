@@ -2,6 +2,7 @@ package com.onehouse.storage.providers;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,11 +28,10 @@ class S3AsyncClientProviderTest {
   void throwExceptionWhenS3ConfigIsNull() {
     when(config.getFileSystemConfiguration()).thenReturn(fileSystemConfiguration);
     when(fileSystemConfiguration.getS3Config()).thenReturn(null);
+    S3AsyncClientProvider clientProvider = new S3AsyncClientProvider(config, executorService);
 
     IllegalArgumentException thrown =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> new S3AsyncClientProvider(config, executorService));
+        assertThrows(IllegalArgumentException.class, clientProvider::createS3AsyncClient);
 
     assertEquals("S3 Config not found", thrown.getMessage());
   }
@@ -42,10 +42,9 @@ class S3AsyncClientProviderTest {
     when(fileSystemConfiguration.getS3Config()).thenReturn(s3Config);
     when(s3Config.getRegion()).thenReturn("");
 
+    S3AsyncClientProvider clientProvider = new S3AsyncClientProvider(config, executorService);
     IllegalArgumentException thrown =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> new S3AsyncClientProvider(config, executorService));
+        assertThrows(IllegalArgumentException.class, clientProvider::createS3AsyncClient);
 
     assertEquals("Aws region cannot be empty", thrown.getMessage());
   }
@@ -54,7 +53,6 @@ class S3AsyncClientProviderTest {
   void testCreateS3AsyncClientWithCredentialsWhenProvided() {
     when(config.getFileSystemConfiguration()).thenReturn(fileSystemConfiguration);
     when(fileSystemConfiguration.getS3Config()).thenReturn(s3Config);
-    when(s3Config.getRegion()).thenReturn("us-west-2");
 
     S3AsyncClientProvider s3AsyncClientProviderSpy =
         Mockito.spy(new S3AsyncClientProvider(config, executorService));
@@ -63,7 +61,7 @@ class S3AsyncClientProviderTest {
     doReturn(s3AsyncClient).when(s3AsyncClientProviderSpy).createS3AsyncClient();
     S3AsyncClient result = s3AsyncClientProviderSpy.getS3AsyncClient();
 
-    assertSame(s3AsyncClient, result);
-    verify(s3AsyncClientProviderSpy).createS3AsyncClient();
+    assertEquals(s3AsyncClient, result);
+    verify(s3AsyncClientProviderSpy, times(1)).createS3AsyncClient();
   }
 }

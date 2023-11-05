@@ -24,7 +24,6 @@ import com.onehouse.api.response.InitializeTableMetricsCheckpointResponse;
 import com.onehouse.api.response.UpsertTableMetricsCheckpointResponse;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.OnehouseClientConfig;
-import com.onehouse.config.configv1.ConfigV1;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
@@ -47,7 +46,7 @@ public class OnehouseApiClient {
   @Inject
   public OnehouseApiClient(@Nonnull OkHttpClient okHttpClient, @Nonnull Config config) {
     this.okHttpClient = okHttpClient;
-    this.headers = getHeaders(((ConfigV1) config).getOnehouseClientConfig());
+    this.headers = getHeaders(config.getOnehouseClientConfig());
     this.mapper = new ObjectMapper();
   }
 

@@ -10,12 +10,11 @@ import com.onehouse.storage.AsyncStorageClient;
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class HoodiePropertiesReader {
   private final AsyncStorageClient asyncStorageClient;
-  private static final Logger LOGGER = LoggerFactory.getLogger(HoodiePropertiesReader.class);
 
   @Inject
   public HoodiePropertiesReader(AsyncStorageClient asyncStorageClient) {
@@ -23,7 +22,7 @@ public class HoodiePropertiesReader {
   }
 
   public CompletableFuture<ParsedHudiProperties> readHoodieProperties(String path) {
-    LOGGER.debug(String.format("parsing %s file", path));
+    log.debug("parsing {} file", path);
     return asyncStorageClient
         .readFileAsInputStream(path)
         .thenApplyAsync(
@@ -31,6 +30,7 @@ public class HoodiePropertiesReader {
               Properties properties = new Properties();
               try {
                 properties.load(inputStream);
+                inputStream.close();
               } catch (IOException e) {
                 throw new RuntimeException("Failed to load properties file", e);
               }

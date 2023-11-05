@@ -7,13 +7,11 @@ import java.io.InputStream;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.core.BytesWrapper;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
@@ -22,11 +20,11 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 
+@Slf4j
 public class S3AsyncStorageClient implements AsyncStorageClient {
   private final S3AsyncClientProvider s3AsyncClientProvider;
   private final StorageUtils storageUtils;
   private final ExecutorService executorService;
-  private static final Logger LOGGER = LoggerFactory.getLogger(S3AsyncStorageClient.class);
 
   @Inject
   public S3AsyncStorageClient(
@@ -40,12 +38,12 @@ public class S3AsyncStorageClient implements AsyncStorageClient {
 
   @Override
   public CompletableFuture<List<File>> listAllFilesInDir(String s3Uri) {
-    LOGGER.debug(String.format("Listing files in %s", s3Uri));
+    log.debug("Listing files in {}", s3Uri);
     String bucketName = storageUtils.getBucketNameFromUri(s3Uri);
     String prefix = storageUtils.getPathFromUrl(s3Uri);
 
     // ensure prefix which is not the root dir always ends with "/"
-    prefix = !Objects.equals(prefix, "") && !prefix.endsWith("/") ? prefix + "/" : prefix;
+    prefix = prefix.isEmpty() || prefix.endsWith("/") ? prefix : prefix + "/";
     return listObjectsInS3(bucketName, prefix, null, new ArrayList<>());
   }
 
@@ -117,7 +115,7 @@ public class S3AsyncStorageClient implements AsyncStorageClient {
   }
 
   private CompletableFuture<ResponseBytes<GetObjectResponse>> readFileFromS3(String s3Uri) {
-    LOGGER.debug(String.format("Reading S3 file:  %s", s3Uri));
+    log.debug("Reading S3 file:  {}", s3Uri);
     GetObjectRequest getObjectRequest =
         GetObjectRequest.builder()
             .bucket(storageUtils.getBucketNameFromUri(s3Uri))

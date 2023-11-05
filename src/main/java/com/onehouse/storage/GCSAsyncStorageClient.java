@@ -12,20 +12,18 @@ import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class GCSAsyncStorageClient implements AsyncStorageClient {
   private final GcsClientProvider gcsClientProvider;
   private final StorageUtils storageUtils;
   private final ExecutorService executorService;
-  private static final Logger logger = LoggerFactory.getLogger(GCSAsyncStorageClient.class);
 
   @Inject
   public GCSAsyncStorageClient(
@@ -41,13 +39,13 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
   public CompletableFuture<List<File>> listAllFilesInDir(String gcsUri) {
     return CompletableFuture.supplyAsync(
         () -> {
-          logger.debug(String.format("listing files in %s", gcsUri));
+          log.debug("Listing files in {}", gcsUri);
           Bucket bucket =
               gcsClientProvider.getGcsClient().get(storageUtils.getBucketNameFromUri(gcsUri));
           String prefix = storageUtils.getPathFromUrl(gcsUri);
 
           // ensure prefix which is not the root dir always ends with "/"
-          prefix = !Objects.equals(prefix, "") && !prefix.endsWith("/") ? prefix + "/" : prefix;
+          prefix = prefix.isEmpty() || prefix.endsWith("/") ? prefix : prefix + "/";
           Iterable<Blob> blobs =
               bucket
                   .list(
@@ -70,7 +68,7 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
 
   @VisibleForTesting
   CompletableFuture<Blob> readBlob(String gcsUri) {
-    logger.debug(String.format("Reading GCS file: %s", gcsUri));
+    log.debug("Reading GCS file: {}", gcsUri);
     return CompletableFuture.supplyAsync(
         () -> {
           Blob blob =
@@ -85,7 +83,8 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
           } else {
             throw new RuntimeException("Blob not found");
           }
-        });
+        },
+        executorService);
   }
 
   @Override

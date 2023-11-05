@@ -13,6 +13,7 @@ class StorageUtilsTest {
     assertEquals("path/to/file", storageUtils.getPathFromUrl("gs://bucket/path/to/file"));
     assertEquals("", storageUtils.getPathFromUrl("s3://bucket"));
     assertEquals("", storageUtils.getPathFromUrl("gs://bucket"));
+    assertThrows(IllegalArgumentException.class, () -> storageUtils.getPathFromUrl("invalidUri"));
   }
 
   @Test

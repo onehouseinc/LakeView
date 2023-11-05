@@ -2,12 +2,12 @@ package com.onehouse.metadata_extractor.models;
 
 import com.onehouse.api.request.TableType;
 import lombok.Builder;
-import lombok.Getter;
 import lombok.NonNull;
+import lombok.Value;
 
 @Builder
-@Getter
+@Value
 public class ParsedHudiProperties {
-  @NonNull private final String tableName;
-  @NonNull private final TableType tableType;
+  @NonNull String tableName;
+  @NonNull TableType tableType;
 }

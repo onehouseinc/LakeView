@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.config.common.S3Config;
-import com.onehouse.config.configv1.ConfigV1;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
 import org.slf4j.Logger;
@@ -24,15 +23,14 @@ public class S3AsyncClientProvider {
 
   @Inject
   public S3AsyncClientProvider(@Nonnull Config config, @Nonnull ExecutorService executorService) {
-    logger.debug("Instantiating S3 storage client");
-    FileSystemConfiguration fileSystemConfiguration =
-        ((ConfigV1) config).getFileSystemConfiguration();
-    validateS3Config(fileSystemConfiguration.getS3Config());
+    FileSystemConfiguration fileSystemConfiguration = config.getFileSystemConfiguration();
     this.s3Config = fileSystemConfiguration.getS3Config();
     this.executorService = executorService;
   }
 
   protected S3AsyncClient createS3AsyncClient() {
+    logger.debug("Instantiating S3 storage client");
+    validateS3Config(s3Config);
     S3AsyncClientBuilder s3AsyncClientBuilder = S3AsyncClient.builder();
 
     if (s3Config.getAccessKey().isPresent() && s3Config.getAccessSecret().isPresent()) {
@@ -46,8 +44,8 @@ public class S3AsyncClientProvider {
     return s3AsyncClientBuilder
         .region(Region.of(s3Config.getRegion()))
         .asyncConfiguration(
-            b ->
-                b.advancedOption(
+            builder ->
+                builder.advancedOption(
                     SdkAdvancedAsyncClientOption.FUTURE_COMPLETION_EXECUTOR, executorService))
         .build();
   }

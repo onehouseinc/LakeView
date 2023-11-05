@@ -29,9 +29,6 @@ class GcsClientProviderTest {
   @Test
   void testInstantiateGcsClient() {
     when(fileSystemConfiguration.getGcsConfig()).thenReturn(gcsConfig);
-    when(gcsConfig.getProjectId()).thenReturn("valid-project-id");
-    when(gcsConfig.getGcpServiceAccountKeyPath())
-        .thenReturn("src/test/resources/dummyServiceAccountKey.json");
 
     GcsClientProvider gcsClientProviderSpy = Mockito.spy(new GcsClientProvider(config));
 
@@ -39,14 +36,16 @@ class GcsClientProviderTest {
 
     // Assert
     assertNotNull(gcsClientProviderSpy.getGcsClient());
-    verify(gcsClientProviderSpy).createGcsClient(); // Verify that createGcsClient was called
+    verify(gcsClientProviderSpy, times(1))
+        .createGcsClient(); // Verify that createGcsClient was called
   }
 
   @Test
   void throwExceptionWhenGcsConfigIsNull() {
     when(fileSystemConfiguration.getGcsConfig()).thenReturn(null);
+    GcsClientProvider clientProvider = new GcsClientProvider(config);
     IllegalArgumentException thrown =
-        assertThrows(IllegalArgumentException.class, () -> new GcsClientProvider(config));
+        assertThrows(IllegalArgumentException.class, clientProvider::getGcsClient);
 
     assertEquals("Gcs config not found", thrown.getMessage());
   }
@@ -55,9 +54,9 @@ class GcsClientProviderTest {
   void throwExceptionWhenProjectIdIsInvalid() {
     when(fileSystemConfiguration.getGcsConfig()).thenReturn(gcsConfig);
     when(gcsConfig.getProjectId()).thenReturn("#invalid-project-id");
-
+    GcsClientProvider clientProvider = new GcsClientProvider(config);
     IllegalArgumentException thrown =
-        assertThrows(IllegalArgumentException.class, () -> new GcsClientProvider(config));
+        assertThrows(IllegalArgumentException.class, clientProvider::getGcsClient);
 
     assertEquals("Invalid GCP project ID: #invalid-project-id", thrown.getMessage());
   }
@@ -65,12 +64,11 @@ class GcsClientProviderTest {
   @Test
   void throwExceptionWhenServiceAccountKeyPathIsBlank() {
     when(fileSystemConfiguration.getGcsConfig()).thenReturn(gcsConfig);
-    when(gcsConfig.getProjectId())
-        .thenReturn("valid-project-id"); // assuming it matches GCP_RESOURCE_NAME_FORMAT
+    when(gcsConfig.getProjectId()).thenReturn("valid-project-id");
     when(gcsConfig.getGcpServiceAccountKeyPath()).thenReturn("");
-
+    GcsClientProvider clientProvider = new GcsClientProvider(config);
     IllegalArgumentException thrown =
-        assertThrows(IllegalArgumentException.class, () -> new GcsClientProvider(config));
+        assertThrows(IllegalArgumentException.class, clientProvider::getGcsClient);
 
     assertEquals("Invalid GCP Service Account Key Path: ", thrown.getMessage());
   }

@@ -2,9 +2,9 @@ package com.onehouse;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.onehouse.api.RetryInterceptor;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.FileSystemConfiguration;
-import com.onehouse.config.configv1.ConfigV1;
 import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.GCSAsyncStorageClient;
 import com.onehouse.storage.S3AsyncStorageClient;
@@ -26,6 +26,8 @@ public class RuntimeModule extends AbstractModule {
   private static final Logger logger = LoggerFactory.getLogger(RuntimeModule.class);
   private static final int IO_WORKLOAD_NUM_THREAD_MULTIPLIER = 5;
   private static final int HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS = 5;
+  private static final int HTTP_CLIENT_MAX_RETRIES = 3;
+  private static final int HTTP_CLIENT_RETRY_DELAY_MS = 1000;
   private final Config config;
 
   public RuntimeModule(Config config) {
@@ -40,6 +42,7 @@ public class RuntimeModule extends AbstractModule {
         .readTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .writeTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .connectTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .addInterceptor(new RetryInterceptor(HTTP_CLIENT_MAX_RETRIES, HTTP_CLIENT_RETRY_DELAY_MS))
         .dispatcher(dispatcher)
         .build();
   }
@@ -47,16 +50,16 @@ public class RuntimeModule extends AbstractModule {
   @Provides
   @Singleton
   static AsyncStorageClient providesAsyncStorageClient(
-      Config config, StorageUtils storageUtils, ExecutorService executorService) {
-    FileSystemConfiguration fileSystemConfiguration =
-        ((ConfigV1) config).getFileSystemConfiguration();
+      Config config,
+      StorageUtils storageUtils,
+      S3AsyncClientProvider s3AsyncClientProvider,
+      GcsClientProvider gcsClientProvider,
+      ExecutorService executorService) {
+    FileSystemConfiguration fileSystemConfiguration = config.getFileSystemConfiguration();
     if (fileSystemConfiguration.getS3Config() != null) {
-      S3AsyncClientProvider s3AsyncClientProvider =
-          new S3AsyncClientProvider(config, executorService);
       s3AsyncClientProvider.getS3AsyncClient(); // to initialise the client
       return new S3AsyncStorageClient(s3AsyncClientProvider, storageUtils, executorService);
     } else if (fileSystemConfiguration.getGcsConfig() != null) {
-      GcsClientProvider gcsClientProvider = new GcsClientProvider(config);
       gcsClientProvider.getGcsClient();
       return new GCSAsyncStorageClient(gcsClientProvider, storageUtils, executorService);
     }
