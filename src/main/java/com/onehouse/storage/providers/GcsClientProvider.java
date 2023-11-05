@@ -1,6 +1,6 @@
 package com.onehouse.storage.providers;
 
-import static com.onehouse.storage.StorageConstants.GCP_RESOURCE_NAME_FORMAT;
+import static com.onehouse.constants.StorageConstants.GCP_RESOURCE_NAME_FORMAT;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;

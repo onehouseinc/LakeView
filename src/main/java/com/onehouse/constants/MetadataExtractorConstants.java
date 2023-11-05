@@ -1,10 +1,10 @@
-package com.onehouse.metadata_extractor;
+package com.onehouse.constants;
 
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import java.time.Instant;
 
-public class Constants {
-  private Constants() {}
+public class MetadataExtractorConstants {
+  private MetadataExtractorConstants() {}
 
   public static final String HOODIE_FOLDER_NAME = ".hoodie";
   public static final String ARCHIVED_FOLDER_NAME = "archived";

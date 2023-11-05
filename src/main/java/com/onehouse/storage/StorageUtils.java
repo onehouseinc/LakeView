@@ -1,6 +1,6 @@
 package com.onehouse.storage;
 
-import static com.onehouse.storage.StorageConstants.OBJECT_STORAGE_URI_PATTERN;
+import static com.onehouse.constants.StorageConstants.OBJECT_STORAGE_URI_PATTERN;
 
 import java.util.regex.Matcher;
 

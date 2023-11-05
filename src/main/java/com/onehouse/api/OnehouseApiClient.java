@@ -1,15 +1,15 @@
 package com.onehouse.api;
 
-import static com.onehouse.api.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD_URL;
-import static com.onehouse.api.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
-import static com.onehouse.api.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
-import static com.onehouse.api.ApiConstants.ONEHOUSE_API_ENDPOINT;
-import static com.onehouse.api.ApiConstants.ONEHOUSE_API_KEY;
-import static com.onehouse.api.ApiConstants.ONEHOUSE_API_SECRET_KEY;
-import static com.onehouse.api.ApiConstants.ONEHOUSE_REGION_KEY;
-import static com.onehouse.api.ApiConstants.ONEHOUSE_USER_UUID_KEY;
-import static com.onehouse.api.ApiConstants.PROJECT_UID_KEY;
-import static com.onehouse.api.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
+import static com.onehouse.constants.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD_URL;
+import static com.onehouse.constants.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
+import static com.onehouse.constants.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_ENDPOINT;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_KEY;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_SECRET_KEY;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_REGION_KEY;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_USER_UUID_KEY;
+import static com.onehouse.constants.ApiConstants.PROJECT_UID_KEY;
+import static com.onehouse.constants.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;

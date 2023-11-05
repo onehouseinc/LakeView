@@ -1,7 +1,7 @@
 package com.onehouse.metadata_extractor;
 
-import static com.onehouse.metadata_extractor.Constants.HOODIE_TABLE_NAME_KEY;
-import static com.onehouse.metadata_extractor.Constants.HOODIE_TABLE_TYPE_KEY;
+import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_NAME_KEY;
+import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_TYPE_KEY;
 
 import com.google.inject.Inject;
 import com.onehouse.api.request.TableType;

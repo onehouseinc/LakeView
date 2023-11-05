@@ -25,6 +25,14 @@ test {
 }
 
 jacocoTestReport {
+    jacocoTestReport {
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: 'com/onehouse/constants/**')
+            }))
+        }
+    }
+
     reports {
         xml.required = true
         html.required = true

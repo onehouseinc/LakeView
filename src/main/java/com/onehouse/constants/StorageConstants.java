@@ -1,4 +1,4 @@
-package com.onehouse.storage;
+package com.onehouse.constants;
 
 import java.util.regex.Pattern;
 

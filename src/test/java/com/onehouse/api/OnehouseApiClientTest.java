@@ -1,9 +1,9 @@
 package com.onehouse.api;
 
-import static com.onehouse.api.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD_URL;
-import static com.onehouse.api.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
-import static com.onehouse.api.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
-import static com.onehouse.api.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
+import static com.onehouse.constants.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD_URL;
+import static com.onehouse.constants.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
+import static com.onehouse.constants.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
+import static com.onehouse.constants.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;

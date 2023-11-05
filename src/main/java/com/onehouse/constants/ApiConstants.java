@@ -1,4 +1,4 @@
-package com.onehouse.api;
+package com.onehouse.constants;
 
 public class ApiConstants {
 
