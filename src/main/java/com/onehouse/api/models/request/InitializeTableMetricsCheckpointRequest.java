@@ -1,4 +1,4 @@
-package com.onehouse.api.request;
+package com.onehouse.api.models.request;
 
 import java.util.UUID;
 import lombok.Builder;

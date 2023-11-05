@@ -1,4 +1,4 @@
-package com.onehouse.api.request;
+package com.onehouse.api.models.request;
 
 public enum CommitTimelineType {
   COMMIT_TIMELINE_TYPE_ACTIVE,

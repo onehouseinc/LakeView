@@ -26,6 +26,7 @@ test {
 
 jacocoTestReport {
     afterEvaluate {
+        // Excluding constants and models
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it, exclude: ['com/onehouse/constants/**', 'com/onehouse/**/models/**'])
         }))

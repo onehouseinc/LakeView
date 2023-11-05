@@ -1,6 +1,6 @@
 package com.onehouse.metadata_extractor.models;
 
-import com.onehouse.api.request.TableType;
+import com.onehouse.api.models.request.TableType;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;

@@ -3,7 +3,7 @@ package com.onehouse.metadata_extractor;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
-import com.onehouse.api.request.TableType;
+import com.onehouse.api.models.request.TableType;
 import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
 import com.onehouse.storage.AsyncStorageClient;
 import java.io.ByteArrayInputStream;

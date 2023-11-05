@@ -1,4 +1,4 @@
-package com.onehouse.api.response;
+package com.onehouse.api.models.response;
 
 import java.util.List;
 import lombok.AllArgsConstructor;

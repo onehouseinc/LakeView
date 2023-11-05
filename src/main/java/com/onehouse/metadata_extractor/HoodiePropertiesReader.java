@@ -4,7 +4,7 @@ import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_NAM
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_TYPE_KEY;
 
 import com.google.inject.Inject;
-import com.onehouse.api.request.TableType;
+import com.onehouse.api.models.request.TableType;
 import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
 import com.onehouse.storage.AsyncStorageClient;
 import java.io.IOException;
