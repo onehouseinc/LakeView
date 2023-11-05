@@ -71,7 +71,7 @@ sonarqube {
             property "sonar.branch.name", project.getProperty("branch_name")
         }
         property "sonar.verbose", "true"
-        property 'sonar.coverage.exclusions', ['**/constants/**', '**/models/**']
+        property 'sonar.coverage.exclusions', ['**/constants/**/*', '**/models/**/*']
     }
 }
 
