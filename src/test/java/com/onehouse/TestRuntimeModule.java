@@ -24,7 +24,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mockito;
 
-public class TestRuntimeModule {
+class TestRuntimeModule {
   private RuntimeModule runtimeModule;
   private Config mockConfig;
 

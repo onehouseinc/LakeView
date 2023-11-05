@@ -34,7 +34,8 @@ public class RetryInterceptor implements Interceptor {
       // Wait for a while before retrying
       try {
         Thread.sleep(retryDelayMillis);
-      } catch (InterruptedException ignored) {
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
       }
     }
 
@@ -43,6 +44,7 @@ public class RetryInterceptor implements Interceptor {
       throw exception;
     } else {
       // Or return the last response, which will likely be an error response
+      assert response != null;
       return response;
     }
   }

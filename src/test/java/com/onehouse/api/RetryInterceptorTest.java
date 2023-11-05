@@ -10,13 +10,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class RetryInterceptorTest {
+class RetryInterceptorTest {
 
   private MockWebServer mockWebServer;
   private OkHttpClient okHttpClient;
 
   @BeforeEach
-  public void setUp() throws IOException {
+  void setUp() throws IOException {
     mockWebServer = new MockWebServer();
     mockWebServer.start();
 
@@ -24,12 +24,12 @@ public class RetryInterceptorTest {
   }
 
   @AfterEach
-  public void tearDown() throws IOException {
+  void tearDown() throws IOException {
     mockWebServer.shutdown();
   }
 
   @Test
-  public void testRetryInterceptor_retriesOnFailure() throws IOException {
+  void testRetryInterceptor_retriesOnFailure() throws IOException {
     // Set up a sequence of responses: two failures followed by a success
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
