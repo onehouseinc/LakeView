@@ -12,14 +12,15 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class HttpAsyncClientWithRetry {
+public class AsyncHttpClientWithRetry {
 
   private final ScheduledExecutorService scheduler;
   private final int maxRetries;
   private final long retryDelayMillis;
   private final OkHttpClient okHttpClient;
+  private static final long MAX_RETRY_DELAY_MILLIS = 10000; // 10seconds
 
-  public HttpAsyncClientWithRetry(
+  public AsyncHttpClientWithRetry(
       int maxRetries, long retryDelayMillis, OkHttpClient okHttpClient) {
     this.maxRetries = maxRetries;
     this.retryDelayMillis = retryDelayMillis;
@@ -72,8 +73,12 @@ public class HttpAsyncClientWithRetry {
                     }
                   });
         },
-        (long) (retryDelayMillis * Math.pow(2, tryCount)),
+        calculateDelay(tryCount),
         TimeUnit.MILLISECONDS); // Exponential backoff
+  }
+
+  private long calculateDelay(int tryCount) {
+    return (long) Math.min(MAX_RETRY_DELAY_MILLIS, retryDelayMillis * Math.pow(2, tryCount));
   }
 
   public void shutdownScheduler() {

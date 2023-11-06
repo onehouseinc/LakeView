@@ -38,12 +38,12 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class OnehouseApiClient {
-  private final HttpAsyncClientWithRetry asyncClient;
+  private final AsyncHttpClientWithRetry asyncClient;
   private final Headers headers;
   private final ObjectMapper mapper;
 
   @Inject
-  public OnehouseApiClient(@Nonnull HttpAsyncClientWithRetry asyncClient, @Nonnull Config config) {
+  public OnehouseApiClient(@Nonnull AsyncHttpClientWithRetry asyncClient, @Nonnull Config config) {
     this.asyncClient = asyncClient;
     this.headers = getHeaders(config.getOnehouseClientConfig());
     this.mapper = new ObjectMapper();

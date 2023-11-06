@@ -6,7 +6,7 @@ import static junit.framework.TestCase.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.onehouse.api.HttpAsyncClientWithRetry;
+import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.config.common.GCSConfig;
@@ -80,11 +80,11 @@ class TestRuntimeModule {
   @Test
   void testProvidesHttpAsyncClient() {
     OkHttpClient mockOkHttpClient = mock(OkHttpClient.class);
-    HttpAsyncClientWithRetry httpAsyncClientWithRetry =
+    AsyncHttpClientWithRetry asyncHttpClientWithRetry =
         runtimeModule.providesHttpAsyncClient(mockOkHttpClient);
-    assertEquals(runtimeModule.getHttpClientMaxRetries(), httpAsyncClientWithRetry.getMaxRetries());
+    assertEquals(runtimeModule.getHttpClientMaxRetries(), asyncHttpClientWithRetry.getMaxRetries());
     assertEquals(
-        runtimeModule.getHttpClientRetryDelayMs(), httpAsyncClientWithRetry.getRetryDelayMillis());
+        runtimeModule.getHttpClientRetryDelayMs(), asyncHttpClientWithRetry.getRetryDelayMillis());
   }
 
   enum FileSystem {

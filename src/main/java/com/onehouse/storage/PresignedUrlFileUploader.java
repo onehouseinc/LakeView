@@ -1,7 +1,7 @@
 package com.onehouse.storage;
 
 import com.google.inject.Inject;
-import com.onehouse.api.HttpAsyncClientWithRetry;
+import com.onehouse.api.AsyncHttpClientWithRetry;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
@@ -11,14 +11,14 @@ import okhttp3.RequestBody;
 @Slf4j
 public class PresignedUrlFileUploader {
   private final AsyncStorageClient asyncStorageClient;
-  private final HttpAsyncClientWithRetry httpAsyncClientWithRetry;
+  private final AsyncHttpClientWithRetry asyncHttpClientWithRetry;
 
   @Inject
   public PresignedUrlFileUploader(
       @Nonnull AsyncStorageClient asyncStorageClient,
-      @Nonnull HttpAsyncClientWithRetry httpAsyncClientWithRetry) {
+      @Nonnull AsyncHttpClientWithRetry asyncHttpClientWithRetry) {
     this.asyncStorageClient = asyncStorageClient;
-    this.httpAsyncClientWithRetry = httpAsyncClientWithRetry;
+    this.asyncHttpClientWithRetry = asyncHttpClientWithRetry;
   }
 
   public CompletableFuture<Void> uploadFileToPresignedUrl(String presignedUrl, String fileUrl) {
@@ -31,7 +31,7 @@ public class PresignedUrlFileUploader {
               Request request;
               request = new Request.Builder().url(presignedUrl).put(requestBody).build();
 
-              return httpAsyncClientWithRetry
+              return asyncHttpClientWithRetry
                   .makeRequestWithRetry(request)
                   .thenApply(
                       uploadResponse -> {

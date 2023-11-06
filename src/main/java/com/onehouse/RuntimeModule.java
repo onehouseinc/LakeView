@@ -3,7 +3,7 @@ package com.onehouse;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.onehouse.api.HttpAsyncClientWithRetry;
+import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.storage.AsyncStorageClient;
@@ -49,8 +49,8 @@ public class RuntimeModule extends AbstractModule {
 
   @Provides
   @Singleton
-  static HttpAsyncClientWithRetry providesHttpAsyncClient(OkHttpClient okHttpClient) {
-    return new HttpAsyncClientWithRetry(
+  static AsyncHttpClientWithRetry providesHttpAsyncClient(OkHttpClient okHttpClient) {
+    return new AsyncHttpClientWithRetry(
         HTTP_CLIENT_MAX_RETRIES, HTTP_CLIENT_RETRY_DELAY_MS, okHttpClient);
   }
 

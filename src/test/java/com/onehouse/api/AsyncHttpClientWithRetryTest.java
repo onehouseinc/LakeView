@@ -14,10 +14,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class HttpAsyncClientWithRetryTest {
+class AsyncHttpClientWithRetryTest {
 
   private MockWebServer mockWebServer;
-  private HttpAsyncClientWithRetry httpAsyncClientWithRetry;
+  private AsyncHttpClientWithRetry asyncHttpClientWithRetry;
 
   @BeforeEach
   void setUp() throws IOException {
@@ -25,13 +25,13 @@ class HttpAsyncClientWithRetryTest {
     mockWebServer.start();
 
     OkHttpClient okHttpClient = new OkHttpClient.Builder().build();
-    httpAsyncClientWithRetry = new HttpAsyncClientWithRetry(3, 100, okHttpClient);
+    asyncHttpClientWithRetry = new AsyncHttpClientWithRetry(3, 100, okHttpClient);
   }
 
   @AfterEach
   void tearDown() throws IOException {
     mockWebServer.shutdown();
-    httpAsyncClientWithRetry.shutdownScheduler();
+    asyncHttpClientWithRetry.shutdownScheduler();
   }
 
   @Test
@@ -43,7 +43,7 @@ class HttpAsyncClientWithRetryTest {
 
     Request request = new Request.Builder().url(mockWebServer.url("/")).get().build();
 
-    CompletableFuture<Response> future = httpAsyncClientWithRetry.makeRequestWithRetry(request);
+    CompletableFuture<Response> future = asyncHttpClientWithRetry.makeRequestWithRetry(request);
     Response response = future.get();
 
     assertTrue(response.isSuccessful());
@@ -59,7 +59,7 @@ class HttpAsyncClientWithRetryTest {
 
     Request request = new Request.Builder().url(mockWebServer.url("/")).get().build();
 
-    CompletableFuture<Response> future = httpAsyncClientWithRetry.makeRequestWithRetry(request);
+    CompletableFuture<Response> future = asyncHttpClientWithRetry.makeRequestWithRetry(request);
 
     Response response = future.get();
     assertFalse(response.isSuccessful());
@@ -73,7 +73,7 @@ class HttpAsyncClientWithRetryTest {
 
     Request request = new Request.Builder().url("http://localhost:8080").get().build();
 
-    CompletableFuture<Response> future = httpAsyncClientWithRetry.makeRequestWithRetry(request);
+    CompletableFuture<Response> future = asyncHttpClientWithRetry.makeRequestWithRetry(request);
 
     ExecutionException exception = assertThrows(ExecutionException.class, future::get);
     assertTrue(exception.getCause() instanceof IOException);

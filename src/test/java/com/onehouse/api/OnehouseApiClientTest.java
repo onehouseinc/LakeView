@@ -44,7 +44,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class OnehouseApiClientTest {
-  @Mock private HttpAsyncClientWithRetry client;
+  @Mock private AsyncHttpClientWithRetry client;
   @Mock private ConfigV1 config;
   @Mock private OnehouseClientConfig onehouseClientConfig;
   @Mock private Call call;

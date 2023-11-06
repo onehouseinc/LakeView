@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.onehouse.api.HttpAsyncClientWithRetry;
+import com.onehouse.api.AsyncHttpClientWithRetry;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import okhttp3.Protocol;
@@ -20,7 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class PresignedUrlFileUploaderTest {
-  @Mock private HttpAsyncClientWithRetry httpAsyncClientWithRetry;
+  @Mock private AsyncHttpClientWithRetry asyncHttpClientWithRetry;
   @Mock AsyncStorageClient mockAsyncStorageClient;
   private static final int FAILURE_STATUS_CODE = 500;
   private static final String FAILURE_ERROR = "call failed";
@@ -39,12 +39,12 @@ class PresignedUrlFileUploaderTest {
     mockOkHttpCall(PRESIGNED_URL, false);
 
     PresignedUrlFileUploader uploader =
-        new PresignedUrlFileUploader(mockAsyncStorageClient, httpAsyncClientWithRetry);
+        new PresignedUrlFileUploader(mockAsyncStorageClient, asyncHttpClientWithRetry);
 
     uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI).get();
 
     verify(mockAsyncStorageClient).readFileAsBytes(FILE_URI);
-    verify(httpAsyncClientWithRetry).makeRequestWithRetry(any());
+    verify(asyncHttpClientWithRetry).makeRequestWithRetry(any());
   }
 
   @Test
@@ -53,7 +53,7 @@ class PresignedUrlFileUploaderTest {
     mockOkHttpCall(PRESIGNED_URL, true);
 
     PresignedUrlFileUploader uploader =
-        new PresignedUrlFileUploader(mockAsyncStorageClient, httpAsyncClientWithRetry);
+        new PresignedUrlFileUploader(mockAsyncStorageClient, asyncHttpClientWithRetry);
 
     ExecutionException exception =
         assertThrows(
@@ -85,7 +85,7 @@ class PresignedUrlFileUploaderTest {
               .message("OK")
               .build();
     }
-    when(httpAsyncClientWithRetry.makeRequestWithRetry(any(Request.class)))
+    when(asyncHttpClientWithRetry.makeRequestWithRetry(any(Request.class)))
         .thenReturn(CompletableFuture.completedFuture(fakeResponse));
   }
 }
