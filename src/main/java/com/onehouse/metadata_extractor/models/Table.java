@@ -1,13 +1,13 @@
 package com.onehouse.metadata_extractor.models;
 
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
 
 @Builder(toBuilder = true)
-@Getter
+@Value
 public class Table {
-  private final String absoluteTableUri;
-  private final String relativeTablePath;
-  private final String databaseName;
-  private final String lakeName;
+  String absoluteTableUri;
+  String relativeTablePath;
+  String databaseName;
+  String lakeName;
 }

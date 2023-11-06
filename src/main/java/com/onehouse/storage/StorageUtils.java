@@ -30,7 +30,7 @@ public class StorageUtils {
         directoryUri.endsWith("/")
             ? directoryUri.substring(0, directoryUri.length() - 1)
             : directoryUri,
-        filePath);
+        filePath.startsWith("/") ? filePath.substring(1) : filePath);
   }
 
   public String getBucketNameFromUri(String uri) {
