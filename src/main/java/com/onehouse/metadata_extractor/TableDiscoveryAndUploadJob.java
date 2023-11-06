@@ -97,7 +97,7 @@ public class TableDiscoveryAndUploadJob {
   }
 
   @VisibleForTesting
-  ScheduledExecutorService getScheduler(){
+  ScheduledExecutorService getScheduler() {
     return Executors.newScheduledThreadPool(2);
   }
 }

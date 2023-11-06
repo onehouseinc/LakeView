@@ -4,7 +4,6 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.Value;
 
 @Builder(toBuilder = true)
 @Getter
@@ -13,5 +12,5 @@ public class Table {
   @NonNull private final String absoluteTableUri;
   @NonNull private final String databaseName;
   @NonNull private final String lakeName;
-  private  String relativeTablePath;
+  private String relativeTablePath;
 }
