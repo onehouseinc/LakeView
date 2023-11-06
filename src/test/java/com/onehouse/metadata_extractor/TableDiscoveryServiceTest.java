@@ -12,12 +12,15 @@ import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -114,9 +117,9 @@ class TableDiscoveryServiceTest {
         new TableDiscoveryService(
             asyncStorageClient, new StorageUtils(), config, ForkJoinPool.commonPool());
 
-    Set<Table> tables = tableDiscoveryService.discoverTables().get();
-    List<Table> expectedResponse =
-        List.of(
+    Set<Table> tableSet = tableDiscoveryService.discoverTables().get();
+    Set<Table> expectedResponseSet =
+        Set.of(
             Table.builder()
                 .absoluteTableUri(BASE_PATH + "table1/")
                 .relativeTablePath("table1")
@@ -129,7 +132,7 @@ class TableDiscoveryServiceTest {
                 .databaseName(DATABASE)
                 .lakeName(LAKE)
                 .build());
-    assertArrayEquals(expectedResponse.toArray(), tables.toArray());
+    assertIterableEquals(expectedResponseSet, tableSet);
 
     // List will be called for:
     // s3://bucket/base_path/

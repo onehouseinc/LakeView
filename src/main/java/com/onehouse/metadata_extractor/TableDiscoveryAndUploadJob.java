@@ -3,6 +3,7 @@ package com.onehouse.metadata_extractor;
 import static com.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_INTERVAL_MINUTES;
 import static com.onehouse.constants.MetadataExtractorConstants.TABLE_METADATA_UPLOAD_INTERVAL_MINUTES;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.metadata_extractor.models.Table;
 import java.util.Set;
@@ -27,7 +28,7 @@ public class TableDiscoveryAndUploadJob {
   public TableDiscoveryAndUploadJob(
       @Nonnull TableDiscoveryService tableDiscoveryService,
       @Nonnull TableMetadataUploaderService tableMetadataUploaderService) {
-    this.scheduler = Executors.newScheduledThreadPool(2);
+    this.scheduler = getScheduler();
     this.tableDiscoveryService = tableDiscoveryService;
     this.tableMetadataUploaderService = tableMetadataUploaderService;
   }
@@ -93,5 +94,10 @@ public class TableDiscoveryAndUploadJob {
 
   public void shutdown() {
     scheduler.shutdown();
+  }
+
+  @VisibleForTesting
+  ScheduledExecutorService getScheduler(){
+    return Executors.newScheduledThreadPool(2);
   }
 }

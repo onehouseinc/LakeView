@@ -8,19 +8,20 @@ import com.onehouse.config.ConfigLoader;
 import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Slf4j
 public class Main {
 
   private static TableDiscoveryAndUploadJob job;
   private static AsyncHttpClientWithRetry asyncHttpClientWithRetry;
-  private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
   public static void main(String[] args) {
-    logger.info("Starting table metadata extractor service");
+    log.info("Starting table metadata extractor service");
     if (args.length != 1) {
-      System.err.println("Usage: java Main <config-file-path>");
+      log.error("Usage: java Main <config-file-path>");
       System.exit(1);
     }
 
