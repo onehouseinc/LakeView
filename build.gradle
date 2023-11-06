@@ -25,6 +25,13 @@ test {
 }
 
 jacocoTestReport {
+    afterEvaluate {
+        // Excluding constants and models
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/constants/**/*', '**/models/**/*'])
+        }))
+    }
+
     reports {
         xml.required = true
         html.required = true
@@ -49,7 +56,7 @@ tasks.register('jacocoRootReport', JacocoReport) {
 
 sonarqube {
     properties {
-        property "sonar.gradle.skipCompile", "true"
+        property "sonar.gradle.skipCompile", true
         property "sonar.projectKey", "onehouseinc_hudi-metadata-extractor"
         property "sonar.organization", "onehouseinc"
         property "sonar.host.url", "https://sonarcloud.io"
@@ -64,6 +71,7 @@ sonarqube {
             property "sonar.branch.name", project.getProperty("branch_name")
         }
         property "sonar.verbose", "true"
+        property 'sonar.coverage.exclusions', ['**/constants/**/*', '**/models/**/*']
     }
 }
 
@@ -99,8 +107,11 @@ dependencies {
     implementation 'com.google.cloud:google-cloud-storage:2.12.0'
 
     testImplementation 'org.mockito:mockito-core:3.11.2'
+    testImplementation "org.mockito:mockito-junit-jupiter:3.11.2"
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
     testImplementation(platform('org.junit:junit-bom:5.10.0'))
     testImplementation('org.junit.jupiter:junit-jupiter')
+
 }
 
 application {
