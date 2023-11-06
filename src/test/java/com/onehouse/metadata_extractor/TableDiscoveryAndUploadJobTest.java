@@ -19,7 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class TableDiscoveryAndUploadJobTest {
+class TableDiscoveryAndUploadJobTest {
 
   @Mock private TableDiscoveryService mockTableDiscoveryService;
 
@@ -32,7 +32,7 @@ public class TableDiscoveryAndUploadJobTest {
   private TableDiscoveryAndUploadJob job;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     job =
         new TableDiscoveryAndUploadJob(
             mockTableDiscoveryService, mockTableMetadataUploaderService) {
@@ -44,7 +44,7 @@ public class TableDiscoveryAndUploadJobTest {
   }
 
   @Test
-  public void testRunInContinuousMode() {
+  void testRunInContinuousMode() {
     Table discoveredTable =
         Table.builder()
             .absoluteTableUri("absolute_uri")
@@ -82,7 +82,7 @@ public class TableDiscoveryAndUploadJobTest {
   }
 
   @Test
-  public void testRunOnce() {
+  void testRunOnce() {
     Table discoveredTable =
         Table.builder()
             .absoluteTableUri("absolute_uri")
@@ -100,7 +100,7 @@ public class TableDiscoveryAndUploadJobTest {
   }
 
   @Test
-  public void testShutdown() {
+  void testShutdown() {
     job.shutdown();
     verify(mockScheduler).shutdown();
   }

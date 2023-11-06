@@ -17,7 +17,7 @@ class StorageUtilsTest {
   }
 
   @Test
-  public void testConstructFileUri() {
+  void testConstructFileUri() {
     String s3DirUriWithoutTrailingSlash = "s3://bucket/dir1";
     String s3DirUriWithTrailingSlash = "s3://bucket/dir1/";
     String filePathWithoutPrefixSlash = "file.txt";

@@ -147,7 +147,7 @@ public class TableMetadataUploaderService {
               tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
           .thenCompose(
               uploadInstantsInArchivedTimelineSucceeded -> {
-                if (!uploadInstantsInArchivedTimelineSucceeded) {
+                if (!Boolean.TRUE.equals(uploadInstantsInArchivedTimelineSucceeded)) {
                   // do not upload instants in active timeline if there was failure
                   log.warn(
                       "Skipping uploading instants in active timeline due to failures in uploading archived timeline instants for table {}",
@@ -189,7 +189,7 @@ public class TableMetadataUploaderService {
                 sequentialBatchProcessingFuture =
                     sequentialBatchProcessingFuture.thenComposeAsync(
                         previousBatchProcessingSucceeded -> {
-                          if (!previousBatchProcessingSucceeded) {
+                          if (!Boolean.TRUE.equals(previousBatchProcessingSucceeded)) {
                             // don't process any further batches
                             return CompletableFuture.completedFuture(false);
                           }
@@ -261,7 +261,7 @@ public class TableMetadataUploaderService {
 
   private CompletableFuture<Boolean> updateCheckpointAfterProcessingBatch(
       UUID tableId,
-      Checkpoint PreviousCheckpoint,
+      Checkpoint previousCheckpoint,
       int numBatches,
       int batchIndex,
       File lastUploadedFile,
@@ -270,7 +270,7 @@ public class TableMetadataUploaderService {
 
     boolean archivedCommitsProcessed =
         true; // archived instants would be processed if timeline type is active
-    int batchId = PreviousCheckpoint.getBatchId() + batchIndex + 1;
+    int batchId = previousCheckpoint.getBatchId() + batchIndex + 1;
     if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)) {
       archivedCommitsProcessed = (batchIndex >= numBatches - 1);
       if (archivedCommitsProcessed) {
@@ -310,7 +310,7 @@ public class TableMetadataUploaderService {
   }
 
   private String getPathSuffix(CommitTimelineType commitTimelineType) {
-    String pathSuffix = HOODIE_FOLDER_NAME + "/";
+    String pathSuffix = HOODIE_FOLDER_NAME + '/';
     return CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
         ? pathSuffix + ARCHIVED_FOLDER_NAME + '/'
         : pathSuffix;

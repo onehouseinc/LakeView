@@ -8,6 +8,7 @@ import com.onehouse.config.models.configv1.ConfigV1;
 import java.io.InputStream;
 
 public class ConfigLoader {
+  private ConfigLoader() {}
 
   public static Config loadConfig(String configFile) {
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());

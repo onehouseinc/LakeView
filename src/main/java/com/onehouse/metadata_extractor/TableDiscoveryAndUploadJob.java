@@ -70,7 +70,7 @@ public class TableDiscoveryAndUploadJob {
             })
         .exceptionally(
             ex -> {
-              LOGGER.error("Error discovering tables: " + ex.getMessage());
+              LOGGER.error("Error discovering tables: ", ex);
               return null;
             });
   }
@@ -86,7 +86,7 @@ public class TableDiscoveryAndUploadJob {
           .uploadInstantsInTables(tables)
           .exceptionally(
               ex -> {
-                LOGGER.error("Error uploading instants in tables: " + ex.getMessage());
+                LOGGER.error("Error uploading instants in tables: ", ex);
                 return null;
               });
     }

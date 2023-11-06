@@ -72,10 +72,7 @@ public class TableDiscoveryService {
     }
 
     return CompletableFuture.allOf(
-            discoveredTablesFuture.stream()
-                .map(Pair::getRight)
-                .collect(Collectors.toList())
-                .toArray(new CompletableFuture[0]))
+            discoveredTablesFuture.stream().map(Pair::getRight).toArray(CompletableFuture[]::new))
         .thenApply(
             ignored -> {
               Set<Table> allTablePaths = ConcurrentHashMap.newKeySet();
