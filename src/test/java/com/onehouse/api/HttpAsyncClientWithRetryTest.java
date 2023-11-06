@@ -35,8 +35,7 @@ class HttpAsyncClientWithRetryTest {
   }
 
   @Test
-  void testRetryInterceptorRetriesOnFailure()
-      throws InterruptedException, ExecutionException {
+  void testRetryInterceptorRetriesOnFailure() throws InterruptedException, ExecutionException {
     // Set up a sequence of responses: two failures followed by a success
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
@@ -58,7 +57,6 @@ class HttpAsyncClientWithRetryTest {
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
 
-
     Request request = new Request.Builder().url(mockWebServer.url("/")).get().build();
 
     CompletableFuture<Response> future = httpAsyncClientWithRetry.makeRequestWithRetry(request);
@@ -67,7 +65,6 @@ class HttpAsyncClientWithRetryTest {
     assertFalse(response.isSuccessful());
     assertEquals(3, mockWebServer.getRequestCount());
   }
-
 
   @Test
   void testMakeRequestWithRetryIOException() throws InterruptedException, IOException {
@@ -83,5 +80,4 @@ class HttpAsyncClientWithRetryTest {
 
     assertEquals(0, mockWebServer.getRequestCount());
   }
-
 }
