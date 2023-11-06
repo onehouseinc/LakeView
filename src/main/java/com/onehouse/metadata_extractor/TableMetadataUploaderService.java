@@ -266,15 +266,18 @@ public class TableMetadataUploaderService {
       List<String> filesUploaded,
       CommitTimelineType commitTimelineType) {
 
+    boolean archivedCommitsProcessed =
+        true; // archived instants would be processed if timeline type is active
+    if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)) {
+      archivedCommitsProcessed = (batchIndex >= numBatches - 1);
+    }
+
     Checkpoint updatedCheckpoint =
         Checkpoint.builder()
             .batchId(PreviousCheckpoint.getBatchId() + batchIndex + 1)
             .lastUploadedFile(lastUploadedFile.getFilename())
             .checkpointTimestamp(lastUploadedFile.getLastModifiedAt())
-            .archivedCommitsProcessed(
-                CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType))
-            .archivedCommitsProcessed(batchIndex >= numBatches - 1) // TODO: handle case where
-            // new archived commit is added during upload
+            .archivedCommitsProcessed(archivedCommitsProcessed)
             .build();
     try {
       return onehouseApiClient
