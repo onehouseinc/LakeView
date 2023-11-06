@@ -6,6 +6,8 @@ import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIE
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -109,7 +111,7 @@ class TableMetadataUploaderServiceTest {
     String archivedTimelineCheckpoint =
         mapper.writeValueAsString(
             Checkpoint.builder()
-                .batchId(1)
+                .batchId(0)
                 .lastUploadedFile("archived_instant1")
                 .checkpointTimestamp(Instant.EPOCH)
                 .archivedCommitsProcessed(true)
@@ -175,7 +177,7 @@ class TableMetadataUploaderServiceTest {
     when(onehouseApiClient.upsertTableMetricsCheckpoint(
             UpsertTableMetricsCheckpointRequest.builder()
                 .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
-                .tableId(tableId)
+                .tableId(tableId.toString())
                 .checkpoint(archivedTimelineCheckpoint)
                 .filesUploaded(filesUploadedFromArchivedTimeline)
                 .build()))
@@ -185,7 +187,7 @@ class TableMetadataUploaderServiceTest {
     when(onehouseApiClient.upsertTableMetricsCheckpoint(
             UpsertTableMetricsCheckpointRequest.builder()
                 .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
-                .tableId(tableId)
+                .tableId(tableId.toString())
                 .checkpoint(activeTimelineCheckpoint)
                 .filesUploaded(filesUploadedFromActiveTimeline)
                 .build()))
@@ -193,7 +195,10 @@ class TableMetadataUploaderServiceTest {
             CompletableFuture.completedFuture(
                 UpsertTableMetricsCheckpointResponse.builder().build()));
 
-    tableMetadataUploaderService.uploadInstantsInTables(Set.of(table));
+    tableMetadataUploaderService.uploadInstantsInTables(Set.of(table)).join();
+
+    // three files (2 from active and 1 from archived need to be uploaded)
+    verify(presignedUrlFileUploader, times(3)).uploadFileToPresignedUrl(eq(presignedUrl), any());
   }
 
   private File generateFileObj(String fileName, boolean isDirectory) {

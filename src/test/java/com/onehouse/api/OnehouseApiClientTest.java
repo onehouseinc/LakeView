@@ -165,7 +165,7 @@ class OnehouseApiClientTest {
     OnehouseApiClient onehouseApiClientSpy = spy(onehouseApiClient);
     UpsertTableMetricsCheckpointRequest request =
         UpsertTableMetricsCheckpointRequest.builder()
-            .tableId(tableId)
+            .tableId(tableId.toString())
             .filesUploaded(List.of())
             .commitTimelineType(commitTimelineType)
             .checkpoint("")

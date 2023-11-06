@@ -290,7 +290,7 @@ public class TableMetadataUploaderService {
           .upsertTableMetricsCheckpoint(
               UpsertTableMetricsCheckpointRequest.builder()
                   .commitTimelineType(commitTimelineType)
-                  .tableId(tableId)
+                  .tableId(tableId.toString())
                   .checkpoint(mapper.writeValueAsString(updatedCheckpoint))
                   .filesUploaded(filesUploaded)
                   .build())
@@ -321,8 +321,6 @@ public class TableMetadataUploaderService {
     List<File> filteredAndSortedFiles =
         filesList.stream()
             .filter(file -> !file.isDirectory()) // filter out directories
-            .filter( // hoodie properties file is uploaded only once
-                file -> !file.getFilename().startsWith(HOODIE_PROPERTIES_FILE))
             .filter(file -> !file.getLastModifiedAt().isBefore(checkpoint.getCheckpointTimestamp()))
             .sorted(Comparator.comparing(File::getLastModifiedAt).thenComparing(File::getFilename))
             .collect(Collectors.toList());
@@ -338,18 +336,10 @@ public class TableMetadataUploaderService {
                         .equals(checkpoint.getLastUploadedFile()))
             .findFirst();
 
-    List<File> filesToProcess =
-        lastUploadedIndexOpt.isPresent()
-            ? filteredAndSortedFiles.subList(
-                lastUploadedIndexOpt.getAsInt() + 1, filteredAndSortedFiles.size())
-            : filteredAndSortedFiles;
-    if (checkpoint.getBatchId() == 0 && checkpoint.getArchivedCommitsProcessed()) {
-      File HudiPropertiesFile =
-          File.builder().filename(HOODIE_PROPERTIES_FILE).isDirectory(false).build();
-      filesToProcess.add(0, HudiPropertiesFile);
-    }
-
-    return filesToProcess;
+    return lastUploadedIndexOpt.isPresent()
+        ? filteredAndSortedFiles.subList(
+            lastUploadedIndexOpt.getAsInt() + 1, filteredAndSortedFiles.size())
+        : filteredAndSortedFiles;
   }
 
   private String getHoodiePropertiesFilePath(Table table) {
