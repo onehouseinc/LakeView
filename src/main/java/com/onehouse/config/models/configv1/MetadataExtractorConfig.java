@@ -19,6 +19,6 @@ public class MetadataExtractorConfig {
 
   public enum JobRunMode {
     CONTINUOUS,
-    ONE_TIME
+    ONCE
   }
 }

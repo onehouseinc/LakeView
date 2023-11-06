@@ -51,8 +51,9 @@ public class TableDiscoveryService {
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
-    log.debug(String.format("Starting table discover service, excluding %s", excludedPrefixes));
-    List<Pair<String, CompletableFuture<Set<Table>>>> discoveredTablesFuture = new ArrayList<>();
+    log.info("Starting table discover service, excluding {}", excludedPrefixes);
+    List<Pair<String, CompletableFuture<Set<Table>>>> pathToDiscoveredTablesFuturePairList =
+        new ArrayList<>();
 
     for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
       for (Database database : parserConfig.getDatabases()) {
@@ -63,7 +64,7 @@ public class TableDiscoveryService {
                 "Provided base path cannot be part of paths to excluded");
           }
 
-          discoveredTablesFuture.add(
+          pathToDiscoveredTablesFuturePairList.add(
               Pair.of(
                   basePath,
                   discoverTablesInPath(basePath, parserConfig.getLake(), database.getName())));
@@ -72,19 +73,23 @@ public class TableDiscoveryService {
     }
 
     return CompletableFuture.allOf(
-            discoveredTablesFuture.stream().map(Pair::getRight).toArray(CompletableFuture[]::new))
+            pathToDiscoveredTablesFuturePairList.stream()
+                .map(Pair::getRight)
+                .toArray(CompletableFuture[]::new))
         .thenApply(
             ignored -> {
               Set<Table> allTablePaths = ConcurrentHashMap.newKeySet();
-              for (Pair<String, CompletableFuture<Set<Table>>> pair : discoveredTablesFuture) {
+              for (Pair<String, CompletableFuture<Set<Table>>> pathToDiscoveredTablesPair :
+                  pathToDiscoveredTablesFuturePairList) {
                 Set<Table> discoveredTables =
-                    pair.getRight().join().stream()
+                    pathToDiscoveredTablesPair.getRight().join().stream()
                         .map(
                             table ->
                                 table.toBuilder()
                                     .relativeTablePath(
                                         getRelativeTablePathFromUrl(
-                                            pair.getLeft(), table.getAbsoluteTableUri()))
+                                            pathToDiscoveredTablesPair.getLeft(),
+                                            table.getAbsoluteTableUri()))
                                     .build())
                         .collect(Collectors.toSet());
                 allTablePaths.addAll(discoveredTables);

@@ -67,7 +67,7 @@ public class TableMetadataUploaderService {
   }
 
   public CompletableFuture<Void> uploadInstantsInTables(Set<Table> tablesToProcess) {
-    log.debug("Uploading metadata of following tables: " + tablesToProcess);
+    log.info("Uploading metadata of following tables: " + tablesToProcess);
     List<CompletableFuture<Boolean>> processTablesFuture = new ArrayList<>();
     for (Table table : tablesToProcess) {
       processTablesFuture.add(uploadInstantsInTable(table));
@@ -88,7 +88,7 @@ public class TableMetadataUploaderService {
               if (getTableMetricsCheckpointResponse.isFailure()
                   && getTableMetricsCheckpointResponse.getStatusCode() == 404) {
                 // checkpoint not found, table needs to be registered
-                log.debug("Checkpoint not found, processing table for the first time: " + table);
+                log.info("Initializing table {}", table.getAbsoluteTableUri());
                 return hoodiePropertiesReader
                     .readHoodieProperties(getHoodiePropertiesFilePath(table))
                     .thenCompose(
@@ -231,11 +231,13 @@ public class TableMetadataUploaderService {
 
   private CompletableFuture<Void> uploadBatch(
       UUID tableId, List<File> batch, CommitTimelineType commitTimelineType, String directoryUrl) {
+    List<String> commitInstants =
+        batch.stream().map(File::getFilename).collect(Collectors.toList());
     return onehouseApiClient
         .generateCommitMetadataUploadUrl(
             GenerateCommitMetadataUploadUrlRequest.builder()
                 .tableId(tableId.toString())
-                .commitInstants(batch.stream().map(File::getFilename).collect(Collectors.toList()))
+                .commitInstants(commitInstants)
                 .commitTimelineType(commitTimelineType)
                 .build())
         .thenCompose(
