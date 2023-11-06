@@ -8,6 +8,7 @@ import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_RE
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.onehouse.api.OnehouseApiClient;
@@ -62,6 +63,7 @@ public class TableMetadataUploaderService {
     this.onehouseApiClient = onehouseApiClient;
     this.executorService = executorService;
     this.mapper = new ObjectMapper();
+    this.mapper.registerModule(new JavaTimeModule());
   }
 
   public CompletableFuture<Void> uploadInstantsInTables(Set<Table> tablesToProcess) {
@@ -268,13 +270,17 @@ public class TableMetadataUploaderService {
 
     boolean archivedCommitsProcessed =
         true; // archived instants would be processed if timeline type is active
+    int batchId = PreviousCheckpoint.getBatchId() + batchIndex + 1;
     if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)) {
       archivedCommitsProcessed = (batchIndex >= numBatches - 1);
+      if (archivedCommitsProcessed) {
+        batchId = 0; // reset batch id when processing active timeline
+      }
     }
 
     Checkpoint updatedCheckpoint =
         Checkpoint.builder()
-            .batchId(PreviousCheckpoint.getBatchId() + batchIndex + 1)
+            .batchId(batchId)
             .lastUploadedFile(lastUploadedFile.getFilename())
             .checkpointTimestamp(lastUploadedFile.getLastModifiedAt())
             .archivedCommitsProcessed(archivedCommitsProcessed)
@@ -337,7 +343,7 @@ public class TableMetadataUploaderService {
             ? filteredAndSortedFiles.subList(
                 lastUploadedIndexOpt.getAsInt() + 1, filteredAndSortedFiles.size())
             : filteredAndSortedFiles;
-    if (checkpoint.getBatchId() == 0) {
+    if (checkpoint.getBatchId() == 0 && checkpoint.getArchivedCommitsProcessed()) {
       File HudiPropertiesFile =
           File.builder().filename(HOODIE_PROPERTIES_FILE).isDirectory(false).build();
       filesToProcess.add(0, HudiPropertiesFile);
