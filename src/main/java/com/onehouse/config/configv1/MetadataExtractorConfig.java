@@ -15,4 +15,10 @@ import lombok.extern.jackson.Jacksonized;
 public class MetadataExtractorConfig {
   @NonNull private List<ParserConfig> parserConfig;
   @Builder.Default private Optional<List<String>> pathsToExclude = Optional.empty();
+  @Builder.Default private JobRunMode jobRunMode = JobRunMode.CONTINUOUS;
+
+  public enum JobRunMode {
+    CONTINUOUS,
+    ONE_TIME
+  }
 }
