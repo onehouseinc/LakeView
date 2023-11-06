@@ -3,7 +3,6 @@ package com.onehouse.metadata_extractor;
 import static com.onehouse.constants.MetadataExtractorConstants.ARCHIVED_FOLDER_NAME;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -30,6 +29,7 @@ import com.onehouse.storage.PresignedUrlFileUploader;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -51,7 +51,7 @@ class TableMetadataUploaderServiceTest {
   @Mock private PresignedUrlFileUploader presignedUrlFileUploader;
   @Mock private OnehouseApiClient onehouseApiClient;
   private TableMetadataUploaderService tableMetadataUploaderService;
-  private ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper = new ObjectMapper();
 
   @BeforeEach
   void setup() {
@@ -201,11 +201,155 @@ class TableMetadataUploaderServiceTest {
     verify(presignedUrlFileUploader, times(3)).uploadFileToPresignedUrl(eq(presignedUrl), any());
   }
 
+  @Test
+  @SneakyThrows
+  void testUploadMetadataFromPreviousArchivedCheckpoint() {
+    String s3TableUri = "s3://bucket/table/";
+    UUID tableId = UUID.nameUUIDFromBytes(s3TableUri.getBytes());
+    Table table =
+        Table.builder()
+            .absoluteTableUri(s3TableUri)
+            .relativeTablePath("table")
+            .databaseName("database")
+            .lakeName("lake")
+            .build();
+    ParsedHudiProperties parsedHudiProperties =
+        ParsedHudiProperties.builder()
+            .tableName("tableName")
+            .tableType(TableType.COPY_ON_WRITE)
+            .build();
+    String presignedUrl = "http://presigned-url";
+
+    // stub list files in active-timeline
+    when(asyncStorageClient.listAllFilesInDir(s3TableUri + HOODIE_FOLDER_NAME + "/"))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                List.of(
+                    generateFileObj("instant1", false),
+                    generateFileObj("hoodie.properties", false),
+                    generateFileObj("archived", true),
+                    generateFileObj("some-other-folder-1", true))));
+
+    // stub list files in archived-timeline
+    when(asyncStorageClient.listAllFilesInDir(
+            s3TableUri + String.format("%s/%s/", HOODIE_FOLDER_NAME, ARCHIVED_FOLDER_NAME)))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                List.of(
+                    generateFileObj("archived_instant1", false),
+                    generateFileObj(
+                        "archived_instant2", false, Instant.EPOCH.plus(5, ChronoUnit.MINUTES)),
+                    generateFileObj("some-other-folder-2", true))));
+
+    // archived_instant1 has already been uploaded in previous run
+    String CurrentCheckpoint =
+        mapper.writeValueAsString(
+            Checkpoint.builder()
+                .batchId(1)
+                .lastUploadedFile("archived_instant1")
+                .checkpointTimestamp(Instant.EPOCH)
+                .archivedCommitsProcessed(false)
+                .build());
+
+    String archivedTimelineCheckpoint =
+        mapper.writeValueAsString(
+            Checkpoint.builder()
+                .batchId(0)
+                .lastUploadedFile("archived_instant2")
+                .checkpointTimestamp(
+                    Instant.EPOCH.plus(
+                        5, ChronoUnit.MINUTES)) // even checkpoint timestamp needs to be updated
+                .archivedCommitsProcessed(true)
+                .build());
+    String activeTimelineCheckpoint =
+        mapper.writeValueAsString(
+            Checkpoint.builder()
+                .batchId(1)
+                .lastUploadedFile("instant1")
+                .checkpointTimestamp(Instant.EPOCH)
+                .archivedCommitsProcessed(true)
+                .build());
+
+    List<String> filesUploadedFromArchivedTimeline =
+        Stream.of(generateFileObj("archived_instant2", false))
+            .map(File::getFilename)
+            .collect(Collectors.toList());
+    List<String> filesUploadedFromActiveTimeline =
+        Stream.of(generateFileObj("hoodie.properties", false), generateFileObj("instant1", false))
+            .map(File::getFilename)
+            .collect(Collectors.toList());
+
+    when(onehouseApiClient.getTableMetricsCheckpoint(tableId.toString()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                GetTableMetricsCheckpointResponse.builder().checkpoint(CurrentCheckpoint).build()));
+    when(hoodiePropertiesReader.readHoodieProperties(
+            String.format("%s%s/%s", s3TableUri, HOODIE_FOLDER_NAME, HOODIE_PROPERTIES_FILE)))
+        .thenReturn(CompletableFuture.completedFuture(parsedHudiProperties));
+    when(onehouseApiClient.generateCommitMetadataUploadUrl(
+            GenerateCommitMetadataUploadUrlRequest.builder()
+                .tableId(tableId.toString())
+                .commitInstants(filesUploadedFromActiveTimeline)
+                .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+                .build()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                GenerateCommitMetadataUploadUrlResponse.builder()
+                    .uploadUrls(List.of(presignedUrl, presignedUrl))
+                    .build()));
+    when(onehouseApiClient.generateCommitMetadataUploadUrl(
+            GenerateCommitMetadataUploadUrlRequest.builder()
+                .tableId(tableId.toString())
+                .commitInstants(filesUploadedFromArchivedTimeline)
+                .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+                .build()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                GenerateCommitMetadataUploadUrlResponse.builder()
+                    .uploadUrls(List.of(presignedUrl))
+                    .build()));
+    when(presignedUrlFileUploader.uploadFileToPresignedUrl(eq(presignedUrl), any()))
+        .thenReturn(CompletableFuture.completedFuture(null));
+    when(onehouseApiClient.upsertTableMetricsCheckpoint(
+            UpsertTableMetricsCheckpointRequest.builder()
+                .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+                .tableId(tableId.toString())
+                .checkpoint(archivedTimelineCheckpoint)
+                .filesUploaded(filesUploadedFromArchivedTimeline)
+                .build()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                UpsertTableMetricsCheckpointResponse.builder().build()));
+    when(onehouseApiClient.upsertTableMetricsCheckpoint(
+            UpsertTableMetricsCheckpointRequest.builder()
+                .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+                .tableId(tableId.toString())
+                .checkpoint(activeTimelineCheckpoint)
+                .filesUploaded(filesUploadedFromActiveTimeline)
+                .build()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                UpsertTableMetricsCheckpointResponse.builder().build()));
+
+    tableMetadataUploaderService.uploadInstantsInTables(Set.of(table)).join();
+
+    // three files (2 from active and 1 from archived need to be uploaded)
+    verify(presignedUrlFileUploader, times(3)).uploadFileToPresignedUrl(eq(presignedUrl), any());
+  }
+
   private File generateFileObj(String fileName, boolean isDirectory) {
     return File.builder()
         .filename(fileName)
         .isDirectory(isDirectory)
         .lastModifiedAt(Instant.EPOCH)
+        .build();
+  }
+
+  private File generateFileObj(String fileName, boolean isDirectory, Instant lastModifiedAt) {
+    return File.builder()
+        .filename(fileName)
+        .isDirectory(isDirectory)
+        .lastModifiedAt(lastModifiedAt)
         .build();
   }
 }

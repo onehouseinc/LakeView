@@ -12,12 +12,15 @@ import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -115,21 +118,27 @@ class TableDiscoveryServiceTest {
             asyncStorageClient, new StorageUtils(), config, ForkJoinPool.commonPool());
 
     Set<Table> tableSet = tableDiscoveryService.discoverTables().get();
-    Set<Table> expectedResponseSet =
-        Set.of(
-            Table.builder()
-                .absoluteTableUri(BASE_PATH + "table1/")
-                .relativeTablePath("table1")
-                .databaseName(DATABASE)
-                .lakeName(LAKE)
-                .build(),
-            Table.builder()
-                .absoluteTableUri(BASE_PATH + "nested-folder/table2/")
-                .relativeTablePath("nested-folder/table2")
-                .databaseName(DATABASE)
-                .lakeName(LAKE)
-                .build());
-    assertIterableEquals(expectedResponseSet, tableSet);
+    List<Table> expectedResponseSet =
+        Stream.of(
+                Table.builder()
+                    .absoluteTableUri(BASE_PATH + "table1/")
+                    .relativeTablePath("table1")
+                    .databaseName(DATABASE)
+                    .lakeName(LAKE)
+                    .build(),
+                Table.builder()
+                    .absoluteTableUri(BASE_PATH + "nested-folder/table2/")
+                    .relativeTablePath("nested-folder/table2")
+                    .databaseName(DATABASE)
+                    .lakeName(LAKE)
+                    .build())
+            .sorted(Comparator.comparing(Table::getAbsoluteTableUri))
+            .collect(Collectors.toList());
+    assertIterableEquals(
+        expectedResponseSet,
+        tableSet.stream()
+            .sorted(Comparator.comparing(Table::getAbsoluteTableUri))
+            .collect(Collectors.toList()));
 
     // List will be called for:
     // s3://bucket/base_path/

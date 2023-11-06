@@ -1,17 +1,22 @@
 package com.onehouse.metadata_extractor.models;
 
+import java.io.Serializable;
 import java.time.Instant;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.jackson.Jacksonized;
 
 @Builder
 @Getter
 @Jacksonized
-public class Checkpoint {
-  private final int batchId;
-  @NonNull private final Instant checkpointTimestamp;
-  @NonNull private final Boolean archivedCommitsProcessed;
-  @NonNull private final String lastUploadedFile;
+@NoArgsConstructor(force = true)
+@AllArgsConstructor
+public class Checkpoint implements Serializable {
+  int batchId;
+  @NonNull Instant checkpointTimestamp;
+  @NonNull String lastUploadedFile;
+  boolean archivedCommitsProcessed;
 }

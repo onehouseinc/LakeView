@@ -63,7 +63,7 @@ public class TableMetadataUploaderService {
     this.onehouseApiClient = onehouseApiClient;
     this.executorService = executorService;
     this.mapper = new ObjectMapper();
-    this.mapper.registerModule(new JavaTimeModule());
+    mapper.registerModule(new JavaTimeModule());
   }
 
   public CompletableFuture<Void> uploadInstantsInTables(Set<Table> tablesToProcess) {
@@ -140,7 +140,7 @@ public class TableMetadataUploaderService {
 
   private CompletableFuture<Boolean> uploadNewInstantsSinceCheckpoint(
       UUID tableId, Table table, Checkpoint checkpoint) {
-    if (!checkpoint.getArchivedCommitsProcessed()) {
+    if (!checkpoint.isArchivedCommitsProcessed()) {
       // if archived commits are not uploaded, we upload those first before moving to active
       // timeline
       return uploadInstantsInTimeline(
