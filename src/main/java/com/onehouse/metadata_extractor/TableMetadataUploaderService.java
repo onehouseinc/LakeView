@@ -1,22 +1,22 @@
-package com.onehouse.metadataExtractor;
+package com.onehouse.metadata_extractor;
 
-import static com.onehouse.metadataExtractor.Constants.ARCHIVED_FOLDER_NAME;
-import static com.onehouse.metadataExtractor.Constants.HOODIE_FOLDER_NAME;
-import static com.onehouse.metadataExtractor.Constants.HOODIE_PROPERTIES_FILE;
-import static com.onehouse.metadataExtractor.Constants.INITIAL_CHECKPOINT;
-import static com.onehouse.metadataExtractor.Constants.PRESIGNED_URL_REQUEST_BATCH_SIZE;
+import static com.onehouse.constants.MetadataExtractorConstants.ARCHIVED_FOLDER_NAME;
+import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
+import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
+import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
+import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.onehouse.api.OnehouseApiClient;
-import com.onehouse.api.request.CommitTimelineType;
-import com.onehouse.api.request.GenerateCommitMetadataUploadUrlRequest;
-import com.onehouse.api.request.InitializeTableMetricsCheckpointRequest;
-import com.onehouse.api.request.UpsertTableMetricsCheckpointRequest;
-import com.onehouse.metadataExtractor.models.Checkpoint;
-import com.onehouse.metadataExtractor.models.Table;
+import com.onehouse.api.models.request.CommitTimelineType;
+import com.onehouse.api.models.request.GenerateCommitMetadataUploadUrlRequest;
+import com.onehouse.api.models.request.InitializeTableMetricsCheckpointRequest;
+import com.onehouse.api.models.request.UpsertTableMetricsCheckpointRequest;
+import com.onehouse.metadata_extractor.models.Checkpoint;
+import com.onehouse.metadata_extractor.models.Table;
 import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.PresignedUrlFileUploader;
 import com.onehouse.storage.StorageUtils;
@@ -203,7 +203,7 @@ public class TableMetadataUploaderService {
     return onehouseApiClient
         .generateCommitMetadataUploadUrl(
             GenerateCommitMetadataUploadUrlRequest.builder()
-                .tableId(tableId)
+                .tableId(tableId.toString())
                 .commitInstants(batch.stream().map(File::getFilename).collect(Collectors.toList()))
                 .commitTimelineType(commitTimelineType)
                 .build())
@@ -281,7 +281,7 @@ public class TableMetadataUploaderService {
       List<File> filesList, Checkpoint checkpoint) {
     List<File> filteredAndSortedFiles =
         filesList.stream()
-            .filter(file -> !file.getIsDirectory()) // filter out directories
+            .filter(file -> !file.isDirectory()) // filter out directories
             .filter( // hoodie properties file is uploaded only once
                 file -> !file.getFilename().startsWith(HOODIE_PROPERTIES_FILE))
             .filter(file -> !file.getLastModifiedAt().isBefore(checkpoint.getCheckpointTimestamp()))

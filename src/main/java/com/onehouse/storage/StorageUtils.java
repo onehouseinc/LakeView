@@ -24,6 +24,15 @@ public class StorageUtils {
     return prefix;
   }
 
+  public String constructFilePath(String directoryPath, String filePath) {
+    return String.format(
+        "%s/%s",
+        directoryPath.endsWith("/")
+            ? directoryPath.substring(0, directoryPath.length() - 1)
+            : directoryPath,
+        filePath);
+  }
+
   public String getBucketNameFromUri(String uri) {
     Matcher matcher = OBJECT_STORAGE_URI_PATTERN.matcher(uri);
     if (matcher.matches()) {

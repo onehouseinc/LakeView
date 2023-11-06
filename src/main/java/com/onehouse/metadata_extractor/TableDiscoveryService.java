@@ -1,14 +1,14 @@
-package com.onehouse.metadataExtractor;
+package com.onehouse.metadata_extractor;
 
-import static com.onehouse.metadataExtractor.Constants.HOODIE_FOLDER_NAME;
+import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 
 import com.google.inject.Inject;
 import com.onehouse.config.Config;
-import com.onehouse.config.configV1.ConfigV1;
-import com.onehouse.config.configV1.Database;
-import com.onehouse.config.configV1.MetadataExtractorConfig;
-import com.onehouse.config.configV1.ParserConfig;
-import com.onehouse.metadataExtractor.models.Table;
+import com.onehouse.config.configv1.ConfigV1;
+import com.onehouse.config.configv1.Database;
+import com.onehouse.config.configv1.MetadataExtractorConfig;
+import com.onehouse.config.configv1.ParserConfig;
+import com.onehouse.metadata_extractor.models.Table;
 import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
@@ -121,7 +121,7 @@ public class TableDiscoveryService {
               }
 
               for (File file : listedFiles) {
-                if (file.getIsDirectory()) {
+                if (file.isDirectory()) {
                   String filePath = storageUtils.constructFilePath(path, file.getFilename());
                   if (!isExcluded(filePath)) {
                     CompletableFuture<Void> recursiveFuture =
