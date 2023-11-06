@@ -7,7 +7,6 @@ import static com.onehouse.constants.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOIN
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -30,9 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import lombok.SneakyThrows;
 import okhttp3.Call;
-import okhttp3.Callback;
 import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
 import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -47,7 +44,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class OnehouseApiClientTest {
-  @Mock private OkHttpClient okHttpClient;
+  @Mock private HttpAsyncClientWithRetry client;
   @Mock private ConfigV1 config;
   @Mock private OnehouseClientConfig onehouseClientConfig;
   @Mock private Call call;
@@ -65,7 +62,7 @@ class OnehouseApiClientTest {
     when(onehouseClientConfig.getApiSecret()).thenReturn("apiSecret");
     when(onehouseClientConfig.getRegion()).thenReturn("region");
     when(onehouseClientConfig.getUserUuid()).thenReturn("userUuid");
-    onehouseApiClient = new OnehouseApiClient(okHttpClient, config);
+    onehouseApiClient = new OnehouseApiClient(client, config);
   }
 
   @Test
@@ -235,14 +232,7 @@ class OnehouseApiClientTest {
               .build();
     }
 
-    when(okHttpClient.newCall(any(Request.class))).thenReturn(call);
-    doAnswer(
-            invocation -> {
-              Callback callback = invocation.getArgument(0);
-              callback.onResponse(call, response);
-              return null;
-            })
-        .when(call)
-        .enqueue(any(Callback.class));
+    when(client.makeRequestWithRetry(any(Request.class)))
+        .thenReturn(CompletableFuture.completedFuture(response));
   }
 }

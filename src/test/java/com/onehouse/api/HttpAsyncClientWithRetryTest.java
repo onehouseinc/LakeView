@@ -3,33 +3,40 @@ package com.onehouse.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import okhttp3.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class RetryInterceptorTest {
+class HttpAsyncClientWithRetryTest {
 
   private MockWebServer mockWebServer;
-  private OkHttpClient okHttpClient;
+  private HttpAsyncClientWithRetry httpAsyncClientWithRetry;
 
   @BeforeEach
   void setUp() throws IOException {
     mockWebServer = new MockWebServer();
     mockWebServer.start();
 
-    okHttpClient = new OkHttpClient.Builder().addInterceptor(new RetryInterceptor(3, 100)).build();
+    OkHttpClient okHttpClient = new OkHttpClient.Builder().build();
+    httpAsyncClientWithRetry = new HttpAsyncClientWithRetry(3, 100, okHttpClient);
   }
 
   @AfterEach
   void tearDown() throws IOException {
     mockWebServer.shutdown();
+    httpAsyncClientWithRetry.shutdownScheduler();
   }
 
   @Test
-  void testRetryInterceptor_retriesOnFailure() throws IOException {
+  void testRetryInterceptor_retriesOnFailure()
+      throws IOException, InterruptedException, ExecutionException {
     // Set up a sequence of responses: two failures followed by a success
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
@@ -37,9 +44,11 @@ class RetryInterceptorTest {
 
     Request request = new Request.Builder().url(mockWebServer.url("/")).get().build();
 
-    // Execute the request
-    Call call = okHttpClient.newCall(request);
-    Response response = call.execute();
+    // Execute the request asynchronously
+    CompletableFuture<Response> future = httpAsyncClientWithRetry.makeRequestWithRetry(request);
+
+    // Await the future
+    Response response = future.get();
 
     // Assert that the final response is successful
     assertTrue(response.isSuccessful());

@@ -3,15 +3,12 @@ package com.onehouse.storage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.onehouse.api.HttpAsyncClientWithRetry;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
 import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -23,18 +20,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class PresignedUrlFileUploaderTest {
-  @Mock private Call mockCall;
-  @Mock private OkHttpClient mockOkHttpClient;
+  @Mock private HttpAsyncClientWithRetry httpAsyncClientWithRetry;
   @Mock AsyncStorageClient mockAsyncStorageClient;
   private static final int FAILURE_STATUS_CODE = 500;
   private static final String FAILURE_ERROR = "call failed";
   private static final String FILE_URI = "s3://bucket/file";
   private static final String PRESIGNED_URL = "https://presigned-url";
+  private static final byte[] FILE_CONTENT = new byte[] {};
 
   @BeforeEach
   void setup() {
     when(mockAsyncStorageClient.readFileAsBytes(FILE_URI))
-        .thenReturn(CompletableFuture.completedFuture(new byte[] {}));
+        .thenReturn(CompletableFuture.completedFuture(FILE_CONTENT));
   }
 
   @Test
@@ -42,22 +39,21 @@ class PresignedUrlFileUploaderTest {
     mockOkHttpCall(PRESIGNED_URL, false);
 
     PresignedUrlFileUploader uploader =
-        new PresignedUrlFileUploader(mockAsyncStorageClient, mockOkHttpClient);
+        new PresignedUrlFileUploader(mockAsyncStorageClient, httpAsyncClientWithRetry);
 
     uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI).get();
 
     verify(mockAsyncStorageClient).readFileAsBytes(FILE_URI);
-    verify(mockOkHttpClient).newCall(any());
-    verify(mockCall).enqueue(any());
+    verify(httpAsyncClientWithRetry).makeRequestWithRetry(any());
   }
 
   @Test
-  void testUploadFileToPresignedUrlFailure() throws ExecutionException, InterruptedException {
+  void testUploadFileToPresignedUrlFailure() {
 
     mockOkHttpCall(PRESIGNED_URL, true);
 
     PresignedUrlFileUploader uploader =
-        new PresignedUrlFileUploader(mockAsyncStorageClient, mockOkHttpClient);
+        new PresignedUrlFileUploader(mockAsyncStorageClient, httpAsyncClientWithRetry);
 
     ExecutionException exception =
         assertThrows(
@@ -71,7 +67,6 @@ class PresignedUrlFileUploaderTest {
   }
 
   private void mockOkHttpCall(String url, boolean failure) {
-    when(mockOkHttpClient.newCall(any())).thenReturn(mockCall);
     Response fakeResponse;
     if (failure) {
       fakeResponse =
@@ -90,13 +85,7 @@ class PresignedUrlFileUploaderTest {
               .message("OK")
               .build();
     }
-    doAnswer(
-            invocation -> {
-              Callback callback = invocation.getArgument(0);
-              callback.onResponse(mockCall, fakeResponse);
-              return null;
-            })
-        .when(mockCall)
-        .enqueue(any());
+    when(httpAsyncClientWithRetry.makeRequestWithRetry(any(Request.class)))
+        .thenReturn(CompletableFuture.completedFuture(fakeResponse));
   }
 }

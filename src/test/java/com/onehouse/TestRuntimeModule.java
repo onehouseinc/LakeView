@@ -5,7 +5,6 @@ import static junit.framework.TestCase.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.onehouse.api.RetryInterceptor;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.config.common.GCSConfig;
@@ -39,7 +38,6 @@ class TestRuntimeModule {
     ExecutorService mockExecutorService = Mockito.mock(ExecutorService.class);
     OkHttpClient okHttpClient = RuntimeModule.providesOkHttpClient(mockExecutorService);
     assertNotNull(okHttpClient);
-    assertTrue(okHttpClient.interceptors().get(0) instanceof RetryInterceptor);
   }
 
   @ParameterizedTest

@@ -1,24 +1,24 @@
 package com.onehouse.storage;
 
 import com.google.inject.Inject;
-import com.onehouse.api.OkHttpResponseFuture;
+import com.onehouse.api.HttpAsyncClientWithRetry;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 
 @Slf4j
 public class PresignedUrlFileUploader {
   private final AsyncStorageClient asyncStorageClient;
-  private final OkHttpClient okHttpClient;
+  private final HttpAsyncClientWithRetry httpAsyncClientWithRetry;
 
   @Inject
   public PresignedUrlFileUploader(
-      @Nonnull AsyncStorageClient asyncStorageClient, @Nonnull OkHttpClient okHttpClient) {
+      @Nonnull AsyncStorageClient asyncStorageClient,
+      @Nonnull HttpAsyncClientWithRetry httpAsyncClientWithRetry) {
     this.asyncStorageClient = asyncStorageClient;
-    this.okHttpClient = okHttpClient;
+    this.httpAsyncClientWithRetry = httpAsyncClientWithRetry;
   }
 
   public CompletableFuture<Void> uploadFileToPresignedUrl(String presignedUrl, String fileUrl) {
@@ -31,19 +31,18 @@ public class PresignedUrlFileUploader {
               Request request;
               request = new Request.Builder().url(presignedUrl).put(requestBody).build();
 
-              OkHttpResponseFuture callback = new OkHttpResponseFuture();
-              okHttpClient.newCall(request).enqueue(callback);
-
-              return callback.future.thenApply(
-                  uploadResponse -> {
-                    if (!uploadResponse.isSuccessful()) {
-                      throw new RuntimeException(
-                          String.format(
-                              "file upload failed failed: response code:  %s error message: %s",
-                              uploadResponse.code(), uploadResponse.message()));
-                    }
-                    return null; // Successfully uploaded
-                  });
+              return httpAsyncClientWithRetry
+                  .makeRequestWithRetry(request)
+                  .thenApply(
+                      uploadResponse -> {
+                        if (!uploadResponse.isSuccessful()) {
+                          throw new RuntimeException(
+                              String.format(
+                                  "file upload failed failed: response code:  %s error message: %s",
+                                  uploadResponse.code(), uploadResponse.message()));
+                        }
+                        return null; // Successfully uploaded
+                      });
             });
   }
 }

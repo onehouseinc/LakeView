@@ -2,7 +2,7 @@ package com.onehouse;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.onehouse.api.RetryInterceptor;
+import com.onehouse.api.HttpAsyncClientWithRetry;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.storage.AsyncStorageClient;
@@ -42,9 +42,15 @@ public class RuntimeModule extends AbstractModule {
         .readTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .writeTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .connectTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .addInterceptor(new RetryInterceptor(HTTP_CLIENT_MAX_RETRIES, HTTP_CLIENT_RETRY_DELAY_MS))
         .dispatcher(dispatcher)
         .build();
+  }
+
+  @Provides
+  @Singleton
+  static HttpAsyncClientWithRetry providesHttpAsyncClient(OkHttpClient okHttpClient) {
+    return new HttpAsyncClientWithRetry(
+        HTTP_CLIENT_MAX_RETRIES, HTTP_CLIENT_RETRY_DELAY_MS, okHttpClient);
   }
 
   @Provides

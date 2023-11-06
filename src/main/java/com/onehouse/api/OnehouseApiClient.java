@@ -33,19 +33,18 @@ import javax.annotation.Nonnull;
 import lombok.SneakyThrows;
 import okhttp3.Headers;
 import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class OnehouseApiClient {
-  private final OkHttpClient okHttpClient;
+  private final HttpAsyncClientWithRetry asyncClient;
   private final Headers headers;
   private final ObjectMapper mapper;
 
   @Inject
-  public OnehouseApiClient(@Nonnull OkHttpClient okHttpClient, @Nonnull Config config) {
-    this.okHttpClient = okHttpClient;
+  public OnehouseApiClient(@Nonnull HttpAsyncClientWithRetry asyncClient, @Nonnull Config config) {
+    this.asyncClient = asyncClient;
     this.headers = getHeaders(config.getOnehouseClientConfig());
     this.mapper = new ObjectMapper();
   }
@@ -100,9 +99,9 @@ public class OnehouseApiClient {
     Request request =
         new Request.Builder().url(ONEHOUSE_API_ENDPOINT + apiEndpoint).headers(headers).build();
 
-    OkHttpResponseFuture callback = new OkHttpResponseFuture();
-    okHttpClient.newCall(request).enqueue(callback);
-    return callback.future.thenApply(response -> handleResponse(response, typeReference));
+    return asyncClient
+        .makeRequestWithRetry(request)
+        .thenApply(response -> handleResponse(response, typeReference));
   }
 
   @VisibleForTesting
@@ -116,9 +115,9 @@ public class OnehouseApiClient {
             .headers(headers)
             .build();
 
-    OkHttpResponseFuture callback = new OkHttpResponseFuture();
-    okHttpClient.newCall(request).enqueue(callback);
-    return callback.future.thenApply(response -> handleResponse(response, typeReference));
+    return asyncClient
+        .makeRequestWithRetry(request)
+        .thenApply(response -> handleResponse(response, typeReference));
   }
 
   private <T> T handleResponse(Response response, Class<T> typeReference) {
