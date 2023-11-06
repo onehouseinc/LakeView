@@ -1,29 +1,29 @@
 package com.onehouse.api;
 
-import static com.onehouse.api.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD_URL;
-import static com.onehouse.api.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
-import static com.onehouse.api.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
-import static com.onehouse.api.ApiConstants.ONEHOUSE_API_ENDPOINT;
-import static com.onehouse.api.ApiConstants.ONEHOUSE_API_KEY;
-import static com.onehouse.api.ApiConstants.ONEHOUSE_API_SECRET_KEY;
-import static com.onehouse.api.ApiConstants.ONEHOUSE_REGION_KEY;
-import static com.onehouse.api.ApiConstants.ONEHOUSE_USER_UUID_KEY;
-import static com.onehouse.api.ApiConstants.PROJECT_UID_KEY;
-import static com.onehouse.api.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
+import static com.onehouse.constants.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD_URL;
+import static com.onehouse.constants.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
+import static com.onehouse.constants.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_ENDPOINT;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_KEY;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_SECRET_KEY;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_REGION_KEY;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_USER_UUID_KEY;
+import static com.onehouse.constants.ApiConstants.PROJECT_UID_KEY;
+import static com.onehouse.constants.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
-import com.onehouse.api.request.GenerateCommitMetadataUploadUrlRequest;
-import com.onehouse.api.request.InitializeTableMetricsCheckpointRequest;
-import com.onehouse.api.request.UpsertTableMetricsCheckpointRequest;
-import com.onehouse.api.response.ApiResponse;
-import com.onehouse.api.response.GenerateCommitMetadataUploadUrlResponse;
-import com.onehouse.api.response.GetTableMetricsCheckpointResponse;
-import com.onehouse.api.response.InitializeTableMetricsCheckpointResponse;
-import com.onehouse.api.response.UpsertTableMetricsCheckpointResponse;
+import com.onehouse.api.models.request.GenerateCommitMetadataUploadUrlRequest;
+import com.onehouse.api.models.request.InitializeTableMetricsCheckpointRequest;
+import com.onehouse.api.models.request.UpsertTableMetricsCheckpointRequest;
+import com.onehouse.api.models.response.ApiResponse;
+import com.onehouse.api.models.response.GenerateCommitMetadataUploadUrlResponse;
+import com.onehouse.api.models.response.GetTableMetricsCheckpointResponse;
+import com.onehouse.api.models.response.InitializeTableMetricsCheckpointResponse;
+import com.onehouse.api.models.response.UpsertTableMetricsCheckpointResponse;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.OnehouseClientConfig;
-import com.onehouse.config.configV1.ConfigV1;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
@@ -33,20 +33,19 @@ import javax.annotation.Nonnull;
 import lombok.SneakyThrows;
 import okhttp3.Headers;
 import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class OnehouseApiClient {
-  private final OkHttpClient okHttpClient;
+  private final AsyncHttpClientWithRetry asyncClient;
   private final Headers headers;
   private final ObjectMapper mapper;
 
   @Inject
-  public OnehouseApiClient(@Nonnull OkHttpClient okHttpClient, @Nonnull Config config) {
-    this.okHttpClient = okHttpClient;
-    this.headers = getHeaders(((ConfigV1) config).getOnehouseClientConfig());
+  public OnehouseApiClient(@Nonnull AsyncHttpClientWithRetry asyncClient, @Nonnull Config config) {
+    this.asyncClient = asyncClient;
+    this.headers = getHeaders(config.getOnehouseClientConfig());
     this.mapper = new ObjectMapper();
   }
 
@@ -95,17 +94,18 @@ public class OnehouseApiClient {
     return headersBuilder.build();
   }
 
-  private <T> CompletableFuture<T> asyncGet(String apiEndpoint, Class<T> typeReference) {
+  @VisibleForTesting
+  <T> CompletableFuture<T> asyncGet(String apiEndpoint, Class<T> typeReference) {
     Request request =
         new Request.Builder().url(ONEHOUSE_API_ENDPOINT + apiEndpoint).headers(headers).build();
 
-    OkHttpResponseFuture callback = new OkHttpResponseFuture();
-    okHttpClient.newCall(request).enqueue(callback);
-    return callback.future.thenApply(response -> handleResponse(response, typeReference));
+    return asyncClient
+        .makeRequestWithRetry(request)
+        .thenApply(response -> handleResponse(response, typeReference));
   }
 
-  private <T> CompletableFuture<T> asyncPost(
-      String apiEndpoint, String json, Class<T> typeReference) {
+  @VisibleForTesting
+  <T> CompletableFuture<T> asyncPost(String apiEndpoint, String json, Class<T> typeReference) {
     RequestBody body = RequestBody.create(json, MediaType.parse("application/json; charset=utf-8"));
 
     Request request =
@@ -115,9 +115,9 @@ public class OnehouseApiClient {
             .headers(headers)
             .build();
 
-    OkHttpResponseFuture callback = new OkHttpResponseFuture();
-    okHttpClient.newCall(request).enqueue(callback);
-    return callback.future.thenApply(response -> handleResponse(response, typeReference));
+    return asyncClient
+        .makeRequestWithRetry(request)
+        .thenApply(response -> handleResponse(response, typeReference));
   }
 
   private <T> T handleResponse(Response response, Class<T> typeReference) {

@@ -1,50 +1,48 @@
 package com.onehouse.storage;
 
 import com.google.inject.Inject;
-import com.onehouse.api.OkHttpResponseFuture;
+import com.onehouse.api.AsyncHttpClientWithRetry;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
-import okhttp3.OkHttpClient;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import okhttp3.RequestBody;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+@Slf4j
 public class PresignedUrlFileUploader {
   private final AsyncStorageClient asyncStorageClient;
-  private final OkHttpClient okHttpClient;
-  private static final Logger logger = LoggerFactory.getLogger(PresignedUrlFileUploader.class);
+  private final AsyncHttpClientWithRetry asyncHttpClientWithRetry;
 
   @Inject
   public PresignedUrlFileUploader(
-      @Nonnull AsyncStorageClient asyncStorageClient, @Nonnull OkHttpClient okHttpClient) {
+      @Nonnull AsyncStorageClient asyncStorageClient,
+      @Nonnull AsyncHttpClientWithRetry asyncHttpClientWithRetry) {
     this.asyncStorageClient = asyncStorageClient;
-    this.okHttpClient = okHttpClient;
+    this.asyncHttpClientWithRetry = asyncHttpClientWithRetry;
   }
 
   public CompletableFuture<Void> uploadFileToPresignedUrl(String presignedUrl, String fileUrl) {
-    logger.debug(String.format("Uploading %s to retrieved presigned url", presignedUrl));
+    log.debug("Uploading {} to retrieved presigned url", presignedUrl);
     return asyncStorageClient
         .readFileAsBytes(fileUrl)
         .thenComposeAsync(
             response -> {
               RequestBody requestBody = RequestBody.create(response);
-              Request request = new Request.Builder().url(presignedUrl).put(requestBody).build();
+              Request request;
+              request = new Request.Builder().url(presignedUrl).put(requestBody).build();
 
-              OkHttpResponseFuture callback = new OkHttpResponseFuture();
-              okHttpClient.newCall(request).enqueue(callback);
-
-              return callback.future.thenApply(
-                  uploadResponse -> {
-                    if (!uploadResponse.isSuccessful()) {
-                      throw new RuntimeException(
-                          "file upload failed failed: "
-                              + uploadResponse.code()
-                              + " "
-                              + uploadResponse.message());
-                    }
-                    return null; // Successfully uploaded
-                  });
+              return asyncHttpClientWithRetry
+                  .makeRequestWithRetry(request)
+                  .thenApply(
+                      uploadResponse -> {
+                        if (!uploadResponse.isSuccessful()) {
+                          throw new RuntimeException(
+                              String.format(
+                                  "file upload failed failed: response code:  %s error message: %s",
+                                  uploadResponse.code(), uploadResponse.message()));
+                        }
+                        return null; // Successfully uploaded
+                      });
             });
   }
 }

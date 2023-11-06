@@ -1,6 +1,6 @@
 package com.onehouse.storage.providers;
 
-import static com.onehouse.storage.StorageConstants.GCP_RESOURCE_NAME_FORMAT;
+import static com.onehouse.constants.StorageConstants.GCP_RESOURCE_NAME_FORMAT;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
@@ -9,7 +9,6 @@ import com.google.inject.Inject;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.config.common.GCSConfig;
-import com.onehouse.config.configV1.ConfigV1;
 import java.io.FileInputStream;
 import java.io.IOException;
 import javax.annotation.Nonnull;
@@ -19,27 +18,36 @@ import org.slf4j.LoggerFactory;
 
 @Getter
 public class GcsClientProvider {
-
-  private final Storage gcsClient;
+  private final GCSConfig gcsConfig;
+  private static Storage gcsClient;
   private static final Logger logger = LoggerFactory.getLogger(GcsClientProvider.class);
 
   @Inject
   public GcsClientProvider(@Nonnull Config config) {
+    FileSystemConfiguration fileSystemConfiguration = config.getFileSystemConfiguration();
+    this.gcsConfig = fileSystemConfiguration.getGcsConfig();
+  }
+
+  protected Storage createGcsClient() {
     logger.debug("Instantiating GCS storage client");
-    FileSystemConfiguration fileSystemConfiguration =
-        ((ConfigV1) config).getFileSystemConfiguration();
-    validateGcsConfig(fileSystemConfiguration.getGcsConfig());
+    validateGcsConfig(gcsConfig);
     try (FileInputStream serviceAccountStream =
-        new FileInputStream(fileSystemConfiguration.getGcsConfig().getGcpServiceAccountKeyPath())) {
-      this.gcsClient =
-          StorageOptions.newBuilder()
-              .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
-              .setProjectId(fileSystemConfiguration.getGcsConfig().getProjectId())
-              .build()
-              .getService();
+        new FileInputStream(gcsConfig.getGcpServiceAccountKeyPath())) {
+      return StorageOptions.newBuilder()
+          .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
+          .setProjectId(gcsConfig.getProjectId())
+          .build()
+          .getService();
     } catch (IOException e) {
       throw new RuntimeException("Error reading service account JSON key file", e);
     }
+  }
+
+  public Storage getGcsClient() {
+    if (gcsClient == null) {
+      gcsClient = createGcsClient();
+    }
+    return gcsClient;
   }
 
   private void validateGcsConfig(GCSConfig gcsConfig) {
@@ -49,6 +57,11 @@ public class GcsClientProvider {
 
     if (!gcsConfig.getProjectId().matches(GCP_RESOURCE_NAME_FORMAT)) {
       throw new IllegalArgumentException("Invalid GCP project ID: " + gcsConfig.getProjectId());
+    }
+
+    if (gcsConfig.getGcpServiceAccountKeyPath().isBlank()) {
+      throw new IllegalArgumentException(
+          "Invalid GCP Service Account Key Path: " + gcsConfig.getGcpServiceAccountKeyPath());
     }
   }
 }

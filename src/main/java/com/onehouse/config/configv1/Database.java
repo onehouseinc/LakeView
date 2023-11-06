@@ -1,5 +1,6 @@
-package com.onehouse.config.common;
+package com.onehouse.config.configv1;
 
+import java.util.List;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -7,10 +8,10 @@ import lombok.NonNull;
 import lombok.extern.jackson.Jacksonized;
 
 @Builder
-@Jacksonized
 @Getter
+@Jacksonized
 @EqualsAndHashCode
-public class GCSConfig {
-  @NonNull private String projectId;
-  @NonNull private String gcpServiceAccountKeyPath;
+public class Database {
+  @NonNull private String name;
+  @NonNull private List<String> basePaths;
 }

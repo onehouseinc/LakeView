@@ -4,6 +4,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.storage.models.File;
 import com.onehouse.storage.providers.GcsClientProvider;
@@ -11,20 +12,18 @@ import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class GCSAsyncStorageClient implements AsyncStorageClient {
   private final GcsClientProvider gcsClientProvider;
   private final StorageUtils storageUtils;
   private final ExecutorService executorService;
-  private static final Logger logger = LoggerFactory.getLogger(GCSAsyncStorageClient.class);
 
   @Inject
   public GCSAsyncStorageClient(
@@ -40,13 +39,13 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
   public CompletableFuture<List<File>> listAllFilesInDir(String gcsUri) {
     return CompletableFuture.supplyAsync(
         () -> {
-          logger.debug(String.format("listing files in %s", gcsUri));
+          log.debug("Listing files in {}", gcsUri);
           Bucket bucket =
-              gcsClientProvider.getGcsClient().get(storageUtils.getGcsBucketNameFromPath(gcsUri));
+              gcsClientProvider.getGcsClient().get(storageUtils.getBucketNameFromUri(gcsUri));
           String prefix = storageUtils.getPathFromUrl(gcsUri);
 
           // ensure prefix which is not the root dir always ends with "/"
-          prefix = !Objects.equals(prefix, "") && !prefix.endsWith("/") ? prefix + "/" : prefix;
+          prefix = prefix.isEmpty() || prefix.endsWith("/") ? prefix : prefix + "/";
           Iterable<Blob> blobs =
               bucket
                   .list(
@@ -59,7 +58,7 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
                       File.builder()
                           .filename(blob.getName().replaceFirst(finalPrefix, ""))
                           .lastModifiedAt(
-                              Instant.ofEpochMilli(!blob.isDirectory() ? blob.getCreateTime() : 0))
+                              Instant.ofEpochMilli(!blob.isDirectory() ? blob.getUpdateTime() : 0))
                           .isDirectory(blob.isDirectory())
                           .build())
               .collect(Collectors.toList());
@@ -67,8 +66,9 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
         executorService);
   }
 
-  public CompletableFuture<Blob> readBlob(String gcsUri) {
-    logger.debug(String.format("Reading GCS file: %s", gcsUri));
+  @VisibleForTesting
+  CompletableFuture<Blob> readBlob(String gcsUri) {
+    log.debug("Reading GCS file: {}", gcsUri);
     return CompletableFuture.supplyAsync(
         () -> {
           Blob blob =
@@ -76,14 +76,15 @@ public class GCSAsyncStorageClient implements AsyncStorageClient {
                   .getGcsClient()
                   .get(
                       BlobId.of(
-                          storageUtils.getGcsBucketNameFromPath(gcsUri),
+                          storageUtils.getBucketNameFromUri(gcsUri),
                           storageUtils.getPathFromUrl(gcsUri)));
           if (blob != null) {
             return blob;
           } else {
             throw new RuntimeException("Blob not found");
           }
-        });
+        },
+        executorService);
   }
 
   @Override

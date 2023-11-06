@@ -1,0 +1,18 @@
+version: V1
+
+fileSystemConfiguration:
+  gcsConfig:
+    projectId: projectId
+    gcpServiceAccountKeyPath: valid/path/service_account.json
+
+
+metadataExtractorConfig:
+  pathsToExclude:
+    - gs://lake_bucket/tables/excluded
+  parserConfig:
+    - lake: lake1
+      databases:
+        - name: database1
+          basePaths:
+            -
+              gs://lake_bucket/tables

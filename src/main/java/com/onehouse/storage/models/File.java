@@ -2,13 +2,13 @@ package com.onehouse.storage.models;
 
 import java.time.Instant;
 import lombok.Builder;
-import lombok.Getter;
 import lombok.NonNull;
+import lombok.Value;
 
 @Builder
-@Getter
+@Value
 public class File {
-  @NonNull private String filename;
-  @NonNull private Instant lastModifiedAt;
-  @NonNull private Boolean isDirectory;
+  @NonNull String filename;
+  @NonNull Instant lastModifiedAt;
+  boolean isDirectory;
 }
