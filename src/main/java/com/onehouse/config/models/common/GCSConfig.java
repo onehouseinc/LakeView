@@ -1,4 +1,4 @@
-package com.onehouse.config.common;
+package com.onehouse.config.models.common;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;

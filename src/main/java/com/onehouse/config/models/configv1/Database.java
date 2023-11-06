@@ -1,4 +1,4 @@
-package com.onehouse.config.configv1;
+package com.onehouse.config.models.configv1;
 
 import java.util.List;
 import lombok.Builder;
@@ -11,7 +11,7 @@ import lombok.extern.jackson.Jacksonized;
 @Getter
 @Jacksonized
 @EqualsAndHashCode
-public class ParserConfig {
-  @NonNull private String lake;
-  @NonNull private List<Database> databases;
+public class Database {
+  @NonNull private String name;
+  @NonNull private List<String> basePaths;
 }

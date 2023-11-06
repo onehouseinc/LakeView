@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.onehouse.config.configv1.ConfigV1;
+import com.onehouse.config.models.configv1.ConfigV1;
 import java.io.InputStream;
 
 public class ConfigLoader {

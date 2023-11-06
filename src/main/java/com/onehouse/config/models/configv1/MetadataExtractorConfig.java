@@ -1,4 +1,4 @@
-package com.onehouse.config.configv1;
+package com.onehouse.config.models.configv1;
 
 import java.util.List;
 import java.util.Optional;

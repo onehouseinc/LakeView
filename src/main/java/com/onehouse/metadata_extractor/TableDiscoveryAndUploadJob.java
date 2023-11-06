@@ -10,9 +10,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Slf4j
 public class TableDiscoveryAndUploadJob {
   private final TableDiscoveryService tableDiscoveryService;
   private final TableMetadataUploaderService tableMetadataUploaderService;
@@ -31,9 +33,10 @@ public class TableDiscoveryAndUploadJob {
   }
 
   /*
-   * run in continuous mode
+   * runs discovery and upload periodically at fixed intervals in a continuous fashion
    */
   public void runInContinuousMode() {
+    log.debug("Running metadata-extractor in continuous mode");
     // Schedule table discovery
     scheduler.scheduleAtFixedRate(
         this::discoverTables, 0, TABLE_DISCOVERY_INTERVAL_MINUTES, TimeUnit.MINUTES);
@@ -43,7 +46,11 @@ public class TableDiscoveryAndUploadJob {
         this::processTables, 0, TABLE_METADATA_UPLOAD_INTERVAL_MINUTES, TimeUnit.MINUTES);
   }
 
+  /*
+   * Runs table discovery followed by metadata uploader once
+   */
   public void runOnce() {
+    log.debug("Running metadata-extractor one time");
     tableDiscoveryService
         .discoverTables()
         .thenCompose(tableMetadataUploaderService::uploadInstantsInTables)
@@ -51,6 +58,7 @@ public class TableDiscoveryAndUploadJob {
   }
 
   private void discoverTables() {
+    log.debug("Discovering tables in provided paths");
     tableDiscoveryService
         .discoverTables()
         .thenAccept(
@@ -67,6 +75,7 @@ public class TableDiscoveryAndUploadJob {
   }
 
   private void processTables() {
+    log.debug("Uploading table metadata for discovered tables");
     Set<Table> tables;
     synchronized (lock) {
       tables = tablesToProcess;

@@ -23,7 +23,7 @@ import com.onehouse.api.models.response.GetTableMetricsCheckpointResponse;
 import com.onehouse.api.models.response.InitializeTableMetricsCheckpointResponse;
 import com.onehouse.api.models.response.UpsertTableMetricsCheckpointResponse;
 import com.onehouse.config.Config;
-import com.onehouse.config.common.OnehouseClientConfig;
+import com.onehouse.config.models.common.OnehouseClientConfig;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;

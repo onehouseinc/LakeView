@@ -2,6 +2,7 @@ package com.onehouse.api;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -19,6 +20,10 @@ public class AsyncHttpClientWithRetry {
   private final long retryDelayMillis;
   private final OkHttpClient okHttpClient;
   private static final long MAX_RETRY_DELAY_MILLIS = 10000; // 10seconds
+  // TODO: fill failure error codes for which retry is not required
+  // using mapping from:
+  // https://chromium.googlesource.com/external/github.com/grpc/grpc/+/refs/tags/v1.21.4-pre1/doc/statuscodes.md
+  private static final List<Integer> ACCEPTABLE_HTTP_FAILURE_STATUS_CODES = List.of(404, 400);
 
   public AsyncHttpClientWithRetry(
       int maxRetries, long retryDelayMillis, OkHttpClient okHttpClient) {
@@ -49,7 +54,9 @@ public class AsyncHttpClientWithRetry {
 
               @Override
               public void onResponse(Call call, Response response) {
-                if (!response.isSuccessful() && tryCount < maxRetries) {
+                if (!response.isSuccessful()
+                    && !ACCEPTABLE_HTTP_FAILURE_STATUS_CODES.contains(response.code())
+                    && tryCount < maxRetries) {
                   scheduleRetry(request, tryCount, future);
                 } else {
                   future.complete(response);
@@ -74,10 +81,11 @@ public class AsyncHttpClientWithRetry {
                   });
         },
         calculateDelay(tryCount),
-        TimeUnit.MILLISECONDS); // Exponential backoff
+        TimeUnit.MILLISECONDS);
   }
 
   private long calculateDelay(int tryCount) {
+    // Exponential backoff with upper bound
     return (long) Math.min(MAX_RETRY_DELAY_MILLIS, retryDelayMillis * Math.pow(2, tryCount));
   }
 

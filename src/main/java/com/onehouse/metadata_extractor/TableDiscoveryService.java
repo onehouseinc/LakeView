@@ -4,10 +4,10 @@ import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NA
 
 import com.google.inject.Inject;
 import com.onehouse.config.Config;
-import com.onehouse.config.configv1.ConfigV1;
-import com.onehouse.config.configv1.Database;
-import com.onehouse.config.configv1.MetadataExtractorConfig;
-import com.onehouse.config.configv1.ParserConfig;
+import com.onehouse.config.models.configv1.ConfigV1;
+import com.onehouse.config.models.configv1.Database;
+import com.onehouse.config.models.configv1.MetadataExtractorConfig;
+import com.onehouse.config.models.configv1.ParserConfig;
 import com.onehouse.metadata_extractor.models.Table;
 import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.StorageUtils;
@@ -22,21 +22,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /*
  * Discovers hudi tables by Parsing all folders (including nested folders) in provided base paths
  * excluded paths will be skipped.
  */
+@Slf4j
 public class TableDiscoveryService {
   private final AsyncStorageClient asyncStorageClient;
   private final StorageUtils storageUtils;
   private final MetadataExtractorConfig metadataExtractorConfig;
   private final ExecutorService executorService;
   private final List<String> excludedPrefixes;
-  private static final Logger LOGGER = LoggerFactory.getLogger(TableDiscoveryService.class);
 
   @Inject
   public TableDiscoveryService(
@@ -52,7 +51,7 @@ public class TableDiscoveryService {
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
-    LOGGER.debug(String.format("Starting table discover service, excluding %s", excludedPrefixes));
+    log.debug(String.format("Starting table discover service, excluding %s", excludedPrefixes));
     List<Pair<String, CompletableFuture<Set<Table>>>> discoveredTablesFuture = new ArrayList<>();
 
     for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
@@ -99,7 +98,7 @@ public class TableDiscoveryService {
 
   private CompletableFuture<Set<Table>> discoverTablesInPath(
       String path, String lakeName, String databaseName) {
-    LOGGER.debug(String.format("Discovering tables in %s", path));
+    log.debug(String.format("Discovering tables in %s", path));
     return asyncStorageClient
         .listAllFilesInDir(path)
         .thenComposeAsync(
@@ -120,15 +119,16 @@ public class TableDiscoveryService {
                 return CompletableFuture.completedFuture(tablePaths);
               }
 
-              for (File file : listedFiles) {
-                if (file.isDirectory()) {
-                  String filePath = storageUtils.constructFilePath(path, file.getFilename());
-                  if (!isExcluded(filePath)) {
-                    CompletableFuture<Void> recursiveFuture =
-                        discoverTablesInPath(filePath, lakeName, databaseName)
-                            .thenAccept(tablePaths::addAll);
-                    recursiveFutures.add(recursiveFuture);
-                  }
+              List<File> directories =
+                  listedFiles.stream().filter(File::isDirectory).collect(Collectors.toList());
+
+              for (File file : directories) {
+                String filePath = storageUtils.constructFileUri(path, file.getFilename());
+                if (!isExcluded(filePath)) {
+                  CompletableFuture<Void> recursiveFuture =
+                      discoverTablesInPath(filePath, lakeName, databaseName)
+                          .thenAccept(tablePaths::addAll);
+                  recursiveFutures.add(recursiveFuture);
                 }
               }
 

@@ -32,12 +32,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nonnull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /*
  * Uploads Instants in the active and archived timeline for the tables which were discovered
  */
+@Slf4j
 public class TableMetadataUploaderService {
   private final AsyncStorageClient asyncStorageClient;
   private final HoodiePropertiesReader hoodiePropertiesReader;
@@ -46,7 +46,6 @@ public class TableMetadataUploaderService {
   private final OnehouseApiClient onehouseApiClient;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
-  private static final Logger LOGGER = LoggerFactory.getLogger(TableMetadataUploaderService.class);
 
   @Inject
   public TableMetadataUploaderService(
@@ -66,8 +65,8 @@ public class TableMetadataUploaderService {
   }
 
   public CompletableFuture<Void> uploadInstantsInTables(Set<Table> tablesToProcess) {
-    LOGGER.debug("Uploading metadata of following tables: " + tablesToProcess);
-    List<CompletableFuture<Void>> processTablesFuture = new ArrayList<>();
+    log.debug("Uploading metadata of following tables: " + tablesToProcess);
+    List<CompletableFuture<Boolean>> processTablesFuture = new ArrayList<>();
     for (Table table : tablesToProcess) {
       processTablesFuture.add(uploadInstantsInTable(table));
     }
@@ -76,18 +75,18 @@ public class TableMetadataUploaderService {
         .thenApply(ignored -> null);
   }
 
-  private CompletableFuture<Void> uploadInstantsInTable(Table table) {
-    LOGGER.debug("Fetching checkpoint for table: " + table);
+  private CompletableFuture<Boolean> uploadInstantsInTable(Table table) {
+    log.debug("Fetching checkpoint for table: " + table);
     UUID tableId = getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUri());
     return onehouseApiClient
         .getTableMetricsCheckpoint(tableId.toString())
         .thenCompose(
             getTableMetricsCheckpointResponse -> {
-              // TODO: verify that this is the right status code
+              // TODO: @Sampan verify that this is the right status code during E2E
               if (getTableMetricsCheckpointResponse.isFailure()
                   && getTableMetricsCheckpointResponse.getStatusCode() == 404) {
                 // checkpoint not found, table needs to be registered
-                LOGGER.debug("Checkpoint not found, processing table for the first time: " + table);
+                log.debug("Checkpoint not found, processing table for the first time: " + table);
                 return hoodiePropertiesReader
                     .readHoodieProperties(getHoodiePropertiesFilePath(table))
                     .thenCompose(
@@ -110,10 +109,18 @@ public class TableMetadataUploaderService {
                             return uploadNewInstantsSinceCheckpoint(
                                 tableId, table, INITIAL_CHECKPOINT);
                           }
-                          throw new RuntimeException(
-                              String.format(
-                                  "Failed to initialise table for processing, Exception: %s , Table: %s",
-                                  initializeTableMetricsCheckpointResponse.getCause(), table));
+                          log.error(
+                              "Failed to initialise table for processing, Exception: {} , Table: {}. skipping table",
+                              initializeTableMetricsCheckpointResponse.getCause(),
+                              table);
+                          // skip uploading instants for this table in current run
+                          return null;
+                        })
+                    .exceptionally(
+                        throwable -> {
+                          log.error(
+                              "error processing table: {}", table.getAbsoluteTableUri(), throwable);
+                          return null;
                         });
               }
               try {
@@ -129,7 +136,7 @@ public class TableMetadataUploaderService {
             });
   }
 
-  private CompletableFuture<Void> uploadNewInstantsSinceCheckpoint(
+  private CompletableFuture<Boolean> uploadNewInstantsSinceCheckpoint(
       UUID tableId, Table table, Checkpoint checkpoint) {
     if (!checkpoint.getArchivedCommitsProcessed()) {
       // if archived commits are not uploaded, we upload those first before moving to active
@@ -137,9 +144,17 @@ public class TableMetadataUploaderService {
       return uploadInstantsInTimeline(
               tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
           .thenCompose(
-              ignore ->
-                  uploadInstantsInTimeline(
-                      tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE));
+              uploadInstantsInArchivedTimelineSucceeded -> {
+                if (!uploadInstantsInArchivedTimelineSucceeded) {
+                  // do not upload instants in active timeline if there was failure
+                  log.warn(
+                      "Skipping uploading instants in active timeline due to failures in uploading archived timeline instants for table {}",
+                      table.getAbsoluteTableUri());
+                  return CompletableFuture.completedFuture(false);
+                }
+                return uploadInstantsInTimeline(
+                    tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+              });
     }
     // commits in archived timeline are uploaded only once, when the table is registered for the
     // first time.
@@ -147,11 +162,11 @@ public class TableMetadataUploaderService {
         tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
 
-  private CompletableFuture<Void> uploadInstantsInTimeline(
+  private CompletableFuture<Boolean> uploadInstantsInTimeline(
       UUID tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
     String pathSuffix = getPathSuffix(commitTimelineType);
 
-    String directoryUrl = storageUtils.constructFilePath(table.getAbsoluteTableUri(), pathSuffix);
+    String directoryUrl = storageUtils.constructFileUri(table.getAbsoluteTableUri(), pathSuffix);
     return asyncStorageClient
         .listAllFilesInDir(directoryUrl)
         .thenCompose(
@@ -164,14 +179,18 @@ public class TableMetadataUploaderService {
               int numBatches = batches.size();
 
               // processing batches while maintaining the sequential order
-              CompletableFuture<Void> sequentialBatchProcessingFuture =
-                  CompletableFuture.completedFuture(null);
+              CompletableFuture<Boolean> sequentialBatchProcessingFuture =
+                  CompletableFuture.completedFuture(true);
               int batchIndex = 0;
               for (List<File> batch : batches) {
                 int finalBatchIndex = batchIndex;
                 sequentialBatchProcessingFuture =
                     sequentialBatchProcessingFuture.thenComposeAsync(
-                        ignored1 -> {
+                        previousBatchProcessingSucceeded -> {
+                          if (!previousBatchProcessingSucceeded) {
+                            // don't process any further batches
+                            return CompletableFuture.completedFuture(false);
+                          }
                           File lastUploadedFile = batch.get(batch.size() - 1);
                           return uploadBatch(tableId, batch, commitTimelineType, directoryUrl)
                               .thenComposeAsync(
@@ -188,7 +207,17 @@ public class TableMetadataUploaderService {
                                               .map(File::getFilename)
                                               .collect(Collectors.toList()),
                                           commitTimelineType),
-                                  executorService);
+                                  executorService)
+                              .exceptionally(
+                                  throwable -> {
+                                    // will catch any failures when uploading batch / updating
+                                    // checkpoint
+                                    log.error(
+                                        "error processing batch for table: {}. Skipping processing of further batches of table in current run.",
+                                        table.getAbsoluteTableUri(),
+                                        throwable);
+                                    return false;
+                                  });
                         },
                         executorService);
                 batchIndex += 1;
@@ -221,14 +250,14 @@ public class TableMetadataUploaderService {
                 uploadFutures.add(
                     presignedUrlFileUploader.uploadFileToPresignedUrl(
                         generateCommitMetadataUploadUrlResponse.getUploadUrls().get(i),
-                        storageUtils.constructFilePath(directoryUrl, batch.get(i).getFilename())));
+                        storageUtils.constructFileUri(directoryUrl, batch.get(i).getFilename())));
               }
 
               return CompletableFuture.allOf(uploadFutures.toArray(new CompletableFuture[0]));
             });
   }
 
-  private CompletableFuture<Void> updateCheckpointAfterProcessingBatch(
+  private CompletableFuture<Boolean> updateCheckpointAfterProcessingBatch(
       UUID tableId,
       Checkpoint PreviousCheckpoint,
       int numBatches,
@@ -256,17 +285,18 @@ public class TableMetadataUploaderService {
                   .checkpoint(mapper.writeValueAsString(updatedCheckpoint))
                   .filesUploaded(filesUploaded)
                   .build())
-          .thenCompose(
+          .thenApply(
               upsertTableMetricsCheckpointResponse -> {
                 if (upsertTableMetricsCheckpointResponse.isFailure()) {
                   throw new RuntimeException(
                       "failed to update PreviousCheckpoint: "
                           + upsertTableMetricsCheckpointResponse.getCause());
                 }
-                return null;
+                return true;
               });
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("failed to serialise checkpoint", e);
+      return CompletableFuture.failedFuture(
+          new RuntimeException("failed to serialise checkpoint", e));
     }
   }
 

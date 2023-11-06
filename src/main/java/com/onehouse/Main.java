@@ -5,8 +5,8 @@ import com.google.inject.Injector;
 import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.config.Config;
 import com.onehouse.config.ConfigLoader;
-import com.onehouse.config.configv1.ConfigV1;
-import com.onehouse.config.configv1.MetadataExtractorConfig;
+import com.onehouse.config.models.configv1.ConfigV1;
+import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +33,7 @@ public class Main {
 
     Runtime.getRuntime().addShutdownHook(new Thread(Main::shutdownJob));
 
+    // currently we only support one config version
     MetadataExtractorConfig.JobRunMode jobRunMode =
         ((ConfigV1) config).getMetadataExtractorConfig().getJobRunMode();
     if (MetadataExtractorConfig.JobRunMode.CONTINUOUS.equals(jobRunMode)) {

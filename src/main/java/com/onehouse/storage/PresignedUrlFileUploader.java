@@ -38,7 +38,7 @@ public class PresignedUrlFileUploader {
                         if (!uploadResponse.isSuccessful()) {
                           throw new RuntimeException(
                               String.format(
-                                  "file upload failed failed: response code:  %s error message: %s",
+                                  "file upload failed failed: response code: %s error message: %s",
                                   uploadResponse.code(), uploadResponse.message()));
                         }
                         return null; // Successfully uploaded

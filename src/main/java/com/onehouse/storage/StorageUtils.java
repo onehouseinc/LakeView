@@ -24,12 +24,12 @@ public class StorageUtils {
     return prefix;
   }
 
-  public String constructFilePath(String directoryPath, String filePath) {
+  public String constructFileUri(String directoryUri, String filePath) {
     return String.format(
         "%s/%s",
-        directoryPath.endsWith("/")
-            ? directoryPath.substring(0, directoryPath.length() - 1)
-            : directoryPath,
+        directoryUri.endsWith("/")
+            ? directoryUri.substring(0, directoryUri.length() - 1)
+            : directoryUri,
         filePath);
   }
 

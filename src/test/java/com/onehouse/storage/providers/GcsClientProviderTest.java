@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.google.cloud.storage.Storage;
-import com.onehouse.config.common.FileSystemConfiguration;
-import com.onehouse.config.common.GCSConfig;
-import com.onehouse.config.configv1.ConfigV1;
+import com.onehouse.config.models.common.FileSystemConfiguration;
+import com.onehouse.config.models.common.GCSConfig;
+import com.onehouse.config.models.configv1.ConfigV1;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
