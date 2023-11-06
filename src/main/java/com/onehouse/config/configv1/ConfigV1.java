@@ -1,11 +1,10 @@
-package com.onehouse.config.configv1;
+package com.onehouse.config.configV1;
 
 import com.onehouse.config.Config;
 import com.onehouse.config.ConfigVersion;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.config.common.OnehouseClientConfig;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.jackson.Jacksonized;
@@ -13,7 +12,6 @@ import lombok.extern.jackson.Jacksonized;
 @Builder
 @Getter
 @Jacksonized
-@EqualsAndHashCode
 public class ConfigV1 implements Config {
   @NonNull private String version;
   @NonNull private OnehouseClientConfig onehouseClientConfig;
