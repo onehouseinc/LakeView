@@ -1,5 +1,6 @@
 package com.onehouse;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.onehouse.api.HttpAsyncClientWithRetry;
@@ -27,7 +28,7 @@ public class RuntimeModule extends AbstractModule {
   private static final int IO_WORKLOAD_NUM_THREAD_MULTIPLIER = 5;
   private static final int HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS = 5;
   private static final int HTTP_CLIENT_MAX_RETRIES = 3;
-  private static final int HTTP_CLIENT_RETRY_DELAY_MS = 1000;
+  private static final long HTTP_CLIENT_RETRY_DELAY_MS = 1000;
   private final Config config;
 
   public RuntimeModule(Config config) {
@@ -104,6 +105,16 @@ public class RuntimeModule extends AbstractModule {
         // NOTE: It's squarely important to make sure
         // that `asyncMode` is true in async applications
         true);
+  }
+
+  @VisibleForTesting
+  long getHttpClientRetryDelayMs() {
+    return HTTP_CLIENT_RETRY_DELAY_MS;
+  }
+
+  @VisibleForTesting
+  int getHttpClientMaxRetries() {
+    return HTTP_CLIENT_MAX_RETRIES;
   }
 
   @Override

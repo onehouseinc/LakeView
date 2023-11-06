@@ -1,10 +1,12 @@
 package com.onehouse;
 
+import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.onehouse.api.HttpAsyncClientWithRetry;
 import com.onehouse.config.Config;
 import com.onehouse.config.common.FileSystemConfiguration;
 import com.onehouse.config.common.GCSConfig;
@@ -73,6 +75,16 @@ class TestRuntimeModule {
     } else {
       assertTrue(asyncStorageClient instanceof GCSAsyncStorageClient);
     }
+  }
+
+  @Test
+  void testProvidesHttpAsyncClient() {
+    OkHttpClient mockOkHttpClient = mock(OkHttpClient.class);
+    HttpAsyncClientWithRetry httpAsyncClientWithRetry =
+        runtimeModule.providesHttpAsyncClient(mockOkHttpClient);
+    assertEquals(runtimeModule.getHttpClientMaxRetries(), httpAsyncClientWithRetry.getMaxRetries());
+    assertEquals(
+        runtimeModule.getHttpClientRetryDelayMs(), httpAsyncClientWithRetry.getRetryDelayMillis());
   }
 
   enum FileSystem {

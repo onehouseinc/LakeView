@@ -1,5 +1,6 @@
 package com.onehouse.api;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -75,8 +76,17 @@ public class HttpAsyncClientWithRetry {
         TimeUnit.MILLISECONDS); // Exponential backoff
   }
 
-  // Make sure to shut down the scheduler when it's no longer needed
   public void shutdownScheduler() {
     scheduler.shutdown();
+  }
+
+  @VisibleForTesting
+  public long getRetryDelayMillis() {
+    return retryDelayMillis;
+  }
+
+  @VisibleForTesting
+  public int getMaxRetries() {
+    return maxRetries;
   }
 }
