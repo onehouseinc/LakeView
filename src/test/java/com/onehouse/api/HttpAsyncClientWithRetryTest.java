@@ -35,8 +35,8 @@ class HttpAsyncClientWithRetryTest {
   }
 
   @Test
-  void testRetryInterceptor_retriesOnFailure()
-      throws IOException, InterruptedException, ExecutionException {
+  void testRetryInterceptorRetriesOnFailure()
+      throws InterruptedException, ExecutionException {
     // Set up a sequence of responses: two failures followed by a success
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
@@ -44,16 +44,44 @@ class HttpAsyncClientWithRetryTest {
 
     Request request = new Request.Builder().url(mockWebServer.url("/")).get().build();
 
-    // Execute the request asynchronously
     CompletableFuture<Response> future = httpAsyncClientWithRetry.makeRequestWithRetry(request);
-
-    // Await the future
     Response response = future.get();
 
-    // Assert that the final response is successful
     assertTrue(response.isSuccessful());
-
-    // Assert that the request was issued three times
     assertEquals(3, mockWebServer.getRequestCount());
   }
+
+  @Test
+  void testMakeRequestWithAllRetriesFail() throws InterruptedException, ExecutionException {
+    // All responses are failures.
+    mockWebServer.enqueue(new MockResponse().setResponseCode(500));
+    mockWebServer.enqueue(new MockResponse().setResponseCode(500));
+    mockWebServer.enqueue(new MockResponse().setResponseCode(500));
+
+
+    Request request = new Request.Builder().url(mockWebServer.url("/")).get().build();
+
+    CompletableFuture<Response> future = httpAsyncClientWithRetry.makeRequestWithRetry(request);
+
+    Response response = future.get();
+    assertFalse(response.isSuccessful());
+    assertEquals(3, mockWebServer.getRequestCount());
+  }
+
+
+  @Test
+  void testMakeRequestWithRetryIOException() throws InterruptedException, IOException {
+    // Shut down the server to simulate an IOException.
+    mockWebServer.shutdown();
+
+    Request request = new Request.Builder().url("http://localhost:8080").get().build();
+
+    CompletableFuture<Response> future = httpAsyncClientWithRetry.makeRequestWithRetry(request);
+
+    ExecutionException exception = assertThrows(ExecutionException.class, future::get);
+    assertTrue(exception.getCause() instanceof IOException);
+
+    assertEquals(0, mockWebServer.getRequestCount());
+  }
+
 }

@@ -28,7 +28,7 @@ public class HttpAsyncClientWithRetry {
   }
 
   public CompletableFuture<Response> makeRequestWithRetry(Request request) {
-    return attemptRequest(request, 0);
+    return attemptRequest(request, 1);
   }
 
   private CompletableFuture<Response> attemptRequest(Request request, int tryCount) {
