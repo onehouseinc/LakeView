@@ -22,7 +22,8 @@ public class AsyncHttpClientWithRetry {
   private static final long MAX_RETRY_DELAY_MILLIS = 10000; // 10seconds
   // using mapping from:
   // https://chromium.googlesource.com/external/github.com/grpc/grpc/+/refs/tags/v1.21.4-pre1/doc/statuscodes.md
-  private static final List<Integer> ACCEPTABLE_HTTP_FAILURE_STATUS_CODES = List.of(404, 400, 403, 401);
+  private static final List<Integer> ACCEPTABLE_HTTP_FAILURE_STATUS_CODES =
+      List.of(404, 400, 403, 401);
 
   public AsyncHttpClientWithRetry(
       int maxRetries, long retryDelayMillis, OkHttpClient okHttpClient) {
