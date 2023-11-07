@@ -28,8 +28,7 @@ public class PresignedUrlFileUploader {
         .thenComposeAsync(
             response -> {
               RequestBody requestBody = RequestBody.create(response);
-              Request request;
-              request = new Request.Builder().url(presignedUrl).put(requestBody).build();
+              Request request = new Request.Builder().url(presignedUrl).put(requestBody).build();
 
               return asyncHttpClientWithRetry
                   .makeRequestWithRetry(request)

@@ -126,11 +126,13 @@ public class TableMetadataUploaderService {
               }
               try {
                 // process from previous checkpoint
+                String checkpointString = getTableMetricsCheckpointResponse.getCheckpoint();
                 return uploadNewInstantsSinceCheckpoint(
                     tableId,
                     table,
-                    mapper.readValue(
-                        getTableMetricsCheckpointResponse.getCheckpoint(), Checkpoint.class));
+                    !checkpointString.isBlank()
+                        ? mapper.readValue(checkpointString, Checkpoint.class)
+                        : INITIAL_CHECKPOINT);
               } catch (JsonProcessingException e) {
                 throw new RuntimeException("Error deserializing checkpoint value", e);
               }
