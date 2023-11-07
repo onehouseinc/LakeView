@@ -49,7 +49,8 @@ public class TableMetadataUploaderService {
   private final OnehouseApiClient onehouseApiClient;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
-  private static final Pattern ARCHIVED_TIMELINE_COMMIT_INSTANT_PATTERN = Pattern.compile("\\.commits_\\.archive\\.\\d+_\\d+-\\d+-\\d+");
+  private static final Pattern ARCHIVED_TIMELINE_COMMIT_INSTANT_PATTERN =
+      Pattern.compile("\\.commits_\\.archive\\.\\d+_\\d+-\\d+-\\d+");
 
   @Inject
   public TableMetadataUploaderService(
@@ -162,16 +163,22 @@ public class TableMetadataUploaderService {
                 }
                 // batch_id starts afresh as we are now processing the active-timeline
                 return uploadInstantsInTimeline(
-                    tableId, table, INITIAL_ACTIVE_TIMELINE_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+                    tableId,
+                    table,
+                    INITIAL_ACTIVE_TIMELINE_CHECKPOINT,
+                    CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
               });
     }
 
     /*
-    * if the last processed file in the retrieved checkpoint is an archived-commit, then we reset the checkpoint
-    * else we use the retrieved checkpoint.
-    * this allows us to maintian separate batch_id's for the commits in the two timelines
-    */
-    Checkpoint activeTimelineCheckpoint = ARCHIVED_TIMELINE_COMMIT_INSTANT_PATTERN.matcher(checkpoint.getLastUploadedFile()).matches()? INITIAL_ACTIVE_TIMELINE_CHECKPOINT : checkpoint;
+     * if the last processed file in the retrieved checkpoint is an archived-commit, then we reset the checkpoint
+     * else we use the retrieved checkpoint.
+     * this allows us to maintain separate batch_id's for the commits in the two timelines
+     */
+    Checkpoint activeTimelineCheckpoint =
+        ARCHIVED_TIMELINE_COMMIT_INSTANT_PATTERN.matcher(checkpoint.getLastUploadedFile()).matches()
+            ? INITIAL_ACTIVE_TIMELINE_CHECKPOINT
+            : checkpoint;
     return uploadInstantsInTimeline(
         tableId, table, activeTimelineCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
@@ -188,9 +195,13 @@ public class TableMetadataUploaderService {
               List<File> filesToProcess =
                   getFilesToUploadBasedOnPreviousCheckpoint(filesList, checkpoint);
 
-              if(filesToProcess.isEmpty()){
-                  // no new files to process
-                  return CompletableFuture.completedFuture(true);
+              if (filesToProcess.isEmpty()) {
+               /*
+               * no new files to process /  no instants present in timeline (usually archived)
+               * in second case, we do not update archivedCommitsProcessed to true as if jar fails after that update and
+               * is not run again for a long enough duration, new commits in archived timeline will get missed entirely
+               */
+                return CompletableFuture.completedFuture(true);
               }
 
               List<List<File>> batches =
@@ -287,8 +298,7 @@ public class TableMetadataUploaderService {
       List<String> filesUploaded,
       CommitTimelineType commitTimelineType) {
 
-    boolean archivedCommitsProcessed =
-        true; // archived instants would be processed if timeline type is active
+    boolean archivedCommitsProcessed = true; // archived instants would be processed if timeline type is active
     int batchId = previousCheckpoint.getBatchId() + batchIndex + 1;
     if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)) {
       archivedCommitsProcessed = (batchIndex >= numBatches - 1);

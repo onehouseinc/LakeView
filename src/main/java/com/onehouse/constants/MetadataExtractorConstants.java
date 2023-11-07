@@ -22,10 +22,10 @@ public class MetadataExtractorConstants {
           .archivedCommitsProcessed(false)
           .build();
   public static final Checkpoint INITIAL_ACTIVE_TIMELINE_CHECKPOINT =
-          Checkpoint.builder()
-                  .batchId(0)
-                  .checkpointTimestamp(Instant.EPOCH)
-                  .lastUploadedFile("")
-                  .archivedCommitsProcessed(true)
-                  .build();
+      Checkpoint.builder()
+          .batchId(0)
+          .checkpointTimestamp(Instant.EPOCH)
+          .lastUploadedFile("")
+          .archivedCommitsProcessed(true)
+          .build();
 }
