@@ -51,15 +51,16 @@ public class TableDiscoveryAndUploadJob {
    * Runs table discovery followed by metadata uploader once
    */
   public void runOnce() {
-    log.debug("Running metadata-extractor one time");
+    log.info("Running metadata-extractor one time");
     tableDiscoveryService
         .discoverTables()
         .thenCompose(tableMetadataUploaderService::uploadInstantsInTables)
         .join();
+    log.info("Run Completed");
   }
 
   private void discoverTables() {
-    log.debug("Discovering tables in provided paths");
+    log.info("Discovering tables in provided paths");
     tableDiscoveryService
         .discoverTables()
         .thenAccept(

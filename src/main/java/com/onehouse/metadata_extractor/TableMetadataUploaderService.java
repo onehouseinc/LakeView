@@ -84,7 +84,6 @@ public class TableMetadataUploaderService {
         .getTableMetricsCheckpoint(tableId.toString())
         .thenCompose(
             getTableMetricsCheckpointResponse -> {
-              // TODO: @Sampan verify that this is the right status code during E2E
               if (getTableMetricsCheckpointResponse.isFailure()
                   && getTableMetricsCheckpointResponse.getStatusCode() == 404) {
                 // checkpoint not found, table needs to be registered
