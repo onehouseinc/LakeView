@@ -111,7 +111,7 @@ class TableMetadataUploaderServiceTest {
     String archivedTimelineCheckpoint =
         mapper.writeValueAsString(
             Checkpoint.builder()
-                .batchId(0)
+                .batchId(1)
                 .lastUploadedFile("archived_instant1")
                 .checkpointTimestamp(Instant.EPOCH)
                 .archivedCommitsProcessed(true)
@@ -203,6 +203,106 @@ class TableMetadataUploaderServiceTest {
 
   @Test
   @SneakyThrows
+  void testUploadMetadataOfATableWithoutArchived() {
+    String s3TableUri = "s3://bucket/table/";
+    UUID tableId = UUID.nameUUIDFromBytes(s3TableUri.getBytes());
+    Table table =
+            Table.builder()
+                    .absoluteTableUri(s3TableUri)
+                    .relativeTablePath("table")
+                    .databaseName("database")
+                    .lakeName("lake")
+                    .build();
+    ParsedHudiProperties parsedHudiProperties =
+            ParsedHudiProperties.builder()
+                    .tableName("tableName")
+                    .tableType(TableType.COPY_ON_WRITE)
+                    .build();
+    String presignedUrl = "http://presigned-url";
+
+    // stub list files in active-timeline
+    when(asyncStorageClient.listAllFilesInDir(s3TableUri + HOODIE_FOLDER_NAME + "/"))
+            .thenReturn(
+                    CompletableFuture.completedFuture(
+                            List.of(
+                                    generateFileObj("instant1", false),
+                                    generateFileObj("hoodie.properties", false),
+                                    generateFileObj("archived", true),
+                                    generateFileObj("some-other-folder-1", true))));
+
+    // stub list files in archived-timeline - returns empty list
+    when(asyncStorageClient.listAllFilesInDir(
+            s3TableUri + String.format("%s/%s/", HOODIE_FOLDER_NAME, ARCHIVED_FOLDER_NAME)))
+            .thenReturn(
+                    CompletableFuture.completedFuture(
+                            List.of()));
+
+    GetTableMetricsCheckpointResponse mockedResponse =
+            GetTableMetricsCheckpointResponse.builder().build();
+    mockedResponse.setError(404, "");
+    InitializeTableMetricsCheckpointResponse initializeTableMetricsCheckpointResponse =
+            InitializeTableMetricsCheckpointResponse.builder().build();
+    String activeTimelineCheckpoint =
+            mapper.writeValueAsString(
+                    Checkpoint.builder()
+                            .batchId(1)
+                            .lastUploadedFile("instant1")
+                            .checkpointTimestamp(Instant.EPOCH)
+                            .archivedCommitsProcessed(true)
+                            .build());
+
+    List<String> filesUploadedFromActiveTimeline =
+            Stream.of(generateFileObj("hoodie.properties", false), generateFileObj("instant1", false))
+                    .map(File::getFilename)
+                    .collect(Collectors.toList());
+
+    when(onehouseApiClient.getTableMetricsCheckpoint(tableId.toString()))
+            .thenReturn(CompletableFuture.completedFuture(mockedResponse));
+    when(hoodiePropertiesReader.readHoodieProperties(
+            String.format("%s%s/%s", s3TableUri, HOODIE_FOLDER_NAME, HOODIE_PROPERTIES_FILE)))
+            .thenReturn(CompletableFuture.completedFuture(parsedHudiProperties));
+    when(onehouseApiClient.initializeTableMetricsCheckpoint(
+            InitializeTableMetricsCheckpointRequest.builder()
+                    .tableId(tableId)
+                    .tableName(parsedHudiProperties.getTableName())
+                    .tableType(parsedHudiProperties.getTableType())
+                    .tableBasePath(table.getRelativeTablePath())
+                    .databaseName(table.getDatabaseName())
+                    .lakeName(table.getLakeName())
+                    .build()))
+            .thenReturn(CompletableFuture.completedFuture(initializeTableMetricsCheckpointResponse));
+    when(onehouseApiClient.generateCommitMetadataUploadUrl(
+            GenerateCommitMetadataUploadUrlRequest.builder()
+                    .tableId(tableId.toString())
+                    .commitInstants(filesUploadedFromActiveTimeline)
+                    .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+                    .build()))
+            .thenReturn(
+                    CompletableFuture.completedFuture(
+                            GenerateCommitMetadataUploadUrlResponse.builder()
+                                    .uploadUrls(List.of(presignedUrl, presignedUrl))
+                                    .build()));
+    when(presignedUrlFileUploader.uploadFileToPresignedUrl(eq(presignedUrl), any()))
+            .thenReturn(CompletableFuture.completedFuture(null));
+    when(onehouseApiClient.upsertTableMetricsCheckpoint(
+            UpsertTableMetricsCheckpointRequest.builder()
+                    .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+                    .tableId(tableId.toString())
+                    .checkpoint(activeTimelineCheckpoint)
+                    .filesUploaded(filesUploadedFromActiveTimeline)
+                    .build()))
+            .thenReturn(
+                    CompletableFuture.completedFuture(
+                            UpsertTableMetricsCheckpointResponse.builder().build()));
+
+    tableMetadataUploaderService.uploadInstantsInTables(Set.of(table)).join();
+
+    // two files (both from active)
+    verify(presignedUrlFileUploader, times(2)).uploadFileToPresignedUrl(eq(presignedUrl), any());
+  }
+
+  @Test
+  @SneakyThrows
   void testUploadMetadataFromPreviousArchivedCheckpoint() {
     String s3TableUri = "s3://bucket/table/";
     UUID tableId = UUID.nameUUIDFromBytes(s3TableUri.getBytes());
@@ -254,7 +354,7 @@ class TableMetadataUploaderServiceTest {
     String archivedTimelineCheckpoint =
         mapper.writeValueAsString(
             Checkpoint.builder()
-                .batchId(0)
+                .batchId(2)
                 .lastUploadedFile("archived_instant2")
                 .checkpointTimestamp(
                     Instant.EPOCH.plus(
@@ -283,9 +383,6 @@ class TableMetadataUploaderServiceTest {
         .thenReturn(
             CompletableFuture.completedFuture(
                 GetTableMetricsCheckpointResponse.builder().checkpoint(CurrentCheckpoint).build()));
-    when(hoodiePropertiesReader.readHoodieProperties(
-            String.format("%s%s/%s", s3TableUri, HOODIE_FOLDER_NAME, HOODIE_PROPERTIES_FILE)))
-        .thenReturn(CompletableFuture.completedFuture(parsedHudiProperties));
     when(onehouseApiClient.generateCommitMetadataUploadUrl(
             GenerateCommitMetadataUploadUrlRequest.builder()
                 .tableId(tableId.toString())

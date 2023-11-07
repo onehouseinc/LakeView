@@ -6,6 +6,8 @@ import static com.onehouse.constants.MetadataExtractorConstants.TABLE_METADATA_U
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.metadata_extractor.models.Table;
+
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -80,9 +82,9 @@ public class TableDiscoveryAndUploadJob {
     log.debug("Uploading table metadata for discovered tables");
     Set<Table> tables;
     synchronized (lock) {
-      tables = tablesToProcess;
+      tables = new HashSet<>(tablesToProcess);
     }
-    if (tables != null && !tables.isEmpty()) {
+    if (!tables.isEmpty()) {
       tableMetadataUploaderService
           .uploadInstantsInTables(tables)
           .exceptionally(
