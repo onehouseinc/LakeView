@@ -10,7 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class ConfigLoader {
-  public static Config loadConfig(String configFilePath) {
+  public Config loadConfig(String configFilePath) {
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     mapper.registerModule(new Jdk8Module());
     try (InputStream in = Files.newInputStream(Paths.get(configFilePath))) {

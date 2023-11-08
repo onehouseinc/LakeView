@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.common.collect.ImmutableList;
 import com.onehouse.storage.models.File;
@@ -28,10 +27,10 @@ class GCSAsyncStorageClientTest {
   @Mock private GcsClientProvider mockGcsClientProvider;
   @Mock private StorageUtils mockStorageUtils;
   @Mock private Storage mockGcsClient;
-  @Mock private Bucket mockBucket;
   @Mock private Blob mockBlob1;
   @Mock private Blob mockBlob2;
-  @Mock private Page<Blob> mockPage;
+  @Mock private Page<Blob> mockPage1;
+  @Mock private Page<Blob> mockPage2;
   private GCSAsyncStorageClient gcsAsyncStorageClient;
   private static final String GCS_URI = "gs://test-bucket/test-key";
   private static final String TEST_BUCKET = "test-bucket";
@@ -51,12 +50,24 @@ class GCSAsyncStorageClientTest {
   void testListAllFilesInDir() throws ExecutionException, InterruptedException {
     String fileName = "file1";
     String dirName = "dir1/";
+    String pageToken = "page_2";
 
-    when(mockGcsClient.get(TEST_BUCKET)).thenReturn(mockBucket);
-    when(mockBucket.list(
-            Storage.BlobListOption.prefix(TEST_KEY + "/"), Storage.BlobListOption.delimiter("/")))
-        .thenReturn(mockPage);
-    when(mockPage.iterateAll()).thenReturn(ImmutableList.of(mockBlob1, mockBlob2));
+    when(mockGcsClient.list(
+            TEST_BUCKET,
+            Storage.BlobListOption.prefix(TEST_KEY + "/"),
+            Storage.BlobListOption.delimiter("/")))
+        .thenReturn(mockPage1);
+    when(mockGcsClient.list(
+            TEST_BUCKET,
+            Storage.BlobListOption.prefix(TEST_KEY + "/"),
+            Storage.BlobListOption.delimiter("/"),
+            Storage.BlobListOption.pageToken(pageToken)))
+        .thenReturn(mockPage2);
+    when(mockPage1.getValues()).thenReturn(ImmutableList.of(mockBlob1));
+    when(mockPage1.hasNextPage()).thenReturn(true);
+    when(mockPage1.getNextPageToken()).thenReturn(pageToken);
+    when(mockPage2.getValues()).thenReturn(ImmutableList.of(mockBlob2));
+    when(mockPage2.hasNextPage()).thenReturn(false);
     when(mockBlob1.getName()).thenReturn(TEST_KEY + "/" + fileName);
     when(mockBlob2.getName()).thenReturn(TEST_KEY + "/" + dirName);
     when(mockBlob1.isDirectory()).thenReturn(false);

@@ -24,7 +24,8 @@ public class Main {
     }
 
     String configFilePath = args[0];
-    Config config = ConfigLoader.loadConfig(configFilePath);
+    ConfigLoader configLoader = new ConfigLoader();
+    Config config = configLoader.loadConfig(configFilePath);
 
     Injector injector = Guice.createInjector(new RuntimeModule(config));
     job = injector.getInstance(TableDiscoveryAndUploadJob.class);

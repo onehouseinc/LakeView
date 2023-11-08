@@ -32,8 +32,8 @@ class ConfigLoaderTest {
 
   static Stream<Arguments> provideValidConfigPaths() {
     return Stream.of(
-        Arguments.of("/configs/validConfigV1GCSFilesystem.yaml", Filesystem.GCS),
-        Arguments.of("/configs/validConfigV1S3Filesystem.yaml", Filesystem.S3));
+        Arguments.of("src/test/resources/config_test_resources/validConfigV1GCSFilesystem.yaml", Filesystem.GCS),
+        Arguments.of("src/test/resources/config_test_resources/validConfigV1S3Filesystem.yaml", Filesystem.S3));
   }
 
   @ParameterizedTest
@@ -47,8 +47,8 @@ class ConfigLoaderTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "/configs/invalidConfigV1MissingFileSystemConfiguration.yaml",
-        "/configs/invalidConfigV1MissingOnehouseClientConfig.yaml"
+              "src/test/resources/config_test_resources/invalidConfigV1MissingFileSystemConfiguration.yaml",
+              "src/test/resources/config_test_resources/invalidConfigV1MissingOnehouseClientConfig.yaml"
       })
   void testLoadingInValidConfig(String configPath) {
     assertThrows(RuntimeException.class, () -> configLoader.loadConfig(configPath));

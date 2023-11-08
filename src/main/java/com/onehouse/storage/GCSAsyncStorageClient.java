@@ -12,7 +12,6 @@ import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -40,8 +39,10 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
     return CompletableFuture.supplyAsync(
         () -> {
           List<Storage.BlobListOption> optionList =
-              Arrays.asList(
-                  Storage.BlobListOption.prefix(prefix), Storage.BlobListOption.delimiter("/"));
+              new ArrayList<>(
+                  List.of(
+                      Storage.BlobListOption.prefix(prefix),
+                      Storage.BlobListOption.delimiter("/")));
           if (StringUtils.isNotBlank(continuationToken)) {
             optionList.add(Storage.BlobListOption.pageToken(continuationToken));
           }

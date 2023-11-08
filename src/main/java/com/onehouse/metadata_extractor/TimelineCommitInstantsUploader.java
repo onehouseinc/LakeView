@@ -151,15 +151,19 @@ public class TimelineCommitInstantsUploader {
                 }
 
                 return sequentialBatchProcessingFuture.thenComposeAsync(
-                    updatedCheckpoint ->
-                        uploadInstantsInTimelineInBatches(
-                            tableId,
-                            table,
-                            bucketName,
-                            prefix,
-                            updatedCheckpoint,
-                            commitTimelineType,
-                            true),
+                    updatedCheckpoint -> {
+                      if (updatedCheckpoint == null) {
+                        return CompletableFuture.completedFuture(false);
+                      }
+                      return uploadInstantsInTimelineInBatches(
+                          tableId,
+                          table,
+                          bucketName,
+                          prefix,
+                          updatedCheckpoint,
+                          commitTimelineType,
+                          true);
+                    },
                     executorService);
               }
               // Case 2: Reached last page and all files have been uploaded
@@ -173,7 +177,8 @@ public class TimelineCommitInstantsUploader {
                     tableId, table, bucketName, prefix, checkpoint, commitTimelineType, true);
               }
             },
-            executorService);
+            executorService)
+        .exceptionally(throwable -> false);
   }
 
   private CompletableFuture<Void> uploadBatch(
