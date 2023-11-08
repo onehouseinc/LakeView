@@ -6,7 +6,6 @@ import static com.onehouse.constants.MetadataExtractorConstants.TABLE_METADATA_U
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.metadata_extractor.models.Table;
-
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
