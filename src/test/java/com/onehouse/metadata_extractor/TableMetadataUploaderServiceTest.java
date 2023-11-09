@@ -24,10 +24,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -53,8 +57,6 @@ class TableMetadataUploaderServiceTest {
           .tableName("tableName")
           .tableType(TableType.COPY_ON_WRITE)
           .build();
-
-  //  private static final String PRESIGNED_URL = "http://presigned-url";
 
   @BeforeEach
   void setup() {
@@ -167,11 +169,21 @@ class TableMetadataUploaderServiceTest {
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
 
-  @Test
+  static Stream<Arguments> provideLastUploadedFileAndExpectedCheckpoint() {
+    return Stream.of(
+        // case where active-timeline processing has already started
+        Arguments.of("active_instant1", false),
+        // case where archived-timeline processing has just completed
+        Arguments.of(".commits_.archive.48_1-0-1", true));
+  }
+
+  @ParameterizedTest
+  @MethodSource("provideLastUploadedFileAndExpectedCheckpoint")
   @SneakyThrows
-  void testUploadMetadataFromPreviousCheckpointArchivedProcessed() {
+  void testUploadMetadataFromPreviousCheckpointArchivedProcessedActiveTimelineProcessingStarted(
+      String lastUploadedFile, boolean useInitialCheckpoint) {
     // archived timeline has already been processed
-    Checkpoint currentCheckpoint = generateCheckpointObj(1, Instant.EPOCH, true, "active_instant1");
+    Checkpoint currentCheckpoint = generateCheckpointObj(1, Instant.EPOCH, true, lastUploadedFile);
     String currentCheckpointJson = mapper.writeValueAsString(currentCheckpoint);
 
     when(onehouseApiClient.getTableMetricsCheckpoint(TABLE_ID.toString()))
@@ -180,8 +192,10 @@ class TableMetadataUploaderServiceTest {
                 GetTableMetricsCheckpointResponse.builder()
                     .checkpoint(currentCheckpointJson)
                     .build()));
+    Checkpoint expectedCheckpoint =
+        useInitialCheckpoint ? INITIAL_ACTIVE_TIMELINE_CHECKPOINT : currentCheckpoint;
     when(s3TimelineCommitInstantsUploader.uploadInstantsInTimelineSinceCheckpoint(
-            TABLE_ID, TABLE, currentCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
+            TABLE_ID, TABLE, expectedCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
         .thenReturn(CompletableFuture.completedFuture(true));
 
     tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join();
@@ -189,7 +203,7 @@ class TableMetadataUploaderServiceTest {
     // should skip processing archived timeline and directly move to active
     verify(s3TimelineCommitInstantsUploader, times(1))
         .uploadInstantsInTimelineSinceCheckpoint(
-            TABLE_ID, TABLE, currentCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+            TABLE_ID, TABLE, expectedCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
 
   private Checkpoint generateCheckpointObj(

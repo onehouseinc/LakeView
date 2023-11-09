@@ -2,15 +2,13 @@ package com.onehouse.api.models.request;
 
 import java.util.UUID;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.NonNull;
+import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
 
 @Builder
-@Getter
+@Value
 @Jacksonized
-@EqualsAndHashCode
 public class InitializeTableMetricsCheckpointRequest {
   @NonNull private final UUID tableId;
   @NonNull private final String tableBasePath;

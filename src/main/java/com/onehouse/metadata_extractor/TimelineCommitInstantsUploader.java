@@ -7,6 +7,7 @@ import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_RE
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.onehouse.api.OnehouseApiClient;
@@ -69,13 +70,7 @@ public class TimelineCommitInstantsUploader {
                 table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType)));
 
     return uploadInstantsInTimelineInBatches(
-        tableId,
-        table,
-        bucketName,
-        prefix,
-        checkpoint,
-        commitTimelineType,
-        StringUtils.isNotBlank(checkpoint.getContinuationToken()));
+        tableId, table, bucketName, prefix, checkpoint, commitTimelineType, null);
   }
 
   private CompletableFuture<Boolean> uploadInstantsInTimelineInBatches(
@@ -85,10 +80,14 @@ public class TimelineCommitInstantsUploader {
       String prefix,
       Checkpoint checkpoint,
       CommitTimelineType commitTimelineType,
-      boolean useContinuationToken) {
+      String continuationToken) {
     return asyncStorageClient
         .fetchObjectsByPage(
-            bucketName, prefix, useContinuationToken ? checkpoint.getContinuationToken() : null)
+            bucketName,
+            prefix,
+            StringUtils.isNotBlank(continuationToken)
+                ? continuationToken
+                : checkpoint.getContinuationToken())
         .thenComposeAsync(
             continuationTokenAndFiles -> {
               String nextContinuationToken = continuationTokenAndFiles.getLeft();
@@ -98,8 +97,7 @@ public class TimelineCommitInstantsUploader {
 
               // Case 1: We have some files in current page which need to be uploaded
               if (!filesToUpload.isEmpty()) {
-                List<List<File>> batches =
-                    Lists.partition(filesToUpload, PRESIGNED_URL_REQUEST_BATCH_SIZE);
+                List<List<File>> batches = Lists.partition(filesToUpload, getUploadBatchSize());
                 int numBatches = batches.size();
 
                 // processing batches while maintaining the sequential order
@@ -118,18 +116,27 @@ public class TimelineCommitInstantsUploader {
                             }
 
                             File lastUploadedFile = batch.get(batch.size() - 1);
-                            return uploadBatch(tableId, batch, commitTimelineType, prefix)
+                            return uploadBatch(
+                                    tableId,
+                                    batch,
+                                    commitTimelineType,
+                                    storageUtils.constructFileUri(
+                                        table.getAbsoluteTableUri(),
+                                        getPathSuffixForTimeline(commitTimelineType)))
                                 .thenComposeAsync(
                                     ignored2 ->
                                         // update checkpoint after uploading each batch for quick
                                         // recovery in case of failures
                                         updateCheckpointAfterProcessingBatch(
                                             tableId,
-                                            checkpoint,
+                                            updatedCheckpoint,
                                             processedAllBatchesInCurrentPage,
                                             lastUploadedFile,
                                             batch.stream()
-                                                .map(File::getFilename)
+                                                .map(
+                                                    file ->
+                                                        getFileNameWithPrefix(
+                                                            file, commitTimelineType))
                                                 .collect(Collectors.toList()),
                                             commitTimelineType,
                                             checkpoint.getContinuationToken(),
@@ -154,6 +161,9 @@ public class TimelineCommitInstantsUploader {
                     updatedCheckpoint -> {
                       if (updatedCheckpoint == null) {
                         return CompletableFuture.completedFuture(false);
+                      } else if (StringUtils.isBlank(nextContinuationToken)) {
+                        // Reached last page and all files have been uploaded
+                        return CompletableFuture.completedFuture(true);
                       }
                       return uploadInstantsInTimelineInBatches(
                           tableId,
@@ -162,7 +172,7 @@ public class TimelineCommitInstantsUploader {
                           prefix,
                           updatedCheckpoint,
                           commitTimelineType,
-                          true);
+                          nextContinuationToken);
                     },
                     executorService);
               }
@@ -174,7 +184,13 @@ public class TimelineCommitInstantsUploader {
               // processing next page
               else {
                 return uploadInstantsInTimelineInBatches(
-                    tableId, table, bucketName, prefix, checkpoint, commitTimelineType, true);
+                    tableId,
+                    table,
+                    bucketName,
+                    prefix,
+                    checkpoint,
+                    commitTimelineType,
+                    nextContinuationToken);
               }
             },
             executorService)
@@ -182,9 +198,11 @@ public class TimelineCommitInstantsUploader {
   }
 
   private CompletableFuture<Void> uploadBatch(
-      UUID tableId, List<File> batch, CommitTimelineType commitTimelineType, String directoryUrl) {
+      UUID tableId, List<File> batch, CommitTimelineType commitTimelineType, String directoryUri) {
     List<String> commitInstants =
-        batch.stream().map(File::getFilename).collect(Collectors.toList());
+        batch.stream()
+            .map(file -> getFileNameWithPrefix(file, commitTimelineType))
+            .collect(Collectors.toList());
     return onehouseApiClient
         .generateCommitMetadataUploadUrl(
             GenerateCommitMetadataUploadUrlRequest.builder()
@@ -206,7 +224,7 @@ public class TimelineCommitInstantsUploader {
                 uploadFutures.add(
                     presignedUrlFileUploader.uploadFileToPresignedUrl(
                         generateCommitMetadataUploadUrlResponse.getUploadUrls().get(i),
-                        storageUtils.constructFileUri(directoryUrl, batch.get(i).getFilename())));
+                        storageUtils.constructFileUri(directoryUri, batch.get(i).getFilename())));
               }
 
               return CompletableFuture.allOf(uploadFutures.toArray(new CompletableFuture[0]));
@@ -301,5 +319,17 @@ public class TimelineCommitInstantsUploader {
     return CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
         ? pathSuffix + ARCHIVED_FOLDER_NAME + '/'
         : pathSuffix;
+  }
+
+  private String getFileNameWithPrefix(File file, CommitTimelineType commitTimelineType) {
+    String archivedPrefix = "archived/";
+    return CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
+        ? archivedPrefix + file.getFilename()
+        : file.getFilename();
+  }
+
+  @VisibleForTesting
+  int getUploadBatchSize() {
+    return PRESIGNED_URL_REQUEST_BATCH_SIZE;
   }
 }

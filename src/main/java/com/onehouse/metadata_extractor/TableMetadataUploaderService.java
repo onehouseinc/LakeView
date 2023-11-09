@@ -32,7 +32,7 @@ import org.apache.commons.lang3.StringUtils;
 public class TableMetadataUploaderService {
   private final HoodiePropertiesReader hoodiePropertiesReader;
   private final OnehouseApiClient onehouseApiClient;
-  private final TimelineCommitInstantsUploader s3TimelineCommitInstantsUploader;
+  private final TimelineCommitInstantsUploader timelineCommitInstantsUploader;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
   private static final Pattern ARCHIVED_TIMELINE_COMMIT_INSTANT_PATTERN =
@@ -42,11 +42,11 @@ public class TableMetadataUploaderService {
   public TableMetadataUploaderService(
       @Nonnull HoodiePropertiesReader hoodiePropertiesReader,
       @Nonnull OnehouseApiClient onehouseApiClient,
-      @Nonnull TimelineCommitInstantsUploader s3TimelineCommitInstantsUploader,
+      @Nonnull TimelineCommitInstantsUploader timelineCommitInstantsUploader,
       @Nonnull ExecutorService executorService) {
     this.hoodiePropertiesReader = hoodiePropertiesReader;
     this.onehouseApiClient = onehouseApiClient;
-    this.s3TimelineCommitInstantsUploader = s3TimelineCommitInstantsUploader;
+    this.timelineCommitInstantsUploader = timelineCommitInstantsUploader;
     this.executorService = executorService;
     this.mapper = new ObjectMapper();
     mapper.registerModule(new JavaTimeModule());
@@ -132,7 +132,7 @@ public class TableMetadataUploaderService {
        * if archived commits are not uploaded, we upload those first before moving to active timeline
        * commits in archived timeline are uploaded only once, when the table is registered for the first time.
        */
-      return s3TimelineCommitInstantsUploader
+      return timelineCommitInstantsUploader
           .uploadInstantsInTimelineSinceCheckpoint(
               tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
           .thenComposeAsync(
@@ -145,7 +145,7 @@ public class TableMetadataUploaderService {
                   return CompletableFuture.completedFuture(false);
                 }
                 // batch_id starts afresh as we are now processing the active-timeline
-                return s3TimelineCommitInstantsUploader.uploadInstantsInTimelineSinceCheckpoint(
+                return timelineCommitInstantsUploader.uploadInstantsInTimelineSinceCheckpoint(
                     tableId,
                     table,
                     INITIAL_ACTIVE_TIMELINE_CHECKPOINT,
@@ -163,7 +163,7 @@ public class TableMetadataUploaderService {
         ARCHIVED_TIMELINE_COMMIT_INSTANT_PATTERN.matcher(checkpoint.getLastUploadedFile()).matches()
             ? INITIAL_ACTIVE_TIMELINE_CHECKPOINT
             : checkpoint;
-    return s3TimelineCommitInstantsUploader.uploadInstantsInTimelineSinceCheckpoint(
+    return timelineCommitInstantsUploader.uploadInstantsInTimelineSinceCheckpoint(
         tableId, table, activeTimelineCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
 
