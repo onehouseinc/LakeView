@@ -1,9 +1,9 @@
-package com.onehouse.config.configv1;
+package com.onehouse.config.models.configv1;
 
 import com.onehouse.config.Config;
 import com.onehouse.config.ConfigVersion;
-import com.onehouse.config.common.FileSystemConfiguration;
-import com.onehouse.config.common.OnehouseClientConfig;
+import com.onehouse.config.models.common.FileSystemConfiguration;
+import com.onehouse.config.models.common.OnehouseClientConfig;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;

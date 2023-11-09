@@ -4,14 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.onehouse.config.common.FileSystemConfiguration;
-import com.onehouse.config.common.GCSConfig;
-import com.onehouse.config.common.OnehouseClientConfig;
-import com.onehouse.config.common.S3Config;
-import com.onehouse.config.configv1.ConfigV1;
-import com.onehouse.config.configv1.Database;
-import com.onehouse.config.configv1.MetadataExtractorConfig;
-import com.onehouse.config.configv1.ParserConfig;
+import com.onehouse.config.models.common.FileSystemConfiguration;
+import com.onehouse.config.models.common.GCSConfig;
+import com.onehouse.config.models.common.OnehouseClientConfig;
+import com.onehouse.config.models.common.S3Config;
+import com.onehouse.config.models.configv1.ConfigV1;
+import com.onehouse.config.models.configv1.Database;
+import com.onehouse.config.models.configv1.MetadataExtractorConfig;
+import com.onehouse.config.models.configv1.ParserConfig;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -32,8 +32,12 @@ class ConfigLoaderTest {
 
   static Stream<Arguments> provideValidConfigPaths() {
     return Stream.of(
-        Arguments.of("/configs/validConfigV1GCSFilesystem.yaml", Filesystem.GCS),
-        Arguments.of("/configs/validConfigV1S3Filesystem.yaml", Filesystem.S3));
+        Arguments.of(
+            "src/test/resources/config_test_resources/validConfigV1GCSFilesystem.yaml",
+            Filesystem.GCS),
+        Arguments.of(
+            "src/test/resources/config_test_resources/validConfigV1S3Filesystem.yaml",
+            Filesystem.S3));
   }
 
   @ParameterizedTest
@@ -47,8 +51,8 @@ class ConfigLoaderTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "/configs/invalidConfigV1MissingFileSystemConfiguration.yaml",
-        "/configs/invalidConfigV1MissingOnehouseClientConfig.yaml"
+        "src/test/resources/config_test_resources/invalidConfigV1MissingFileSystemConfiguration.yaml",
+        "src/test/resources/config_test_resources/invalidConfigV1MissingOnehouseClientConfig.yaml"
       })
   void testLoadingInValidConfig(String configPath) {
     assertThrows(RuntimeException.class, () -> configLoader.loadConfig(configPath));

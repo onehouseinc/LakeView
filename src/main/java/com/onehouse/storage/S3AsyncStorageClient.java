@@ -12,6 +12,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import software.amazon.awssdk.core.BytesWrapper;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
@@ -21,39 +23,26 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 
 @Slf4j
-public class S3AsyncStorageClient implements AsyncStorageClient {
+public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
   private final S3AsyncClientProvider s3AsyncClientProvider;
-  private final StorageUtils storageUtils;
-  private final ExecutorService executorService;
 
   @Inject
   public S3AsyncStorageClient(
       @Nonnull S3AsyncClientProvider s3AsyncClientProvider,
       @Nonnull StorageUtils storageUtils,
       @Nonnull ExecutorService executorService) {
+    super(executorService, storageUtils);
     this.s3AsyncClientProvider = s3AsyncClientProvider;
-    this.storageUtils = storageUtils;
-    this.executorService = executorService;
   }
 
   @Override
-  public CompletableFuture<List<File>> listAllFilesInDir(String s3Uri) {
-    log.debug("Listing files in {}", s3Uri);
-    String bucketName = storageUtils.getBucketNameFromUri(s3Uri);
-    String prefix = storageUtils.getPathFromUrl(s3Uri);
-
-    // ensure prefix which is not the root dir always ends with "/"
-    prefix = prefix.isEmpty() || prefix.endsWith("/") ? prefix : prefix + "/";
-    return listObjectsInS3(bucketName, prefix, null, new ArrayList<>());
-  }
-
-  private CompletableFuture<List<File>> listObjectsInS3(
-      String bucketName, String prefix, String continuationToken, List<File> files) {
+  public CompletableFuture<Pair<String, List<File>>> fetchObjectsByPage(
+      String bucketName, String prefix, String continuationToken) {
 
     ListObjectsV2Request.Builder listObjectsV2RequestBuilder =
         ListObjectsV2Request.builder().bucket(bucketName).prefix(prefix).delimiter("/");
 
-    if (continuationToken != null) {
+    if (StringUtils.isNotBlank(continuationToken)) {
       listObjectsV2RequestBuilder.continuationToken(continuationToken);
     }
 
@@ -63,16 +52,13 @@ public class S3AsyncStorageClient implements AsyncStorageClient {
         .thenComposeAsync(
             listObjectsV2Response -> {
               // process response
+              List<File> files = new ArrayList<>(List.of());
               files.addAll(processListObjectsV2Response(listObjectsV2Response, prefix));
               String newContinuationToken =
                   Boolean.TRUE.equals(listObjectsV2Response.isTruncated())
                       ? listObjectsV2Response.nextContinuationToken()
                       : null;
-              if (newContinuationToken != null) {
-                return listObjectsInS3(bucketName, prefix, newContinuationToken, files);
-              } else {
-                return CompletableFuture.completedFuture(files);
-              }
+              return CompletableFuture.completedFuture(Pair.of(newContinuationToken, files));
             },
             executorService);
   }

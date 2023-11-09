@@ -99,7 +99,8 @@ dependencies {
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.12.3'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.15.3'
     implementation 'com.google.code.findbugs:jsr305:3.0.2'
-    implementation('org.apache.commons:commons-lang3:3.13.0')
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.3'
+    implementation 'org.apache.commons:commons-lang3:3.13.0'
 
 
     implementation platform('software.amazon.awssdk:bom:2.21.8')

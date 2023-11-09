@@ -28,8 +28,7 @@ public class PresignedUrlFileUploader {
         .thenComposeAsync(
             response -> {
               RequestBody requestBody = RequestBody.create(response);
-              Request request;
-              request = new Request.Builder().url(presignedUrl).put(requestBody).build();
+              Request request = new Request.Builder().url(presignedUrl).put(requestBody).build();
 
               return asyncHttpClientWithRetry
                   .makeRequestWithRetry(request)
@@ -38,7 +37,7 @@ public class PresignedUrlFileUploader {
                         if (!uploadResponse.isSuccessful()) {
                           throw new RuntimeException(
                               String.format(
-                                  "file upload failed failed: response code:  %s error message: %s",
+                                  "file upload failed failed: response code: %s error message: %s",
                                   uploadResponse.code(), uploadResponse.message()));
                         }
                         return null; // Successfully uploaded

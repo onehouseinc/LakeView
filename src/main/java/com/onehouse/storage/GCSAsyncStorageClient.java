@@ -1,8 +1,8 @@
 package com.onehouse.storage;
 
+import com.google.api.gax.paging.Page;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
@@ -11,57 +11,57 @@ import com.onehouse.storage.providers.GcsClientProvider;
 import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 @Slf4j
-public class GCSAsyncStorageClient implements AsyncStorageClient {
+public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
   private final GcsClientProvider gcsClientProvider;
-  private final StorageUtils storageUtils;
-  private final ExecutorService executorService;
 
   @Inject
   public GCSAsyncStorageClient(
       @Nonnull GcsClientProvider gcsClientProvider,
       @Nonnull StorageUtils storageUtils,
       @Nonnull ExecutorService executorService) {
+    super(executorService, storageUtils);
     this.gcsClientProvider = gcsClientProvider;
-    this.storageUtils = storageUtils;
-    this.executorService = executorService;
   }
 
   @Override
-  public CompletableFuture<List<File>> listAllFilesInDir(String gcsUri) {
+  public CompletableFuture<Pair<String, List<File>>> fetchObjectsByPage(
+      String bucketName, String prefix, String continuationToken) {
     return CompletableFuture.supplyAsync(
         () -> {
-          log.debug("Listing files in {}", gcsUri);
-          Bucket bucket =
-              gcsClientProvider.getGcsClient().get(storageUtils.getBucketNameFromUri(gcsUri));
-          String prefix = storageUtils.getPathFromUrl(gcsUri);
-
-          // ensure prefix which is not the root dir always ends with "/"
-          prefix = prefix.isEmpty() || prefix.endsWith("/") ? prefix : prefix + "/";
-          Iterable<Blob> blobs =
-              bucket
-                  .list(
-                      Storage.BlobListOption.prefix(prefix), Storage.BlobListOption.delimiter("/"))
-                  .iterateAll();
-          String finalPrefix = prefix;
-          return StreamSupport.stream(blobs.spliterator(), false)
-              .map(
-                  blob ->
-                      File.builder()
-                          .filename(blob.getName().replaceFirst(finalPrefix, ""))
-                          .lastModifiedAt(
-                              Instant.ofEpochMilli(!blob.isDirectory() ? blob.getUpdateTime() : 0))
-                          .isDirectory(blob.isDirectory())
-                          .build())
-              .collect(Collectors.toList());
+          List<Storage.BlobListOption> optionList =
+              new ArrayList<>(
+                  List.of(
+                      Storage.BlobListOption.prefix(prefix),
+                      Storage.BlobListOption.delimiter("/")));
+          if (StringUtils.isNotBlank(continuationToken)) {
+            optionList.add(Storage.BlobListOption.pageToken(continuationToken));
+          }
+          Page<Blob> blobs =
+              gcsClientProvider
+                  .getGcsClient()
+                  .list(bucketName, optionList.toArray(Storage.BlobListOption[]::new));
+          List<File> files = new ArrayList<>(List.of());
+          for (Blob blob : blobs.getValues()) {
+            files.add(
+                File.builder()
+                    .filename(blob.getName().replaceFirst(prefix, ""))
+                    .lastModifiedAt(
+                        Instant.ofEpochMilli(!blob.isDirectory() ? blob.getUpdateTime() : 0))
+                    .isDirectory(blob.isDirectory())
+                    .build());
+          }
+          String nextPageToken = blobs.hasNextPage() ? blobs.getNextPageToken() : null;
+          return Pair.of(nextPageToken, files);
         },
         executorService);
   }

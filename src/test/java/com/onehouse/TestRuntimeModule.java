@@ -8,9 +8,9 @@ import static org.mockito.Mockito.when;
 
 import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.config.Config;
-import com.onehouse.config.common.FileSystemConfiguration;
-import com.onehouse.config.common.GCSConfig;
-import com.onehouse.config.common.S3Config;
+import com.onehouse.config.models.common.FileSystemConfiguration;
+import com.onehouse.config.models.common.GCSConfig;
+import com.onehouse.config.models.common.S3Config;
 import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.GCSAsyncStorageClient;
 import com.onehouse.storage.S3AsyncStorageClient;

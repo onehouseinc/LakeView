@@ -14,11 +14,18 @@ public class MetadataExtractorConstants {
   public static final int PRESIGNED_URL_REQUEST_BATCH_SIZE = 100;
   public static final int TABLE_DISCOVERY_INTERVAL_MINUTES = 30;
   public static final int TABLE_METADATA_UPLOAD_INTERVAL_MINUTES = 5;
-  public static final Checkpoint INITIAL_CHECKPOINT =
+  public static final Checkpoint INITIAL_ARCHIVED_TIMELINE_CHECKPOINT =
       Checkpoint.builder()
           .batchId(0)
           .checkpointTimestamp(Instant.EPOCH)
           .lastUploadedFile("")
           .archivedCommitsProcessed(false)
+          .build();
+  public static final Checkpoint INITIAL_ACTIVE_TIMELINE_CHECKPOINT =
+      Checkpoint.builder()
+          .batchId(0)
+          .checkpointTimestamp(Instant.EPOCH)
+          .lastUploadedFile("")
+          .archivedCommitsProcessed(true)
           .build();
 }

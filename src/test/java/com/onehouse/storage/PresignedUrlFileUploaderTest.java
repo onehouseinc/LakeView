@@ -61,7 +61,7 @@ class PresignedUrlFileUploaderTest {
             () -> uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI).get());
     assertEquals(
         String.format(
-            "java.lang.RuntimeException: file upload failed failed: response code:  %d error message: %s",
+            "java.lang.RuntimeException: file upload failed failed: response code: %d error message: %s",
             FAILURE_STATUS_CODE, FAILURE_ERROR),
         exception.getMessage());
   }

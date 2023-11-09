@@ -21,8 +21,8 @@ import com.onehouse.api.models.response.GenerateCommitMetadataUploadUrlResponse;
 import com.onehouse.api.models.response.GetTableMetricsCheckpointResponse;
 import com.onehouse.api.models.response.InitializeTableMetricsCheckpointResponse;
 import com.onehouse.api.models.response.UpsertTableMetricsCheckpointResponse;
-import com.onehouse.config.common.OnehouseClientConfig;
-import com.onehouse.config.configv1.ConfigV1;
+import com.onehouse.config.models.common.OnehouseClientConfig;
+import com.onehouse.config.models.configv1.ConfigV1;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.UUID;
@@ -165,7 +165,7 @@ class OnehouseApiClientTest {
     OnehouseApiClient onehouseApiClientSpy = spy(onehouseApiClient);
     UpsertTableMetricsCheckpointRequest request =
         UpsertTableMetricsCheckpointRequest.builder()
-            .tableId(tableId)
+            .tableId(tableId.toString())
             .filesUploaded(List.of())
             .commitTimelineType(commitTimelineType)
             .checkpoint("")

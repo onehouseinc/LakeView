@@ -6,9 +6,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.onehouse.config.common.FileSystemConfiguration;
-import com.onehouse.config.common.S3Config;
-import com.onehouse.config.configv1.ConfigV1;
+import com.onehouse.config.models.common.FileSystemConfiguration;
+import com.onehouse.config.models.common.S3Config;
+import com.onehouse.config.models.configv1.ConfigV1;
 import java.util.concurrent.ExecutorService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
