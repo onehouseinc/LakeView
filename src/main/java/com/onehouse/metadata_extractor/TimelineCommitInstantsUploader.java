@@ -2,6 +2,8 @@ package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.ARCHIVED_FOLDER_NAME;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
+import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
+import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE_OBJ;
 import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -224,7 +226,7 @@ public class TimelineCommitInstantsUploader {
                 uploadFutures.add(
                     presignedUrlFileUploader.uploadFileToPresignedUrl(
                         generateCommitMetadataUploadUrlResponse.getUploadUrls().get(i),
-                        storageUtils.constructFileUri(directoryUri, batch.get(i).getFilename())));
+                        constructStorageUri(directoryUri, batch.get(i).getFilename())));
               }
 
               return CompletableFuture.allOf(uploadFutures.toArray(new CompletableFuture[0]));
@@ -294,6 +296,10 @@ public class TimelineCommitInstantsUploader {
         filesList.stream()
             .filter(file -> !file.isDirectory()) // filter out directories
             .filter(file -> !file.getLastModifiedAt().isBefore(checkpoint.getCheckpointTimestamp()))
+            .filter(
+                file ->
+                    !file.getFilename()
+                        .equals(HOODIE_PROPERTIES_FILE)) // will only be processed in batch 1
             .sorted(Comparator.comparing(File::getLastModifiedAt).thenComparing(File::getFilename))
             .collect(Collectors.toList());
 
@@ -308,10 +314,30 @@ public class TimelineCommitInstantsUploader {
                         .equals(checkpoint.getLastUploadedFile()))
             .findFirst();
 
-    return lastUploadedIndexOpt.isPresent()
-        ? filteredAndSortedFiles.subList(
-            lastUploadedIndexOpt.getAsInt() + 1, filteredAndSortedFiles.size())
-        : filteredAndSortedFiles;
+    List<File> filesToUpload =
+        lastUploadedIndexOpt.isPresent()
+            ? filteredAndSortedFiles.subList(
+                lastUploadedIndexOpt.getAsInt() + 1, filteredAndSortedFiles.size())
+            : filteredAndSortedFiles;
+
+    if (checkpoint.getBatchId() == 0) {
+      // for the first batch, always include hoodie properties file
+      filesToUpload.add(0, HOODIE_PROPERTIES_FILE_OBJ);
+    }
+
+    return filesToUpload;
+  }
+
+  private String constructStorageUri(String directoryUri, String fileName) {
+    if (HOODIE_PROPERTIES_FILE.equals(fileName)) {
+      String archivedSuffix = ARCHIVED_FOLDER_NAME + '/';
+      String hoodieDirectoryUri =
+          directoryUri.endsWith(archivedSuffix)
+              ? directoryUri.substring(0, directoryUri.length() - "archived/".length())
+              : directoryUri;
+      return storageUtils.constructFileUri(hoodieDirectoryUri, HOODIE_PROPERTIES_FILE);
+    }
+    return storageUtils.constructFileUri(directoryUri, fileName);
   }
 
   private String getPathSuffixForTimeline(CommitTimelineType commitTimelineType) {
@@ -324,6 +350,7 @@ public class TimelineCommitInstantsUploader {
   private String getFileNameWithPrefix(File file, CommitTimelineType commitTimelineType) {
     String archivedPrefix = "archived/";
     return CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
+            && !HOODIE_PROPERTIES_FILE.equals(file.getFilename())
         ? archivedPrefix + file.getFilename()
         : file.getFilename();
   }

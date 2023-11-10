@@ -79,11 +79,13 @@ public class TableDiscoveryAndUploadJob {
 
   private void processTables() {
     log.debug("Uploading table metadata for discovered tables");
-    Set<Table> tables;
+    Set<Table> tables = null;
     synchronized (lock) {
-      tables = new HashSet<>(tablesToProcess);
+      if (tablesToProcess != null) {
+        tables = new HashSet<>(tablesToProcess);
+      }
     }
-    if (!tables.isEmpty()) {
+    if (tables != null && !tables.isEmpty()) {
       tableMetadataUploaderService
           .uploadInstantsInTables(tables)
           .exceptionally(

@@ -1,6 +1,7 @@
 package com.onehouse.constants;
 
 import com.onehouse.metadata_extractor.models.Checkpoint;
+import com.onehouse.storage.models.File;
 import java.time.Instant;
 
 public class MetadataExtractorConstants {
@@ -27,5 +28,13 @@ public class MetadataExtractorConstants {
           .checkpointTimestamp(Instant.EPOCH)
           .lastUploadedFile("")
           .archivedCommitsProcessed(true)
+          .build();
+
+  // hardcoding last modified at to prevent this from causing issues with our checkpoint logic
+  public static final File HOODIE_PROPERTIES_FILE_OBJ =
+      File.builder()
+          .filename(HOODIE_PROPERTIES_FILE)
+          .isDirectory(false)
+          .lastModifiedAt(Instant.EPOCH)
           .build();
 }
