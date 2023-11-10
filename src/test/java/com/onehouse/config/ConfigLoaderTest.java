@@ -78,6 +78,14 @@ class ConfigLoaderTest {
     assertEquals(getValidConfigV1Obj(Filesystem.S3, "lake1", "database1"), config);
   }
 
+  @Test
+  void testLoadingInvalidYamlFromString() {
+    // missing onehouseClientConfig
+    String yamlString =
+        "{version: V1, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {pathsToExclude: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+    assertThrows(RuntimeException.class, () -> configLoader.loadConfigFromString(yamlString));
+  }
+
   enum Filesystem {
     S3,
     GCS
