@@ -27,6 +27,7 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import okhttp3.Call;
 import okhttp3.MediaType;
@@ -38,7 +39,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -111,8 +114,16 @@ class OnehouseApiClientTest {
     assertEquals(FAILURE_STATUS_CODE, result.getStatusCode());
   }
 
+  static Stream<Arguments> provideInitializeTableMetricsCheckpointValue() {
+    return Stream.of(
+        Arguments.of(TableType.COPY_ON_WRITE, "lake", "database"),
+        Arguments.of(TableType.MERGE_ON_READ, "lake", "database"),
+        Arguments.of(TableType.COPY_ON_WRITE, null, null),
+        Arguments.of(TableType.MERGE_ON_READ, null, null));
+  }
+
   @ParameterizedTest
-  @EnumSource(TableType.class)
+  @MethodSource("provideInitializeTableMetricsCheckpointValue")
   @SneakyThrows
   void verifyInitializeTableMetricsCheckpointApi(TableType tableType) {
     UUID tableId = UUID.randomUUID();

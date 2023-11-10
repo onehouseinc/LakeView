@@ -1,5 +1,6 @@
 package com.onehouse.config;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -10,20 +11,36 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class ConfigLoader {
-  public Config loadConfig(String configFilePath) {
-    ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-    mapper.registerModule(new Jdk8Module());
+  private final ObjectMapper MAPPER;
+
+  public ConfigLoader() {
+    this.MAPPER = new ObjectMapper(new YAMLFactory());
+    MAPPER.registerModule(new Jdk8Module());
+  }
+
+  public Config loadConfigFromConfigFile(String configFilePath) {
     try (InputStream in = Files.newInputStream(Paths.get(configFilePath))) {
-      JsonNode rootNode = mapper.readTree(in);
-      ConfigVersion version = ConfigVersion.valueOf(rootNode.get("version").asText());
-      switch (version) {
-        case V1:
-          return mapper.treeToValue(rootNode, ConfigV1.class);
-        default:
-          throw new UnsupportedOperationException("Unsupported config version: " + version);
-      }
+      return loadConfigFromJsonNode(MAPPER.readTree(in));
     } catch (Exception e) {
       throw new RuntimeException("Failed to load config", e);
+    }
+  }
+
+  public Config loadConfigFromString(String configYaml) {
+    try {
+      return loadConfigFromJsonNode(MAPPER.readTree(configYaml));
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to load config", e);
+    }
+  }
+
+  private Config loadConfigFromJsonNode(JsonNode jsonNode) throws JsonProcessingException {
+    ConfigVersion version = ConfigVersion.valueOf(jsonNode.get("version").asText());
+    switch (version) {
+      case V1:
+        return MAPPER.treeToValue(jsonNode, ConfigV1.class);
+      default:
+        throw new UnsupportedOperationException("Unsupported config version: " + version);
     }
   }
 }

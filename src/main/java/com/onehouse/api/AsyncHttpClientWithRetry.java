@@ -3,6 +3,7 @@ package com.onehouse.api;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -24,6 +25,7 @@ public class AsyncHttpClientWithRetry {
   // https://chromium.googlesource.com/external/github.com/grpc/grpc/+/refs/tags/v1.21.4-pre1/doc/statuscodes.md
   private static final List<Integer> ACCEPTABLE_HTTP_FAILURE_STATUS_CODES =
       List.of(404, 400, 403, 401);
+  private static final Random random = new Random();
 
   public AsyncHttpClientWithRetry(
       int maxRetries, long retryDelayMillis, OkHttpClient okHttpClient) {
@@ -85,8 +87,10 @@ public class AsyncHttpClientWithRetry {
   }
 
   private long calculateDelay(int tryCount) {
-    // Exponential backoff with upper bound
-    return (long) Math.min(MAX_RETRY_DELAY_MILLIS, retryDelayMillis * Math.pow(2, tryCount));
+    // Exponential backoff with jitter and upper bound
+    long delay = (long) (retryDelayMillis * Math.pow(2, tryCount));
+    long jitter = (long) (random.nextDouble() * delay) - (delay / 2);
+    return Math.min(delay + jitter, MAX_RETRY_DELAY_MILLIS);
   }
 
   public void shutdownScheduler() {
