@@ -5,11 +5,13 @@ import static com.onehouse.constants.StorageConstants.GCP_RESOURCE_NAME_FORMAT;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.config.Config;
 import com.onehouse.config.models.common.FileSystemConfiguration;
 import com.onehouse.config.models.common.GCSConfig;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import javax.annotation.Nonnull;
 import lombok.Getter;
@@ -31,7 +33,8 @@ public class GcsClientProvider {
             : GCSConfig.builder().build();
   }
 
-  protected Storage createGcsClient() {
+  @VisibleForTesting
+  Storage createGcsClient() {
     logger.debug("Instantiating GCS storage client");
     validateGcsConfig(gcsConfig);
 
@@ -39,8 +42,7 @@ public class GcsClientProvider {
     // https://cloud.google.com/docs/authentication/provide-credentials-adc
     if (gcsConfig.getGcpServiceAccountKeyPath().isPresent()) {
       StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder();
-      try (FileInputStream serviceAccountStream =
-          new FileInputStream(gcsConfig.getGcpServiceAccountKeyPath().get())) {
+      try (FileInputStream serviceAccountStream = readAsStream()) {
 
         storageOptionsBuilder.setCredentials(GoogleCredentials.fromStream(serviceAccountStream));
         if (gcsConfig.getProjectId().isPresent()) {
@@ -74,5 +76,10 @@ public class GcsClientProvider {
       throw new IllegalArgumentException(
           "Invalid GCP Service Account Key Path: " + gcsConfig.getGcpServiceAccountKeyPath().get());
     }
+  }
+
+  @VisibleForTesting
+  FileInputStream readAsStream() throws FileNotFoundException {
+    return new FileInputStream(gcsConfig.getGcpServiceAccountKeyPath().get());
   }
 }
