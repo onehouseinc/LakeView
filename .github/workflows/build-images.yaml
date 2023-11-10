@@ -60,6 +60,6 @@ jobs:
       - name: Tag and push image
         run: |
           for input_tag in ${{ inputs.tags }}; do
-            docker tag hudi-metadata-extractor:latest ${{ secrets.DOCKER_USERNAME }}/gateway-controller:$input_tag
+            docker tag hudi-metadata-extractor:latest ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:$input_tag
             docker push ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:$input_tag
           done
