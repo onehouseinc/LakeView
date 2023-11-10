@@ -28,24 +28,12 @@ jobs:
           submodules: recursive
           token: ${{ secrets.CI_PAT }}
           fetch-depth: 0
-#      - name: Configure AWS credentials
-#        uses: aws-actions/configure-aws-credentials@v1
-#        with:
-#          aws-region: us-west-2
-#          role-to-assume: arn:aws:iam::194159489498:role/GithubActionsInstallHudiForGatewayC-RepositoryRole-182NI133SRXP0
-#          role-session-name: HudiInstallSession
-#          role-duration-seconds: 1200
-#      - name: Set Env
-#        run: echo "CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain onehouse --domain-owner 194159489498 --query authorizationToken --output text)" >> $GITHUB_ENV
       - name: Set up JDK 11
         uses: actions/setup-java@v2
         with:
           java-version: '11'
           distribution: 'adopt'
           cache: gradle
-#          server-id: codeartifact
-#          server-username: AWS
-#          server-password: CODEARTIFACT_AUTH_TOKEN
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
       - name: Build with Gradle
