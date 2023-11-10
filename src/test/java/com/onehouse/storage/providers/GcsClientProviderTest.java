@@ -7,6 +7,7 @@ import com.google.cloud.storage.Storage;
 import com.onehouse.config.models.common.FileSystemConfiguration;
 import com.onehouse.config.models.common.GCSConfig;
 import com.onehouse.config.models.configv1.ConfigV1;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,19 +42,9 @@ class GcsClientProviderTest {
   }
 
   @Test
-  void throwExceptionWhenGcsConfigIsNull() {
-    when(fileSystemConfiguration.getGcsConfig()).thenReturn(null);
-    GcsClientProvider clientProvider = new GcsClientProvider(config);
-    IllegalArgumentException thrown =
-        assertThrows(IllegalArgumentException.class, clientProvider::getGcsClient);
-
-    assertEquals("Gcs config not found", thrown.getMessage());
-  }
-
-  @Test
   void throwExceptionWhenProjectIdIsInvalid() {
     when(fileSystemConfiguration.getGcsConfig()).thenReturn(gcsConfig);
-    when(gcsConfig.getProjectId()).thenReturn("#invalid-project-id");
+    when(gcsConfig.getProjectId()).thenReturn(Optional.of("#invalid-project-id"));
     GcsClientProvider clientProvider = new GcsClientProvider(config);
     IllegalArgumentException thrown =
         assertThrows(IllegalArgumentException.class, clientProvider::getGcsClient);
@@ -64,8 +55,8 @@ class GcsClientProviderTest {
   @Test
   void throwExceptionWhenServiceAccountKeyPathIsBlank() {
     when(fileSystemConfiguration.getGcsConfig()).thenReturn(gcsConfig);
-    when(gcsConfig.getProjectId()).thenReturn("valid-project-id");
-    when(gcsConfig.getGcpServiceAccountKeyPath()).thenReturn("");
+    when(gcsConfig.getProjectId()).thenReturn(Optional.of("valid-project-id"));
+    when(gcsConfig.getGcpServiceAccountKeyPath()).thenReturn(Optional.of(""));
     GcsClientProvider clientProvider = new GcsClientProvider(config);
     IllegalArgumentException thrown =
         assertThrows(IllegalArgumentException.class, clientProvider::getGcsClient);
