@@ -12,6 +12,6 @@ import lombok.extern.jackson.Jacksonized;
 @Jacksonized
 @EqualsAndHashCode
 public class Database {
-  @NonNull private String name;
+  private String name;
   @NonNull private List<String> basePaths;
 }

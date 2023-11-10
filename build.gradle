@@ -101,6 +101,7 @@ dependencies {
     implementation 'com.google.code.findbugs:jsr305:3.0.2'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.3'
     implementation 'org.apache.commons:commons-lang3:3.13.0'
+    implementation 'commons-cli:commons-cli:1.6.0'
 
 
     implementation platform('software.amazon.awssdk:bom:2.21.8')
