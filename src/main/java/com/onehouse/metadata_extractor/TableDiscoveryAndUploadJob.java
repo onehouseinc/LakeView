@@ -79,7 +79,6 @@ public class TableDiscoveryAndUploadJob {
               log.error("Error discovering tables: ", ex);
               return null;
             });
-    log.info("Discovered following tables: {}", tablesToProcess);
   }
 
   private void processTables() {
