@@ -79,10 +79,11 @@ public class TableDiscoveryAndUploadJob {
               log.error("Error discovering tables: ", ex);
               return null;
             });
+    log.info("Discovered following tables: {}", tablesToProcess);
   }
 
   private void processTables() {
-    log.debug("Uploading table metadata for discovered tables");
+    log.debug("Polling to see if metadata needs to be uploaded");
     Instant tableMetadataUploadRunStartTime = Instant.now();
     if (Duration.between(previousTableMetadataUploadRunStartTime, tableMetadataUploadRunStartTime)
             .toMinutes()
@@ -94,6 +95,7 @@ public class TableDiscoveryAndUploadJob {
         }
       }
       if (tables != null && !tables.isEmpty()) {
+        log.debug("Uploading table metadata for discovered tables");
         tableMetadataUploaderService
             .uploadInstantsInTables(tables)
             .exceptionally(
