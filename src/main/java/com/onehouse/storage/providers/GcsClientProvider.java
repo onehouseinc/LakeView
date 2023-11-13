@@ -15,6 +15,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import javax.annotation.Nonnull;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +73,7 @@ public class GcsClientProvider {
     }
 
     if (gcsConfig.getGcpServiceAccountKeyPath().isPresent()
-        && gcsConfig.getGcpServiceAccountKeyPath().get().isBlank()) {
+        && StringUtils.isBlank(gcsConfig.getGcpServiceAccountKeyPath().get())) {
       throw new IllegalArgumentException(
           "Invalid GCP Service Account Key Path: " + gcsConfig.getGcpServiceAccountKeyPath().get());
     }
