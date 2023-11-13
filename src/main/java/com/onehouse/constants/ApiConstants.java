@@ -4,7 +4,8 @@ public class ApiConstants {
 
   private ApiConstants() {}
 
-  public static final String ONEHOUSE_API_ENDPOINT = "https://api.onehouse.ai";
+  public static final String ONEHOUSE_API_ENDPOINT =
+      System.getenv().getOrDefault("ONEHOUSE_API_ENDPOINT", "https://api.onehouse.ai");
 
   // API Endpoints
   public static final String INITIALIZE_TABLE_METRICS_CHECKPOINT = "/v1/community/{0}";

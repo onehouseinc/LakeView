@@ -110,8 +110,8 @@ class ConfigLoaderTest {
     return FileSystemConfiguration.builder()
         .gcsConfig(
             GCSConfig.builder()
-                .projectId("projectId")
-                .gcpServiceAccountKeyPath("valid/path/service_account.json")
+                .projectId(Optional.of("projectId"))
+                .gcpServiceAccountKeyPath(Optional.of("valid/path/service_account.json"))
                 .build())
         .build();
   }
