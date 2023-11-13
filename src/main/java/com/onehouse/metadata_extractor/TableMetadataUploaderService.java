@@ -70,44 +70,53 @@ public class TableMetadataUploaderService {
         .getTableMetricsCheckpoint(tableId.toString())
         .thenComposeAsync(
             getTableMetricsCheckpointResponse -> {
-              if (getTableMetricsCheckpointResponse.isFailure()
-                  && getTableMetricsCheckpointResponse.getStatusCode() == 404) {
-                // checkpoint not found, table needs to be registered
-                log.info("Initializing table {}", table.getAbsoluteTableUri());
-                return hoodiePropertiesReader
-                    .readHoodieProperties(getHoodiePropertiesFilePath(table))
-                    .thenCompose(
-                        properties ->
-                            onehouseApiClient.initializeTableMetricsCheckpoint(
-                                InitializeTableMetricsCheckpointRequest.builder()
-                                    .tableId(tableId)
-                                    .tableName(properties.getTableName())
-                                    .tableType(properties.getTableType())
-                                    .tableBasePath(
-                                        table.getRelativeTablePath()) // sending relative instead of
-                                    // absolute path to avoid sending sensitive data
-                                    .databaseName(table.getDatabaseName())
-                                    .lakeName(table.getLakeName())
-                                    .build()))
-                    .thenCompose(
-                        initializeTableMetricsCheckpointResponse -> {
-                          if (!initializeTableMetricsCheckpointResponse.isFailure()) {
-                            return uploadNewInstantsSinceCheckpoint(
-                                tableId, table, INITIAL_ARCHIVED_TIMELINE_CHECKPOINT);
-                          }
-                          log.error(
-                              "Failed to initialise table for processing, Exception: {} , Table: {}. skipping table",
-                              initializeTableMetricsCheckpointResponse.getCause(),
-                              table);
-                          // skip uploading instants for this table in the current run
-                          return null;
-                        })
-                    .exceptionally(
-                        throwable -> {
-                          log.error(
-                              "error processing table: {}", table.getAbsoluteTableUri(), throwable);
-                          return null;
-                        });
+              if (getTableMetricsCheckpointResponse.isFailure()) {
+                if (getTableMetricsCheckpointResponse.getStatusCode() != 404) {
+                  log.error(
+                      "Error encountered when fetching checkpoint, skipping table processing. {}",
+                      getTableMetricsCheckpointResponse.getCause());
+                  return CompletableFuture.completedFuture(false);
+                } else {
+                  // checkpoint not found, table needs to be registered
+                  log.info("Initializing table {}", table.getAbsoluteTableUri());
+                  return hoodiePropertiesReader
+                      .readHoodieProperties(getHoodiePropertiesFilePath(table))
+                      .thenCompose(
+                          properties ->
+                              onehouseApiClient.initializeTableMetricsCheckpoint(
+                                  InitializeTableMetricsCheckpointRequest.builder()
+                                      .tableId(tableId)
+                                      .tableName(properties.getTableName())
+                                      .tableType(properties.getTableType())
+                                      .tableBasePath(
+                                          table.getRelativeTablePath()) // sending relative instead
+                                      // of
+                                      // absolute path to avoid sending sensitive data
+                                      .databaseName(table.getDatabaseName())
+                                      .lakeName(table.getLakeName())
+                                      .build()))
+                      .thenCompose(
+                          initializeTableMetricsCheckpointResponse -> {
+                            if (!initializeTableMetricsCheckpointResponse.isFailure()) {
+                              return uploadNewInstantsSinceCheckpoint(
+                                  tableId, table, INITIAL_ARCHIVED_TIMELINE_CHECKPOINT);
+                            }
+                            log.error(
+                                "Failed to initialise table for processing, Exception: {} , Table: {}. skipping table",
+                                initializeTableMetricsCheckpointResponse.getCause(),
+                                table);
+                            // skip uploading instants for this table in the current run
+                            return null;
+                          })
+                      .exceptionally(
+                          throwable -> {
+                            log.error(
+                                "error processing table: {}",
+                                table.getAbsoluteTableUri(),
+                                throwable);
+                            return null;
+                          });
+                }
               }
               try {
                 // process from previous checkpoint

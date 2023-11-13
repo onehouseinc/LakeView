@@ -12,8 +12,6 @@ import com.onehouse.metadata_extractor.models.Table;
 import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -149,10 +147,14 @@ public class TableDiscoveryService {
   }
 
   private String getRelativeTablePathFromUrl(String baseStorageUrl, String tableAbsoluteUrl) {
-    Path base = Paths.get(storageUtils.getPathFromUrl(baseStorageUrl));
-    Path full = Paths.get(storageUtils.getPathFromUrl(tableAbsoluteUrl));
-    Path relativePath = base.relativize(full);
-    return relativePath.toString();
+    String baseStorageUrlWithoutTrailingSlash =
+        baseStorageUrl.endsWith("/")
+            ? baseStorageUrl.substring(0, baseStorageUrl.length() - 1)
+            : baseStorageUrl;
+    String prefixToRemove =
+        baseStorageUrlWithoutTrailingSlash.substring(
+            0, baseStorageUrlWithoutTrailingSlash.lastIndexOf("/"));
+    return tableAbsoluteUrl.substring(prefixToRemove.length());
   }
 
   private boolean isExcluded(String filePath) {

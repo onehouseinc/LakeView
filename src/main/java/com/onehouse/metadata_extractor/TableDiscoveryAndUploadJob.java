@@ -6,6 +6,8 @@ import static com.onehouse.constants.MetadataExtractorConstants.TABLE_METADATA_U
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.metadata_extractor.models.Table;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -13,8 +15,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Slf4j
 public class TableDiscoveryAndUploadJob {
@@ -22,8 +22,12 @@ public class TableDiscoveryAndUploadJob {
   private final TableMetadataUploaderService tableMetadataUploaderService;
   private final ScheduledExecutorService scheduler;
   private final Object lock = new Object();
-  private static final Logger LOGGER = LoggerFactory.getLogger(TableDiscoveryAndUploadJob.class);
+  // process table metadata will be called every 30 seconds,
+  // but metadata will be uploaded only if TABLE_METADATA_UPLOAD_INTERVAL_MINUTES amount of time has
+  // passed since last run
+  private static final int PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS = 30;
   private Set<Table> tablesToProcess;
+  private Instant previousTableMetadataUploadRunStartTime = Instant.EPOCH;
 
   @Inject
   public TableDiscoveryAndUploadJob(
@@ -45,7 +49,7 @@ public class TableDiscoveryAndUploadJob {
 
     // Schedule table processing
     scheduler.scheduleWithFixedDelay(
-        this::processTables, 0, TABLE_METADATA_UPLOAD_INTERVAL_MINUTES, TimeUnit.MINUTES);
+        this::processTables, 0, PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS, TimeUnit.SECONDS);
   }
 
   /*
@@ -72,27 +76,33 @@ public class TableDiscoveryAndUploadJob {
             })
         .exceptionally(
             ex -> {
-              LOGGER.error("Error discovering tables: ", ex);
+              log.error("Error discovering tables: ", ex);
               return null;
             });
   }
 
   private void processTables() {
     log.debug("Uploading table metadata for discovered tables");
-    Set<Table> tables = null;
-    synchronized (lock) {
-      if (tablesToProcess != null) {
-        tables = new HashSet<>(tablesToProcess);
+    Instant tableMetadataUploadRunStartTime = Instant.now();
+    if (Duration.between(previousTableMetadataUploadRunStartTime, tableMetadataUploadRunStartTime)
+            .toMinutes()
+        >= TABLE_METADATA_UPLOAD_INTERVAL_MINUTES) {
+      Set<Table> tables = null;
+      synchronized (lock) {
+        if (tablesToProcess != null) {
+          tables = new HashSet<>(tablesToProcess);
+        }
       }
-    }
-    if (tables != null && !tables.isEmpty()) {
-      tableMetadataUploaderService
-          .uploadInstantsInTables(tables)
-          .exceptionally(
-              ex -> {
-                LOGGER.error("Error uploading instants in tables: ", ex);
-                return null;
-              });
+      if (tables != null && !tables.isEmpty()) {
+        tableMetadataUploaderService
+            .uploadInstantsInTables(tables)
+            .exceptionally(
+                ex -> {
+                  log.error("Error uploading instants in tables: ", ex);
+                  return null;
+                });
+        previousTableMetadataUploadRunStartTime = tableMetadataUploadRunStartTime;
+      }
     }
   }
 
@@ -103,5 +113,10 @@ public class TableDiscoveryAndUploadJob {
   @VisibleForTesting
   ScheduledExecutorService getScheduler() {
     return Executors.newScheduledThreadPool(2);
+  }
+
+  @VisibleForTesting
+  int getProcessTableMetadataSyncDurationSeconds() {
+    return PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS;
   }
 }
