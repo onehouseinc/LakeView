@@ -217,7 +217,8 @@ public class TimelineCommitInstantsUploader {
               if (generateCommitMetadataUploadUrlResponse.isFailure()) {
                 throw new RuntimeException(
                     String.format(
-                        "failed to generate presigned urls: %s",
+                        "failed to generate presigned urls: status_code: %d exception: %s",
+                        generateCommitMetadataUploadUrlResponse.getStatusCode(),
                         generateCommitMetadataUploadUrlResponse.getCause()));
               }
 
@@ -276,8 +277,10 @@ public class TimelineCommitInstantsUploader {
               upsertTableMetricsCheckpointResponse -> {
                 if (upsertTableMetricsCheckpointResponse.isFailure()) {
                   throw new RuntimeException(
-                      "failed to update PreviousCheckpoint: "
-                          + upsertTableMetricsCheckpointResponse.getCause());
+                      String.format(
+                          "failed to update checkpoint: status_code: %d, exception: %s",
+                          upsertTableMetricsCheckpointResponse.getStatusCode(),
+                          upsertTableMetricsCheckpointResponse.getCause()));
                 }
                 return updatedCheckpoint;
               });

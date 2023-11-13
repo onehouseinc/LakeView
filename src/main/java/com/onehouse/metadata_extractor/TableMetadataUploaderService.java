@@ -73,7 +73,8 @@ public class TableMetadataUploaderService {
               if (getTableMetricsCheckpointResponse.isFailure()) {
                 if (getTableMetricsCheckpointResponse.getStatusCode() != 404) {
                   log.error(
-                      "Error encountered when fetching checkpoint, skipping table processing. {}",
+                      "Error encountered when fetching checkpoint, skipping table processing.status code: {} message {}",
+                      getTableMetricsCheckpointResponse.getStatusCode(),
                       getTableMetricsCheckpointResponse.getCause());
                   return CompletableFuture.completedFuture(false);
                 } else {
@@ -102,7 +103,8 @@ public class TableMetadataUploaderService {
                                   tableId, table, INITIAL_ARCHIVED_TIMELINE_CHECKPOINT);
                             }
                             log.error(
-                                "Failed to initialise table for processing, Exception: {} , Table: {}. skipping table",
+                                "Failed to initialise table for processing, Status code: {} Exception: {} , Table: {}. skipping table",
+                                initializeTableMetricsCheckpointResponse.getStatusCode(),
                                 initializeTableMetricsCheckpointResponse.getCause(),
                                 table);
                             // skip uploading instants for this table in the current run
