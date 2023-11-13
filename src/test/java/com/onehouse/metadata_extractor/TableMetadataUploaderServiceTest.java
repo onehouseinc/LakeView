@@ -206,6 +206,23 @@ class TableMetadataUploaderServiceTest {
             TABLE_ID, TABLE, expectedCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
 
+  @Test
+  void testUploadMetadataWhenGetCheckpointFails() {
+    GetTableMetricsCheckpointResponse mockedResponse =
+        GetTableMetricsCheckpointResponse.builder().build();
+    mockedResponse.setError(500, ""); // any non 404 error
+
+    when(onehouseApiClient.getTableMetricsCheckpoint(TABLE_ID.toString()))
+        .thenReturn(CompletableFuture.completedFuture(mockedResponse));
+
+    tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join();
+
+    verify(onehouseApiClient, times(1))
+        .getTableMetricsCheckpoint(
+            TABLE_ID.toString()); // placeholder to ensure that onehouseApiClient is interacted with
+    // just once
+  }
+
   private Checkpoint generateCheckpointObj(
       int batchId,
       Instant checkpointTimestamp,
