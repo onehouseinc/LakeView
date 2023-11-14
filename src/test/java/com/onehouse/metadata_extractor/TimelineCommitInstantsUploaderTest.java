@@ -1,8 +1,8 @@
 package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
-import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_ACTIVE_TIMELINE_CHECKPOINT;
-import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_ARCHIVED_TIMELINE_CHECKPOINT;
+import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -133,13 +133,14 @@ class TimelineCommitInstantsUploaderTest {
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
 
     // uploading instants in archived timeline for the first time
-    timelineCommitInstantsUploaderSpy
-        .uploadInstantsInTimelineSinceCheckpoint(
-            TABLE_ID,
-            TABLE,
-            INITIAL_ARCHIVED_TIMELINE_CHECKPOINT,
-            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
-        .join();
+    Checkpoint response =
+        timelineCommitInstantsUploaderSpy
+            .uploadInstantsInTimelineSinceCheckpoint(
+                TABLE_ID,
+                TABLE,
+                INITIAL_CHECKPOINT,
+                CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+            .join();
 
     verify(asyncStorageClient, times(2)).fetchObjectsByPage(anyString(), anyString(), any());
     verifyFilesUploaded(
@@ -158,10 +159,11 @@ class TimelineCommitInstantsUploaderTest {
         List.of("archived_instant_3"),
         checkpoint3,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+    assertEquals(checkpoint3, response);
   }
 
   @Test
-  void testUploadInstantsInActiveTimeline() {
+  void testUploadInstantsInActiveTimelineArchivedTimelineNotPresent() {
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
         spy(timelineCommitInstantsUploader);
     Instant currentTime = Instant.now();
@@ -212,14 +214,12 @@ class TimelineCommitInstantsUploaderTest {
     stubUploadInstantsCalls(
         List.of("active_instant_3"), checkpoint4, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
 
-    // uploading instants in archived timeline for the first time
-    timelineCommitInstantsUploaderSpy
-        .uploadInstantsInTimelineSinceCheckpoint(
-            TABLE_ID,
-            TABLE,
-            INITIAL_ACTIVE_TIMELINE_CHECKPOINT,
-            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
-        .join();
+    // uploading instants in archived timeline for the first time after processing archived timeline
+    Checkpoint response =
+        timelineCommitInstantsUploaderSpy
+            .uploadInstantsInTimelineSinceCheckpoint(
+                TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+            .join();
 
     verify(asyncStorageClient, times(2)).fetchObjectsByPage(anyString(), anyString(), any());
     verifyFilesUploaded(
@@ -232,6 +232,79 @@ class TimelineCommitInstantsUploaderTest {
         List.of("active_instant_2"), checkpoint3, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     verifyFilesUploaded(
         List.of("active_instant_3"), checkpoint4, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    assertEquals(checkpoint4, response);
+  }
+
+  @Test
+  void testUploadInstantsInActiveTimelineArchivedTimelinePresent() {
+    TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
+        spy(timelineCommitInstantsUploader);
+    Instant currentTime = Instant.now();
+
+    doReturn(1)
+        .when(timelineCommitInstantsUploaderSpy)
+        .getUploadBatchSize(); // 1 file will be processed at a time
+    // Page 1: returns 2 files
+    mockListPage(
+        TABLE.getRelativeTablePath() + "/.hoodie/",
+        null,
+        CONTINUATION_TOKEN_PREFIX + "1",
+        List.of(
+            generateFileObj("active_instant_1", false),
+            generateFileObj("active_instant_2", false)));
+    // page 2: returns 2 files (last page)
+    mockListPage(
+        TABLE.getRelativeTablePath() + "/.hoodie/",
+        CONTINUATION_TOKEN_PREFIX + "1",
+        null,
+        List.of(
+            generateFileObj(HOODIE_PROPERTIES_FILE, false), // will be listed
+            generateFileObj("active_instant_3", false, currentTime)));
+
+    Checkpoint previousCheckpoint =
+        generateCheckpointObj(
+            2,
+            Instant.EPOCH, // if archived timeline was processed before this, timestamp is reset to
+            // epoch
+            true,
+            null,
+            "archived_instant_3");
+
+    // hoodie.properties file will not be uploaded as it has already been uploaded during archived
+    // timeline processing
+    Checkpoint checkpoint1 =
+        generateCheckpointObj(3, Instant.EPOCH, true, null, "active_instant_1");
+    Checkpoint checkpoint2 =
+        generateCheckpointObj(
+            4, Instant.EPOCH, true, CONTINUATION_TOKEN_PREFIX + "1", "active_instant_2");
+    Checkpoint checkpoint3 =
+        generateCheckpointObj(
+            5,
+            currentTime,
+            true,
+            null,
+            "active_instant_3"); // testing to makesure checkpoint timestamp has updated
+
+    stubUploadInstantsCalls(
+        List.of("active_instant_1"), checkpoint1, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    stubUploadInstantsCalls(
+        List.of("active_instant_2"), checkpoint2, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    stubUploadInstantsCalls(
+        List.of("active_instant_3"), checkpoint3, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+
+    // uploading instants in archived timeline for the first time after processing archived timeline
+    timelineCommitInstantsUploaderSpy
+        .uploadInstantsInTimelineSinceCheckpoint(
+            TABLE_ID, TABLE, previousCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+        .join();
+
+    verify(asyncStorageClient, times(2)).fetchObjectsByPage(anyString(), anyString(), any());
+    verifyFilesUploaded(
+        List.of("active_instant_1"), checkpoint1, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    verifyFilesUploaded(
+        List.of("active_instant_2"), checkpoint2, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    verifyFilesUploaded(
+        List.of("active_instant_3"), checkpoint3, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
 
   @Test
@@ -334,6 +407,26 @@ class TimelineCommitInstantsUploaderTest {
   }
 
   @Test
+  void testUploadInstantsInArchivedTimelineWhenNoInstantsPresent() {
+    // no files present in archived timeline
+    mockListPage(
+        TABLE.getRelativeTablePath() + "/.hoodie/" + ARCHIVED_FOLDER_PREFIX, null, null, List.of());
+
+    // uploading instants in archived timeline for the first time
+    Checkpoint checkpoint =
+        timelineCommitInstantsUploader
+            .uploadInstantsInTimelineSinceCheckpoint(
+                TABLE_ID,
+                TABLE,
+                INITIAL_CHECKPOINT,
+                CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+            .join();
+
+    verify(asyncStorageClient, times(1)).fetchObjectsByPage(anyString(), anyString(), any());
+    assertEquals(INITIAL_CHECKPOINT, checkpoint);
+  }
+
+  @Test
   void testUploadInstantFailureWhenGeneratingUploadUrl() {
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
         spy(timelineCommitInstantsUploader);
@@ -365,10 +458,7 @@ class TimelineCommitInstantsUploaderTest {
     // uploading instants in archived timeline for the first time
     timelineCommitInstantsUploaderSpy
         .uploadInstantsInTimelineSinceCheckpoint(
-            TABLE_ID,
-            TABLE,
-            INITIAL_ARCHIVED_TIMELINE_CHECKPOINT,
-            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+            TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
         .join();
 
     // generate commit metadata api call will fail and no more batches will be processed
@@ -430,10 +520,7 @@ class TimelineCommitInstantsUploaderTest {
     // uploading instants in archived timeline for the first time
     timelineCommitInstantsUploaderSpy
         .uploadInstantsInTimelineSinceCheckpoint(
-            TABLE_ID,
-            TABLE,
-            INITIAL_ARCHIVED_TIMELINE_CHECKPOINT,
-            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+            TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
         .join();
 
     // update checkpoint api call will fail and no more batches will be processed

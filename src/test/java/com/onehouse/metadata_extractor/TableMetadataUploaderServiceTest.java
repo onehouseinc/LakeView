@@ -2,8 +2,7 @@ package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
-import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_ACTIVE_TIMELINE_CHECKPOINT;
-import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_ARCHIVED_TIMELINE_CHECKPOINT;
+import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,6 +56,12 @@ class TableMetadataUploaderServiceTest {
           .tableName("tableName")
           .tableType(TableType.COPY_ON_WRITE)
           .build();
+  private final Checkpoint FINAL_ARCHIVED_TIMELINE_CHECKPOINT =
+      generateCheckpointObj(3, Instant.now(), true, ".commits_.archive.48_1-0-1", "token");
+  private final Checkpoint FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS =
+      generateCheckpointObj(3, Instant.EPOCH, true, ".commits_.archive.48_1-0-1", null);
+  private final Checkpoint FINAL_ACTIVE_TIMELINE_CHECKPOINT =
+      generateCheckpointObj(6, Instant.now(), true, "active_instant", "token");
 
   @BeforeEach
   void setup() {
@@ -94,17 +99,14 @@ class TableMetadataUploaderServiceTest {
                 .build()))
         .thenReturn(CompletableFuture.completedFuture(initializeTableMetricsCheckpointResponse));
     when(s3TimelineCommitInstantsUploader.uploadInstantsInTimelineSinceCheckpoint(
-            TABLE_ID,
-            TABLE,
-            INITIAL_ARCHIVED_TIMELINE_CHECKPOINT,
-            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED))
-        .thenReturn(CompletableFuture.completedFuture(true));
+            TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED))
+        .thenReturn(CompletableFuture.completedFuture(FINAL_ARCHIVED_TIMELINE_CHECKPOINT));
     when(s3TimelineCommitInstantsUploader.uploadInstantsInTimelineSinceCheckpoint(
             TABLE_ID,
             TABLE,
-            INITIAL_ACTIVE_TIMELINE_CHECKPOINT,
+            FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS,
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
-        .thenReturn(CompletableFuture.completedFuture(true));
+        .thenReturn(CompletableFuture.completedFuture(FINAL_ACTIVE_TIMELINE_CHECKPOINT));
 
     tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join();
 
@@ -120,15 +122,12 @@ class TableMetadataUploaderServiceTest {
                 .build());
     verify(s3TimelineCommitInstantsUploader, times(1))
         .uploadInstantsInTimelineSinceCheckpoint(
-            TABLE_ID,
-            TABLE,
-            INITIAL_ARCHIVED_TIMELINE_CHECKPOINT,
-            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+            TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     verify(s3TimelineCommitInstantsUploader, times(1))
         .uploadInstantsInTimelineSinceCheckpoint(
             TABLE_ID,
             TABLE,
-            INITIAL_ACTIVE_TIMELINE_CHECKPOINT,
+            FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS,
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
 
@@ -137,7 +136,7 @@ class TableMetadataUploaderServiceTest {
   void testUploadMetadataFromPreviousCheckpointArchivedNotProcessed() {
     // few commits from archived timeline have been previously processed
     Checkpoint currentCheckpoint =
-        generateCheckpointObj(1, Instant.EPOCH, false, "archived_instant1");
+        generateCheckpointObj(1, Instant.EPOCH, false, "archived_instant1", "token");
     String currentCheckpointJson = mapper.writeValueAsString(currentCheckpoint);
 
     when(onehouseApiClient.getTableMetricsCheckpoint(TABLE_ID.toString()))
@@ -148,13 +147,13 @@ class TableMetadataUploaderServiceTest {
                     .build()));
     when(s3TimelineCommitInstantsUploader.uploadInstantsInTimelineSinceCheckpoint(
             TABLE_ID, TABLE, currentCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED))
-        .thenReturn(CompletableFuture.completedFuture(true));
+        .thenReturn(CompletableFuture.completedFuture(FINAL_ARCHIVED_TIMELINE_CHECKPOINT));
     when(s3TimelineCommitInstantsUploader.uploadInstantsInTimelineSinceCheckpoint(
             TABLE_ID,
             TABLE,
-            INITIAL_ACTIVE_TIMELINE_CHECKPOINT,
+            FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS,
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
-        .thenReturn(CompletableFuture.completedFuture(true));
+        .thenReturn(CompletableFuture.completedFuture(FINAL_ACTIVE_TIMELINE_CHECKPOINT));
 
     tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join();
 
@@ -165,7 +164,7 @@ class TableMetadataUploaderServiceTest {
         .uploadInstantsInTimelineSinceCheckpoint(
             TABLE_ID,
             TABLE,
-            INITIAL_ACTIVE_TIMELINE_CHECKPOINT,
+            FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS,
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
 
@@ -181,9 +180,15 @@ class TableMetadataUploaderServiceTest {
   @MethodSource("provideLastUploadedFileAndExpectedCheckpoint")
   @SneakyThrows
   void testUploadMetadataFromPreviousCheckpointArchivedProcessedActiveTimelineProcessingStarted(
-      String lastUploadedFile, boolean useInitialCheckpoint) {
+      String lastUploadedFile, boolean shouldResetCheckpoint) {
     // archived timeline has already been processed
-    Checkpoint currentCheckpoint = generateCheckpointObj(1, Instant.EPOCH, true, lastUploadedFile);
+    Checkpoint currentCheckpoint =
+        generateCheckpointObj(1, Instant.now(), true, lastUploadedFile, "token");
+    Checkpoint currentCheckpointWithResetFields =
+        currentCheckpoint.toBuilder()
+            .checkpointTimestamp(Instant.EPOCH)
+            .continuationToken(null)
+            .build();
     String currentCheckpointJson = mapper.writeValueAsString(currentCheckpoint);
 
     when(onehouseApiClient.getTableMetricsCheckpoint(TABLE_ID.toString()))
@@ -193,10 +198,10 @@ class TableMetadataUploaderServiceTest {
                     .checkpoint(currentCheckpointJson)
                     .build()));
     Checkpoint expectedCheckpoint =
-        useInitialCheckpoint ? INITIAL_ACTIVE_TIMELINE_CHECKPOINT : currentCheckpoint;
+        shouldResetCheckpoint ? currentCheckpointWithResetFields : currentCheckpoint;
     when(s3TimelineCommitInstantsUploader.uploadInstantsInTimelineSinceCheckpoint(
             TABLE_ID, TABLE, expectedCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
-        .thenReturn(CompletableFuture.completedFuture(true));
+        .thenReturn(CompletableFuture.completedFuture(FINAL_ACTIVE_TIMELINE_CHECKPOINT));
 
     tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join();
 
@@ -227,11 +232,13 @@ class TableMetadataUploaderServiceTest {
       int batchId,
       Instant checkpointTimestamp,
       boolean archivedCommitsProcessed,
-      String lastUploadedFile) {
+      String lastUploadedFile,
+      String continuationToken) {
     return Checkpoint.builder()
         .batchId(batchId)
         .checkpointTimestamp(checkpointTimestamp)
         .archivedCommitsProcessed(archivedCommitsProcessed)
+        .continuationToken(continuationToken)
         .lastUploadedFile(lastUploadedFile)
         .build();
   }

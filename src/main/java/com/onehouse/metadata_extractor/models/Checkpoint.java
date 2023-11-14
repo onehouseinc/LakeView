@@ -7,7 +7,7 @@ import lombok.NonNull;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
 
-@Builder
+@Builder(toBuilder = true)
 @Value
 @Jacksonized
 public class Checkpoint implements Serializable {
