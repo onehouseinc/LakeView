@@ -92,7 +92,7 @@ class TimelineCommitInstantsUploaderTest {
         List.of(
             generateFileObj("archived_instant_1", false),
             generateFileObj("archived_instant_2", false)));
-    // page 3: returns 2 files (last page)
+    // page 2: returns 2 files (last page)
     mockListPage(
         TABLE.getRelativeTablePath() + "/.hoodie/" + ARCHIVED_FOLDER_PREFIX,
         CONTINUATION_TOKEN_PREFIX + "1",
@@ -177,7 +177,7 @@ class TimelineCommitInstantsUploaderTest {
         List.of(
             generateFileObj("active_instant_1", false),
             generateFileObj("active_instant_2", false)));
-    // page 3: returns 2 files (last page)
+    // page 2: returns 2 files (last page)
     mockListPage(
         TABLE.getRelativeTablePath() + "/.hoodie/",
         CONTINUATION_TOKEN_PREFIX + "1",
@@ -252,7 +252,7 @@ class TimelineCommitInstantsUploaderTest {
         List.of(
             generateFileObj("active_instant_1", false, currentTime.minus(15, ChronoUnit.SECONDS)),
             generateFileObj("active_instant_2", false, currentTime.minus(10, ChronoUnit.SECONDS))));
-    // page 3: returns 2 files (last page)
+    // page 2: returns 2 files (last page)
     mockListPage(
         TABLE.getRelativeTablePath() + "/.hoodie/",
         CONTINUATION_TOKEN_PREFIX + "1",
@@ -293,7 +293,7 @@ class TimelineCommitInstantsUploaderTest {
         .when(timelineCommitInstantsUploaderSpy)
         .getUploadBatchSize(); // 1 file will be processed at a time
     // Page 1: returns 2 files (SKIPPED)
-    // page 3: returns 2 files (last page)
+    // page 2: returns 2 files (last page)
     mockListPage(
         TABLE.getRelativeTablePath() + "/.hoodie/",
         CONTINUATION_TOKEN_PREFIX + "1",
@@ -331,6 +331,116 @@ class TimelineCommitInstantsUploaderTest {
     verify(asyncStorageClient, times(1)).fetchObjectsByPage(anyString(), anyString(), any());
     verifyFilesUploaded(
         List.of("active_instant_3"), checkpoint4, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+  }
+
+  @Test
+  void testUploadInstantFailureWhenGeneratingUploadUrl() {
+    TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
+        spy(timelineCommitInstantsUploader);
+
+    doReturn(1)
+        .when(timelineCommitInstantsUploaderSpy)
+        .getUploadBatchSize(); // 1 file will be processed at a time
+    mockListPage(
+        TABLE.getRelativeTablePath() + "/.hoodie/" + ARCHIVED_FOLDER_PREFIX,
+        null,
+        null,
+        List.of(
+            generateFileObj("archived_instant_1", false),
+            generateFileObj("archived_instant_2", false)));
+
+    List<String> filesUploadedWithUpdatedName = List.of("hoodie.properties");
+    GenerateCommitMetadataUploadUrlRequest expectedRequest =
+        GenerateCommitMetadataUploadUrlRequest.builder()
+            .tableId(TABLE_ID.toString())
+            .commitInstants(filesUploadedWithUpdatedName)
+            .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+            .build();
+    GenerateCommitMetadataUploadUrlResponse failureResponse =
+        GenerateCommitMetadataUploadUrlResponse.builder().build();
+    failureResponse.setError(500, "api error");
+    when(onehouseApiClient.generateCommitMetadataUploadUrl(expectedRequest))
+        .thenReturn(CompletableFuture.completedFuture(failureResponse));
+
+    // uploading instants in archived timeline for the first time
+    timelineCommitInstantsUploaderSpy
+        .uploadInstantsInTimelineSinceCheckpoint(
+            TABLE_ID,
+            TABLE,
+            INITIAL_ARCHIVED_TIMELINE_CHECKPOINT,
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+        .join();
+
+    // generate commit metadata api call will fail and no more batches will be processed
+    verify(asyncStorageClient, times(1)).fetchObjectsByPage(anyString(), anyString(), any());
+    verify(onehouseApiClient, times(1)).generateCommitMetadataUploadUrl(expectedRequest);
+    verify(presignedUrlFileUploader, times(0)).uploadFileToPresignedUrl(any(), any());
+  }
+
+  @Test
+  @SneakyThrows
+  void testUploadInstantFailureWhenUpdatingCheckpoint() {
+    TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
+        spy(timelineCommitInstantsUploader);
+
+    doReturn(1)
+        .when(timelineCommitInstantsUploaderSpy)
+        .getUploadBatchSize(); // 1 file will be processed at a time
+    mockListPage(
+        TABLE.getRelativeTablePath() + "/.hoodie/" + ARCHIVED_FOLDER_PREFIX,
+        null,
+        null,
+        List.of(
+            generateFileObj("archived_instant_1", false),
+            generateFileObj("archived_instant_2", false)));
+
+    Checkpoint checkpoint0 =
+        generateCheckpointObj(1, Instant.EPOCH, false, null, HOODIE_PROPERTIES_FILE);
+
+    List<String> filesUploadedWithUpdatedName = List.of("hoodie.properties");
+    GenerateCommitMetadataUploadUrlRequest expectedRequest =
+        GenerateCommitMetadataUploadUrlRequest.builder()
+            .tableId(TABLE_ID.toString())
+            .commitInstants(filesUploadedWithUpdatedName)
+            .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+            .build();
+    UpsertTableMetricsCheckpointResponse failureResponse =
+        UpsertTableMetricsCheckpointResponse.builder().build();
+    failureResponse.setError(500, "api error");
+    when(onehouseApiClient.generateCommitMetadataUploadUrl(expectedRequest))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                GenerateCommitMetadataUploadUrlResponse.builder()
+                    .uploadUrls(
+                        filesUploadedWithUpdatedName.stream()
+                            .map(file -> PRESIGNED_URL_PREFIX + file)
+                            .collect(Collectors.toList()))
+                    .build()));
+    when(presignedUrlFileUploader.uploadFileToPresignedUrl(any(), any()))
+        .thenReturn(CompletableFuture.completedFuture(null));
+
+    when(onehouseApiClient.upsertTableMetricsCheckpoint(
+            UpsertTableMetricsCheckpointRequest.builder()
+                .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+                .tableId(TABLE_ID.toString())
+                .checkpoint(mapper.writeValueAsString(checkpoint0))
+                .filesUploaded(filesUploadedWithUpdatedName)
+                .build()))
+        .thenReturn(CompletableFuture.completedFuture(failureResponse));
+    // uploading instants in archived timeline for the first time
+    timelineCommitInstantsUploaderSpy
+        .uploadInstantsInTimelineSinceCheckpoint(
+            TABLE_ID,
+            TABLE,
+            INITIAL_ARCHIVED_TIMELINE_CHECKPOINT,
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+        .join();
+
+    // update checkpoint api call will fail and no more batches will be processed
+    verify(asyncStorageClient, times(1)).fetchObjectsByPage(anyString(), anyString(), any());
+    verify(onehouseApiClient, times(1)).generateCommitMetadataUploadUrl(expectedRequest);
+    verify(presignedUrlFileUploader, times(1)).uploadFileToPresignedUrl(any(), any());
+    verify(onehouseApiClient, times(1)).upsertTableMetricsCheckpoint(any());
   }
 
   private void mockListPage(

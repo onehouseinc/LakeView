@@ -1,7 +1,6 @@
 package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_INTERVAL_MINUTES;
-import static com.onehouse.constants.MetadataExtractorConstants.TABLE_METADATA_UPLOAD_INTERVAL_MINUTES;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -68,8 +67,8 @@ class TableDiscoveryAndUploadJobTest {
         .scheduleWithFixedDelay(
             runnableCaptor.capture(),
             eq(0L),
-            eq((long) TABLE_METADATA_UPLOAD_INTERVAL_MINUTES),
-            eq(TimeUnit.MINUTES));
+            eq((long) job.getProcessTableMetadataSyncDurationSeconds()),
+            eq(TimeUnit.SECONDS));
 
     Runnable discoveryTask = runnableCaptor.getAllValues().get(0);
     Runnable uploadTask = runnableCaptor.getAllValues().get(1);
