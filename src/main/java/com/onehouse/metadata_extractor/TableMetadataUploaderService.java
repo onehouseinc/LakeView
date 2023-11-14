@@ -2,8 +2,7 @@ package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
-import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_ACTIVE_TIMELINE_CHECKPOINT;
-import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_ARCHIVED_TIMELINE_CHECKPOINT;
+import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,8 +13,10 @@ import com.onehouse.api.models.request.CommitTimelineType;
 import com.onehouse.api.models.request.InitializeTableMetricsCheckpointRequest;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -100,7 +101,7 @@ public class TableMetadataUploaderService {
                           initializeTableMetricsCheckpointResponse -> {
                             if (!initializeTableMetricsCheckpointResponse.isFailure()) {
                               return uploadNewInstantsSinceCheckpoint(
-                                  tableId, table, INITIAL_ARCHIVED_TIMELINE_CHECKPOINT);
+                                  tableId, table, INITIAL_CHECKPOINT);
                             }
                             log.error(
                                 "Failed to initialise table for processing, Status code: {} Exception: {} , Table: {}. skipping table",
@@ -128,7 +129,7 @@ public class TableMetadataUploaderService {
                     table,
                     StringUtils.isNotBlank(checkpointString)
                         ? mapper.readValue(checkpointString, Checkpoint.class)
-                        : INITIAL_ARCHIVED_TIMELINE_CHECKPOINT);
+                        : INITIAL_CHECKPOINT);
               } catch (JsonProcessingException e) {
                 throw new RuntimeException("Error deserializing checkpoint value", e);
               }
@@ -147,35 +148,42 @@ public class TableMetadataUploaderService {
           .uploadInstantsInTimelineSinceCheckpoint(
               tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
           .thenComposeAsync(
-              uploadInstantsInArchivedTimelineSucceeded -> {
-                if (!Boolean.TRUE.equals(uploadInstantsInArchivedTimelineSucceeded)) {
+              archivedTimelineCheckpoint -> {
+                if (archivedTimelineCheckpoint == null) {
                   // do not upload instants in active timeline if there was failure
                   log.warn(
                       "Skipping uploading instants in active timeline due to failures in uploading archived timeline instants for table {}",
                       table.getAbsoluteTableUri());
                   return CompletableFuture.completedFuture(false);
                 }
-                // batch_id starts afresh as we are now processing the active-timeline
-                return timelineCommitInstantsUploader.uploadInstantsInTimelineSinceCheckpoint(
-                    tableId,
-                    table,
-                    INITIAL_ACTIVE_TIMELINE_CHECKPOINT,
-                    CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+                return timelineCommitInstantsUploader
+                    .uploadInstantsInTimelineSinceCheckpoint(
+                        tableId,
+                        table,
+                        resetCheckpointTimestampAndContinuationToken(archivedTimelineCheckpoint),
+                        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+                    .thenApply(Objects::nonNull);
               },
               executorService);
     }
 
     /*
-     * if the last processed file in the retrieved checkpoint is an archived-commit, then we reset the checkpoint
+     * if the last processed file in the retrieved checkpoint is an archived-commit,
+     * then we reset the checkpoint timestamp and continuation token
      * else we use the retrieved checkpoint.
-     * this allows us to maintain separate batch_id's for the commits in the two timelines
+     * this allows us to continue from the previous batch id
      */
     Checkpoint activeTimelineCheckpoint =
         ARCHIVED_TIMELINE_COMMIT_INSTANT_PATTERN.matcher(checkpoint.getLastUploadedFile()).matches()
-            ? INITIAL_ACTIVE_TIMELINE_CHECKPOINT
+            ? resetCheckpointTimestampAndContinuationToken(checkpoint)
             : checkpoint;
-    return timelineCommitInstantsUploader.uploadInstantsInTimelineSinceCheckpoint(
-        tableId, table, activeTimelineCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    return timelineCommitInstantsUploader
+        .uploadInstantsInTimelineSinceCheckpoint(
+            tableId,
+            table,
+            activeTimelineCheckpoint,
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+        .thenApply(Objects::nonNull);
   }
 
   private String getHoodiePropertiesFilePath(Table table) {
@@ -189,5 +197,12 @@ public class TableMetadataUploaderService {
 
   private static UUID getTableIdFromAbsolutePathUrl(String tableAbsolutePathUrl) {
     return UUID.nameUUIDFromBytes(tableAbsolutePathUrl.getBytes());
+  }
+
+  private static Checkpoint resetCheckpointTimestampAndContinuationToken(Checkpoint checkpoint) {
+    return checkpoint.toBuilder()
+        .continuationToken(null)
+        .checkpointTimestamp(Instant.EPOCH)
+        .build();
   }
 }

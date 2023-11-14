@@ -63,7 +63,7 @@ public class TimelineCommitInstantsUploader {
     mapper.registerModule(new JavaTimeModule());
   }
 
-  public CompletableFuture<Boolean> uploadInstantsInTimelineSinceCheckpoint(
+  public CompletableFuture<Checkpoint> uploadInstantsInTimelineSinceCheckpoint(
       UUID tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
     String bucketName = storageUtils.getBucketNameFromUri(table.getAbsoluteTableUri());
     String prefix =
@@ -75,7 +75,7 @@ public class TimelineCommitInstantsUploader {
         tableId, table, bucketName, prefix, checkpoint, commitTimelineType, null);
   }
 
-  private CompletableFuture<Boolean> uploadInstantsInTimelineInBatches(
+  private CompletableFuture<Checkpoint> uploadInstantsInTimelineInBatches(
       UUID tableId,
       Table table,
       String bucketName,
@@ -161,11 +161,10 @@ public class TimelineCommitInstantsUploader {
 
                 return sequentialBatchProcessingFuture.thenComposeAsync(
                     updatedCheckpoint -> {
-                      if (updatedCheckpoint == null) {
-                        return CompletableFuture.completedFuture(false);
-                      } else if (StringUtils.isBlank(nextContinuationToken)) {
-                        // Reached last page and all files have been uploaded
-                        return CompletableFuture.completedFuture(true);
+                      if (updatedCheckpoint == null || StringUtils.isBlank(nextContinuationToken)) {
+                        // there was an error when uploading batch or we reached last page and all
+                        // files have been uploaded
+                        return CompletableFuture.completedFuture(updatedCheckpoint);
                       }
                       return uploadInstantsInTimelineInBatches(
                           tableId,
@@ -180,7 +179,8 @@ public class TimelineCommitInstantsUploader {
               }
               // Case 2: Reached last page and all files have been uploaded
               else if (nextContinuationToken == null) {
-                return CompletableFuture.completedFuture(true);
+                // we return the original checkpoint, as no files were uploaded
+                return CompletableFuture.completedFuture(checkpoint);
               }
               // Case 3: currently retrieved page has already been processed in a previous run,
               // processing next page
@@ -196,7 +196,7 @@ public class TimelineCommitInstantsUploader {
               }
             },
             executorService)
-        .exceptionally(throwable -> false);
+        .exceptionally(throwable -> null);
   }
 
   private CompletableFuture<Void> uploadBatch(
@@ -295,6 +295,9 @@ public class TimelineCommitInstantsUploader {
    */
   private List<File> getFilesToUploadBasedOnPreviousCheckpoint(
       List<File> filesList, Checkpoint checkpoint) {
+    if (filesList.isEmpty()) {
+      return filesList;
+    }
     List<File> filteredAndSortedFiles =
         filesList.stream()
             .filter(file -> !file.isDirectory()) // filter out directories
