@@ -48,7 +48,7 @@ public class TableDiscoveryAndUploadJob {
         this::discoverTables, 0, TABLE_DISCOVERY_INTERVAL_MINUTES, TimeUnit.MINUTES);
 
     // Schedule table processing
-    scheduler.scheduleWithFixedDelay(
+    scheduler.scheduleAtFixedRate(
         this::processTables, 0, PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS, TimeUnit.SECONDS);
   }
 
