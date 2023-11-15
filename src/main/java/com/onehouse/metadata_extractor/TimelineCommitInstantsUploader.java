@@ -67,18 +67,20 @@ public class TimelineCommitInstantsUploader {
 
   public CompletableFuture<Checkpoint> uploadInstantsInTimelineSinceCheckpoint(
       UUID tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
-      String timelineUri = storageUtils.constructFileUri(
-              table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType));
-//    String bucketName = storageUtils.getBucketNameFromUri(table.getAbsoluteTableUri());
-//    String prefix =
-//        storageUtils.getPathFromUrl(
-//            storageUtils.constructFileUri(
-//                table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType)));
+    String timelineUri =
+        storageUtils.constructFileUri(
+            table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType));
+    //    String bucketName = storageUtils.getBucketNameFromUri(table.getAbsoluteTableUri());
+    //    String prefix =
+    //        storageUtils.getPathFromUrl(
+    //            storageUtils.constructFileUri(
+    //                table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType)));
 
-    return uploadInstantsInTimelineInBatchesListingAllInstants(tableId, table,timelineUri,checkpoint, commitTimelineType);
+    return uploadInstantsInTimelineInBatchesListingAllInstants(
+        tableId, table, timelineUri, checkpoint, commitTimelineType);
 
-//    return uploadInstantsInTimelineInBatches(
-//        tableId, table, bucketName, prefix, checkpoint, commitTimelineType, null);
+    //    return uploadInstantsInTimelineInBatches(
+    //        tableId, table, bucketName, prefix, checkpoint, commitTimelineType, null);
   }
 
   private CompletableFuture<Checkpoint> uploadInstantsInTimelineInBatchesListingAllInstants(
@@ -394,9 +396,9 @@ public class TimelineCommitInstantsUploader {
     }
 
     /*
-    * Primary sorting: Last Modified Time
-    * Secondary sorting: File name (active timeline) / numeric part of archived commit
-    */
+     * Primary sorting: Last Modified Time
+     * Secondary sorting: File name (active timeline) / numeric part of archived commit
+     */
     Comparator<File> baseComparator = Comparator.comparing(File::getLastModifiedAt);
     Comparator<File> fileComparator;
 
