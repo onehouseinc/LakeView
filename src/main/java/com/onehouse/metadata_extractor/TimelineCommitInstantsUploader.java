@@ -29,6 +29,8 @@ import java.util.OptionalInt;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nonnull;
@@ -65,16 +67,108 @@ public class TimelineCommitInstantsUploader {
 
   public CompletableFuture<Checkpoint> uploadInstantsInTimelineSinceCheckpoint(
       UUID tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
-    String bucketName = storageUtils.getBucketNameFromUri(table.getAbsoluteTableUri());
-    String prefix =
-        storageUtils.getPathFromUrl(
-            storageUtils.constructFileUri(
-                table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType)));
+      String timelineUri = storageUtils.constructFileUri(
+              table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType));
+//    String bucketName = storageUtils.getBucketNameFromUri(table.getAbsoluteTableUri());
+//    String prefix =
+//        storageUtils.getPathFromUrl(
+//            storageUtils.constructFileUri(
+//                table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType)));
 
-    return uploadInstantsInTimelineInBatches(
-        tableId, table, bucketName, prefix, checkpoint, commitTimelineType, null);
+    return uploadInstantsInTimelineInBatchesListingAllInstants(tableId, table,timelineUri,checkpoint, commitTimelineType);
+
+//    return uploadInstantsInTimelineInBatches(
+//        tableId, table, bucketName, prefix, checkpoint, commitTimelineType, null);
   }
 
+  private CompletableFuture<Checkpoint> uploadInstantsInTimelineInBatchesListingAllInstants(
+      UUID tableId,
+      Table table,
+      String timelineUri,
+      Checkpoint checkpoint,
+      CommitTimelineType commitTimelineType) {
+    return asyncStorageClient
+        .listAllFilesInDir(timelineUri)
+        .thenComposeAsync(
+            files -> {
+              List<File> filesToUpload =
+                  getFilesToUploadBasedOnPreviousCheckpoint(files, checkpoint, commitTimelineType);
+
+              // We have some files which need to be uploaded
+              if (!filesToUpload.isEmpty()) {
+                List<List<File>> batches = Lists.partition(filesToUpload, getUploadBatchSize());
+                int numBatches = batches.size();
+
+                // processing batches while maintaining the sequential order
+                CompletableFuture<Checkpoint> sequentialBatchProcessingFuture =
+                    CompletableFuture.completedFuture(checkpoint);
+                int batchIndex = 0;
+                for (List<File> batch : batches) {
+                  boolean processedAllBatchesInCurrentPage = (batchIndex >= numBatches - 1);
+                  sequentialBatchProcessingFuture =
+                      sequentialBatchProcessingFuture.thenComposeAsync(
+                          updatedCheckpoint -> {
+                            if (updatedCheckpoint == null) {
+                              // don't process any further batches as some error has occurred when
+                              // uploading previous batch
+                              return CompletableFuture.completedFuture(null);
+                            }
+
+                            File lastUploadedFile = batch.get(batch.size() - 1);
+                            return uploadBatch(
+                                    tableId,
+                                    batch,
+                                    commitTimelineType,
+                                    storageUtils.constructFileUri(
+                                        table.getAbsoluteTableUri(),
+                                        getPathSuffixForTimeline(commitTimelineType)))
+                                .thenComposeAsync(
+                                    ignored2 ->
+                                        // update checkpoint after uploading each batch for quick
+                                        // recovery in case of failures
+                                        updateCheckpointAfterProcessingBatch(
+                                            tableId,
+                                            updatedCheckpoint,
+                                            processedAllBatchesInCurrentPage,
+                                            lastUploadedFile,
+                                            batch.stream()
+                                                .map(
+                                                    file ->
+                                                        getFileNameWithPrefix(
+                                                            file, commitTimelineType))
+                                                .collect(Collectors.toList()),
+                                            commitTimelineType,
+                                            checkpoint.getContinuationToken(),
+                                            null),
+                                    executorService)
+                                .exceptionally(
+                                    throwable -> {
+                                      // will catch any failures when uploading batch / updating
+                                      // checkpoint
+                                      log.error(
+                                          "error processing batch for table: {}. Skipping processing of further batches of table in current run.",
+                                          table.getAbsoluteTableUri(),
+                                          throwable);
+                                      return null;
+                                    });
+                          },
+                          executorService);
+                  batchIndex += 1;
+                }
+
+                return sequentialBatchProcessingFuture;
+              }
+              // no files to upload
+              else {
+                // we return the original checkpoint, as no files were uploaded
+                return CompletableFuture.completedFuture(checkpoint);
+              }
+            },
+            executorService)
+        .exceptionally(throwable -> null);
+  }
+
+  @Deprecated
   private CompletableFuture<Checkpoint> uploadInstantsInTimelineInBatches(
       UUID tableId,
       Table table,
@@ -95,7 +189,7 @@ public class TimelineCommitInstantsUploader {
               String nextContinuationToken = continuationTokenAndFiles.getLeft();
               List<File> filesToUpload =
                   getFilesToUploadBasedOnPreviousCheckpoint(
-                      continuationTokenAndFiles.getRight(), checkpoint);
+                      continuationTokenAndFiles.getRight(), checkpoint, commitTimelineType);
 
               // Case 1: We have some files in current page which need to be uploaded
               if (!filesToUpload.isEmpty()) {
@@ -294,10 +388,26 @@ public class TimelineCommitInstantsUploader {
    *  filters out all instants that have been uploaded previously based on the checkpoint information
    */
   private List<File> getFilesToUploadBasedOnPreviousCheckpoint(
-      List<File> filesList, Checkpoint checkpoint) {
+      List<File> filesList, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
     if (filesList.isEmpty()) {
       return filesList;
     }
+
+    /*
+    * Primary sorting: Last Modified Time
+    * Secondary sorting: File name (active timeline) / numeric part of archived commit
+    */
+    Comparator<File> baseComparator = Comparator.comparing(File::getLastModifiedAt);
+    Comparator<File> fileComparator;
+
+    if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE.equals(commitTimelineType)) {
+      fileComparator = baseComparator.thenComparing(File::getFilename);
+    } else {
+      fileComparator =
+          baseComparator.thenComparing(
+              file -> getNumericPartFromArchivedCommit(file.getFilename()));
+    }
+
     List<File> filteredAndSortedFiles =
         filesList.stream()
             .filter(file -> !file.isDirectory()) // filter out directories
@@ -306,7 +416,7 @@ public class TimelineCommitInstantsUploader {
                 file ->
                     !file.getFilename()
                         .equals(HOODIE_PROPERTIES_FILE)) // will only be processed in batch 1
-            .sorted(Comparator.comparing(File::getLastModifiedAt).thenComparing(File::getFilename))
+            .sorted(fileComparator)
             .collect(Collectors.toList());
 
     // index of the last file which was uploaded
@@ -359,6 +469,17 @@ public class TimelineCommitInstantsUploader {
             && !HOODIE_PROPERTIES_FILE.equals(file.getFilename())
         ? archivedPrefix + file.getFilename()
         : file.getFilename();
+  }
+
+  private int getNumericPartFromArchivedCommit(String archivedCommitFileName) {
+    Pattern pattern = Pattern.compile("\\.archive\\.(\\d+)_");
+    Matcher matcher = pattern.matcher(archivedCommitFileName);
+
+    if (matcher.find()) {
+      return Integer.parseInt(matcher.group(1));
+    } else {
+      throw new IllegalArgumentException("invalid archived commit file type");
+    }
   }
 
   @VisibleForTesting

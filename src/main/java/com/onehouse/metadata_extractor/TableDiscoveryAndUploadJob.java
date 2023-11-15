@@ -78,7 +78,8 @@ public class TableDiscoveryAndUploadJob {
             ex -> {
               log.error("Error discovering tables: ", ex);
               return null;
-            });
+            })
+        .join();
   }
 
   private void processTables() {
@@ -101,7 +102,8 @@ public class TableDiscoveryAndUploadJob {
                 ex -> {
                   log.error("Error uploading instants in tables: ", ex);
                   return null;
-                });
+                })
+            .join();
         previousTableMetadataUploadRunStartTime = tableMetadataUploadRunStartTime;
       }
     }
