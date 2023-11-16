@@ -157,7 +157,7 @@ public class TableMetadataUploaderService {
                   return CompletableFuture.completedFuture(false);
                 }
                 return timelineCommitInstantsUploader
-                    .paginatedBatchUpload(
+                    .paginatedBatchUploadWithCheckpoint(
                         tableId,
                         table,
                         resetCheckpointTimestampAndContinuationToken(archivedTimelineCheckpoint),
@@ -178,7 +178,7 @@ public class TableMetadataUploaderService {
             ? resetCheckpointTimestampAndContinuationToken(checkpoint)
             : checkpoint;
     return timelineCommitInstantsUploader
-        .paginatedBatchUpload(
+        .paginatedBatchUploadWithCheckpoint(
             tableId,
             table,
             activeTimelineCheckpoint,

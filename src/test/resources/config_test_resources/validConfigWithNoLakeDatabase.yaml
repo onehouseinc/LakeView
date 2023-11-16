@@ -4,7 +4,6 @@ onehouseClientConfig:
   projectId: 0c043996-9e42-4904-95b9-f98918ebeda4
   apiKey: WJ3wiaZLsX0mDrrcw234akQ==
   apiSecret: /v+WFnHYscwgwerPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=
-  region: us-west-2
   userUuid: KypBAFHYqAevFFeweB5UP2
 
 fileSystemConfiguration:

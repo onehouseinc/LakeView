@@ -38,7 +38,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class TableMetadataUploaderServiceTest {
   @Mock private HoodiePropertiesReader hoodiePropertiesReader;
   @Mock private OnehouseApiClient onehouseApiClient;
-  @Mock private TimelineCommitInstantsUploader s3TimelineCommitInstantsUploader;
+  @Mock private TimelineCommitInstantsUploader timelineCommitInstantsUploader;
   private TableMetadataUploaderService tableMetadataUploaderService;
   private final ObjectMapper mapper = new ObjectMapper();
   private static final String S3_TABLE_URI = "s3://bucket/table/";
@@ -70,7 +70,7 @@ class TableMetadataUploaderServiceTest {
         new TableMetadataUploaderService(
             hoodiePropertiesReader,
             onehouseApiClient,
-            s3TimelineCommitInstantsUploader,
+            timelineCommitInstantsUploader,
             ForkJoinPool.commonPool());
   }
 
@@ -98,10 +98,10 @@ class TableMetadataUploaderServiceTest {
                 .lakeName(TABLE.getLakeName())
                 .build()))
         .thenReturn(CompletableFuture.completedFuture(initializeTableMetricsCheckpointResponse));
-    when(s3TimelineCommitInstantsUploader.batchUploadWithCheckpoint(
+    when(timelineCommitInstantsUploader.batchUploadWithCheckpoint(
             TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED))
         .thenReturn(CompletableFuture.completedFuture(FINAL_ARCHIVED_TIMELINE_CHECKPOINT));
-    when(s3TimelineCommitInstantsUploader.batchUploadWithCheckpoint(
+    when(timelineCommitInstantsUploader.paginatedBatchUploadWithCheckpoint(
             TABLE_ID,
             TABLE,
             FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS,
@@ -120,11 +120,11 @@ class TableMetadataUploaderServiceTest {
                 .databaseName(TABLE.getDatabaseName())
                 .lakeName(TABLE.getLakeName())
                 .build());
-    verify(s3TimelineCommitInstantsUploader, times(1))
+    verify(timelineCommitInstantsUploader, times(1))
         .batchUploadWithCheckpoint(
             TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
-    verify(s3TimelineCommitInstantsUploader, times(1))
-        .batchUploadWithCheckpoint(
+    verify(timelineCommitInstantsUploader, times(1))
+        .paginatedBatchUploadWithCheckpoint(
             TABLE_ID,
             TABLE,
             FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS,
@@ -145,10 +145,10 @@ class TableMetadataUploaderServiceTest {
                 GetTableMetricsCheckpointResponse.builder()
                     .checkpoint(currentCheckpointJson)
                     .build()));
-    when(s3TimelineCommitInstantsUploader.batchUploadWithCheckpoint(
+    when(timelineCommitInstantsUploader.batchUploadWithCheckpoint(
             TABLE_ID, TABLE, currentCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED))
         .thenReturn(CompletableFuture.completedFuture(FINAL_ARCHIVED_TIMELINE_CHECKPOINT));
-    when(s3TimelineCommitInstantsUploader.batchUploadWithCheckpoint(
+    when(timelineCommitInstantsUploader.paginatedBatchUploadWithCheckpoint(
             TABLE_ID,
             TABLE,
             FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS,
@@ -157,11 +157,11 @@ class TableMetadataUploaderServiceTest {
 
     tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join();
 
-    verify(s3TimelineCommitInstantsUploader, times(1))
+    verify(timelineCommitInstantsUploader, times(1))
         .batchUploadWithCheckpoint(
             TABLE_ID, TABLE, currentCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
-    verify(s3TimelineCommitInstantsUploader, times(1))
-        .batchUploadWithCheckpoint(
+    verify(timelineCommitInstantsUploader, times(1))
+        .paginatedBatchUploadWithCheckpoint(
             TABLE_ID,
             TABLE,
             FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS,
@@ -185,10 +185,7 @@ class TableMetadataUploaderServiceTest {
     Checkpoint currentCheckpoint =
         generateCheckpointObj(1, Instant.now(), true, lastUploadedFile, "token");
     Checkpoint currentCheckpointWithResetFields =
-        currentCheckpoint.toBuilder()
-            .checkpointTimestamp(Instant.EPOCH)
-            .continuationToken(null)
-            .build();
+        currentCheckpoint.toBuilder().checkpointTimestamp(Instant.EPOCH).build();
     String currentCheckpointJson = mapper.writeValueAsString(currentCheckpoint);
 
     when(onehouseApiClient.getTableMetricsCheckpoint(TABLE_ID.toString()))
@@ -199,15 +196,15 @@ class TableMetadataUploaderServiceTest {
                     .build()));
     Checkpoint expectedCheckpoint =
         shouldResetCheckpoint ? currentCheckpointWithResetFields : currentCheckpoint;
-    when(s3TimelineCommitInstantsUploader.batchUploadWithCheckpoint(
+    when(timelineCommitInstantsUploader.paginatedBatchUploadWithCheckpoint(
             TABLE_ID, TABLE, expectedCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
         .thenReturn(CompletableFuture.completedFuture(FINAL_ACTIVE_TIMELINE_CHECKPOINT));
 
     tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join();
 
     // should skip processing archived timeline and directly move to active
-    verify(s3TimelineCommitInstantsUploader, times(1))
-        .batchUploadWithCheckpoint(
+    verify(timelineCommitInstantsUploader, times(1))
+        .paginatedBatchUploadWithCheckpoint(
             TABLE_ID, TABLE, expectedCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
 
@@ -238,7 +235,6 @@ class TableMetadataUploaderServiceTest {
         .batchId(batchId)
         .checkpointTimestamp(checkpointTimestamp)
         .archivedCommitsProcessed(archivedCommitsProcessed)
-        .continuationToken(continuationToken)
         .lastUploadedFile(lastUploadedFile)
         .build();
   }

@@ -103,7 +103,7 @@ public class TimelineCommitInstantsUploader {
    * @return CompletableFuture<Checkpoint> A future that completes with a new checkpoint after each
    *     paginated upload.
    */
-  public CompletableFuture<Checkpoint> paginatedBatchUpload(
+  public CompletableFuture<Checkpoint> paginatedBatchUploadWithCheckpoint(
       UUID tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
     String bucketName = storageUtils.getBucketNameFromUri(table.getAbsoluteTableUri());
     String prefix =
@@ -351,8 +351,7 @@ public class TimelineCommitInstantsUploader {
   /**
    * Filters out already uploaded files based on checkpoint information and sorts the remaining
    * files. This function filters and sorts files from a given list, considering their last modified
-   * time and filename. It is used to determine which files need to be uploaded in the current
-   * run.
+   * time and filename. It is used to determine which files need to be uploaded in the current run.
    *
    * @param filesList List of files to be filtered and sorted.
    * @param checkpoint Checkpoint object containing information about previously uploaded files.
