@@ -35,7 +35,7 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
 
   @Override
   public CompletableFuture<Pair<String, List<File>>> fetchObjectsByPage(
-      String bucketName, String prefix, String continuationToken) {
+      String bucketName, String prefix, String continuationToken, String startAfter) {
     return CompletableFuture.supplyAsync(
         () -> {
           List<Storage.BlobListOption> optionList =
@@ -45,6 +45,9 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
                       Storage.BlobListOption.delimiter("/")));
           if (StringUtils.isNotBlank(continuationToken)) {
             optionList.add(Storage.BlobListOption.pageToken(continuationToken));
+          }
+          if (StringUtils.isNotBlank(startAfter)) {
+            optionList.add(Storage.BlobListOption.startOffset(startAfter));
           }
           Page<Blob> blobs =
               gcsClientProvider

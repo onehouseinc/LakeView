@@ -15,5 +15,4 @@ public class Checkpoint implements Serializable {
   @NonNull Instant checkpointTimestamp;
   @NonNull String lastUploadedFile;
   boolean archivedCommitsProcessed;
-  String continuationToken;
 }

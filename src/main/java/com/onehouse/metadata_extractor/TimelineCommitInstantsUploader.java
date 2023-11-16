@@ -140,7 +140,6 @@ public class TimelineCommitInstantsUploader {
                                                             file, commitTimelineType))
                                                 .collect(Collectors.toList()),
                                             commitTimelineType,
-                                            checkpoint.getContinuationToken(),
                                             null),
                                     executorService)
                                 .exceptionally(
@@ -171,21 +170,19 @@ public class TimelineCommitInstantsUploader {
   }
 
   @Deprecated
-  private CompletableFuture<Checkpoint> uploadInstantsInTimelineInBatches(
+  private CompletableFuture<Checkpoint> uploadInstantsInTimelineInBatchesListingOnePageAtATime(
       UUID tableId,
       Table table,
       String bucketName,
       String prefix,
       Checkpoint checkpoint,
-      CommitTimelineType commitTimelineType,
-      String continuationToken) {
+      CommitTimelineType commitTimelineType) {
     return asyncStorageClient
         .fetchObjectsByPage(
             bucketName,
             prefix,
-            StringUtils.isNotBlank(continuationToken)
-                ? continuationToken
-                : checkpoint.getContinuationToken())
+            null,
+            storageUtils.constructFileUri(prefix, checkpoint.getLastUploadedFile()))
         .thenComposeAsync(
             continuationTokenAndFiles -> {
               String nextContinuationToken = continuationTokenAndFiles.getLeft();
@@ -237,7 +234,6 @@ public class TimelineCommitInstantsUploader {
                                                             file, commitTimelineType))
                                                 .collect(Collectors.toList()),
                                             commitTimelineType,
-                                            checkpoint.getContinuationToken(),
                                             nextContinuationToken),
                                     executorService)
                                 .exceptionally(
@@ -262,14 +258,13 @@ public class TimelineCommitInstantsUploader {
                         // files have been uploaded
                         return CompletableFuture.completedFuture(updatedCheckpoint);
                       }
-                      return uploadInstantsInTimelineInBatches(
+                      return uploadInstantsInTimelineInBatchesListingOnePageAtATime(
                           tableId,
                           table,
                           bucketName,
                           prefix,
                           updatedCheckpoint,
-                          commitTimelineType,
-                          nextContinuationToken);
+                          commitTimelineType);
                     },
                     executorService);
               }
@@ -281,14 +276,8 @@ public class TimelineCommitInstantsUploader {
               // Case 3: currently retrieved page has already been processed in a previous run,
               // processing next page
               else {
-                return uploadInstantsInTimelineInBatches(
-                    tableId,
-                    table,
-                    bucketName,
-                    prefix,
-                    checkpoint,
-                    commitTimelineType,
-                    nextContinuationToken);
+                return uploadInstantsInTimelineInBatchesListingOnePageAtATime(
+                    tableId, table, bucketName, prefix, checkpoint, commitTimelineType);
               }
             },
             executorService)
@@ -338,7 +327,6 @@ public class TimelineCommitInstantsUploader {
       File lastUploadedFile,
       List<String> filesUploaded,
       CommitTimelineType commitTimelineType,
-      String currentContinuationToken,
       String nextContinuationToken) {
 
     // archived instants would already be processed if we are currently processing active timeline
@@ -349,16 +337,12 @@ public class TimelineCommitInstantsUploader {
       archivedCommitsProcessed = processedAllBatchesInCurrentPage && nextContinuationToken == null;
     }
 
-    // if we have more batches left in current page, we use currentContinuationToken
-    String continuationTokenToUseForNextBatch =
-        processedAllBatchesInCurrentPage ? nextContinuationToken : currentContinuationToken;
     Checkpoint updatedCheckpoint =
         Checkpoint.builder()
             .batchId(batchId)
             .lastUploadedFile(lastUploadedFile.getFilename())
             .checkpointTimestamp(lastUploadedFile.getLastModifiedAt())
             .archivedCommitsProcessed(archivedCommitsProcessed)
-            .continuationToken(continuationTokenToUseForNextBatch)
             .build();
     try {
       return onehouseApiClient

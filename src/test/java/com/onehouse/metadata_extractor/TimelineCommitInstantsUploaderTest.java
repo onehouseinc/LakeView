@@ -142,7 +142,7 @@ class TimelineCommitInstantsUploaderTest {
                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
             .join();
 
-    verify(asyncStorageClient, times(2)).fetchObjectsByPage(anyString(), anyString(), any());
+    verify(asyncStorageClient, times(2)).fetchObjectsByPage(anyString(), anyString(), any(), null);
     verifyFilesUploaded(
         List.of(HOODIE_PROPERTIES_FILE),
         checkpoint0,
