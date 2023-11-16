@@ -145,7 +145,7 @@ public class TableMetadataUploaderService {
        * commits in archived timeline are uploaded only once, when the table is registered for the first time.
        */
       return timelineCommitInstantsUploader
-          .uploadInstantsInTimelineSinceCheckpoint(
+          .batchUploadWithCheckpoint(
               tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
           .thenComposeAsync(
               archivedTimelineCheckpoint -> {
@@ -157,7 +157,7 @@ public class TableMetadataUploaderService {
                   return CompletableFuture.completedFuture(false);
                 }
                 return timelineCommitInstantsUploader
-                    .uploadInstantsInTimelineSinceCheckpoint(
+                    .paginatedBatchUpload(
                         tableId,
                         table,
                         resetCheckpointTimestampAndContinuationToken(archivedTimelineCheckpoint),
@@ -178,7 +178,7 @@ public class TableMetadataUploaderService {
             ? resetCheckpointTimestampAndContinuationToken(checkpoint)
             : checkpoint;
     return timelineCommitInstantsUploader
-        .uploadInstantsInTimelineSinceCheckpoint(
+        .paginatedBatchUpload(
             tableId,
             table,
             activeTimelineCheckpoint,
@@ -200,9 +200,6 @@ public class TableMetadataUploaderService {
   }
 
   private static Checkpoint resetCheckpointTimestampAndContinuationToken(Checkpoint checkpoint) {
-    return checkpoint.toBuilder()
-        .continuationToken(null)
-        .checkpointTimestamp(Instant.EPOCH)
-        .build();
+    return checkpoint.toBuilder().checkpointTimestamp(Instant.EPOCH).build();
   }
 }

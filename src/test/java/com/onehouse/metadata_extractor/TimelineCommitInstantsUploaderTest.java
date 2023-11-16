@@ -135,7 +135,7 @@ class TimelineCommitInstantsUploaderTest {
     // uploading instants in archived timeline for the first time
     Checkpoint response =
         timelineCommitInstantsUploaderSpy
-            .uploadInstantsInTimelineSinceCheckpoint(
+            .batchUploadWithCheckpoint(
                 TABLE_ID,
                 TABLE,
                 INITIAL_CHECKPOINT,
@@ -217,7 +217,7 @@ class TimelineCommitInstantsUploaderTest {
     // uploading instants in archived timeline for the first time after processing archived timeline
     Checkpoint response =
         timelineCommitInstantsUploaderSpy
-            .uploadInstantsInTimelineSinceCheckpoint(
+            .batchUploadWithCheckpoint(
                 TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
             .join();
 
@@ -294,7 +294,7 @@ class TimelineCommitInstantsUploaderTest {
 
     // uploading instants in archived timeline for the first time after processing archived timeline
     timelineCommitInstantsUploaderSpy
-        .uploadInstantsInTimelineSinceCheckpoint(
+        .batchUploadWithCheckpoint(
             TABLE_ID, TABLE, previousCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
         .join();
 
@@ -347,7 +347,7 @@ class TimelineCommitInstantsUploaderTest {
         List.of("active_instant_3"), checkpoint4, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
 
     timelineCommitInstantsUploaderSpy
-        .uploadInstantsInTimelineSinceCheckpoint(
+        .batchUploadWithCheckpoint(
             TABLE_ID, TABLE, previousCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
         .join();
 
@@ -397,7 +397,7 @@ class TimelineCommitInstantsUploaderTest {
         List.of("active_instant_3"), checkpoint4, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
 
     timelineCommitInstantsUploaderSpy
-        .uploadInstantsInTimelineSinceCheckpoint(
+        .batchUploadWithCheckpoint(
             TABLE_ID, TABLE, previousCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
         .join();
 
@@ -415,7 +415,7 @@ class TimelineCommitInstantsUploaderTest {
     // uploading instants in archived timeline for the first time
     Checkpoint checkpoint =
         timelineCommitInstantsUploader
-            .uploadInstantsInTimelineSinceCheckpoint(
+            .batchUploadWithCheckpoint(
                 TABLE_ID,
                 TABLE,
                 INITIAL_CHECKPOINT,
@@ -457,7 +457,7 @@ class TimelineCommitInstantsUploaderTest {
 
     // uploading instants in archived timeline for the first time
     timelineCommitInstantsUploaderSpy
-        .uploadInstantsInTimelineSinceCheckpoint(
+        .batchUploadWithCheckpoint(
             TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
         .join();
 
@@ -519,7 +519,7 @@ class TimelineCommitInstantsUploaderTest {
         .thenReturn(CompletableFuture.completedFuture(failureResponse));
     // uploading instants in archived timeline for the first time
     timelineCommitInstantsUploaderSpy
-        .uploadInstantsInTimelineSinceCheckpoint(
+        .batchUploadWithCheckpoint(
             TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
         .join();
 
