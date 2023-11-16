@@ -12,7 +12,7 @@ import lombok.ToString;
 @ToString
 public class Table {
   @NonNull private final String absoluteTableUri;
-  @NonNull private final String databaseName;
-  @NonNull private final String lakeName;
+  private final String databaseName;
+  private final String lakeName;
   private String relativeTablePath;
 }
