@@ -98,7 +98,7 @@ public class TableDiscoveryService {
 
   private CompletableFuture<Set<Table>> discoverTablesInPath(
       String path, String lakeName, String databaseName) {
-    log.debug(String.format("Discovering tables in %s", path));
+    log.info(String.format("Discovering tables in %s", path));
     return asyncStorageClient
         .listAllFilesInDir(path)
         .thenComposeAsync(

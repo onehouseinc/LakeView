@@ -48,6 +48,8 @@ public class TimelineCommitInstantsUploader {
   private final OnehouseApiClient onehouseApiClient;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
+  private static final Pattern ARCHIVED_COMMIT_INSTANT_PATTERN =
+      Pattern.compile("archived/\\.commits_\\.archive\\.\\d+_\\d+-\\d+-\\d+");
 
   @Inject
   TimelineCommitInstantsUploader(
@@ -146,11 +148,7 @@ public class TimelineCommitInstantsUploader {
       Checkpoint checkpoint,
       CommitTimelineType commitTimelineType) {
     return asyncStorageClient
-        .fetchObjectsByPage(
-            bucketName,
-            prefix,
-            null,
-            storageUtils.constructFileUri(prefix, checkpoint.getLastUploadedFile()))
+        .fetchObjectsByPage(bucketName, prefix, null, getStartAfterString(prefix, checkpoint))
         .thenComposeAsync(
             continuationTokenAndFiles -> {
               String nextContinuationToken = continuationTokenAndFiles.getLeft();
@@ -454,6 +452,15 @@ public class TimelineCommitInstantsUploader {
     } else {
       throw new IllegalArgumentException("invalid archived commit file type");
     }
+  }
+
+  private String getStartAfterString(String prefix, Checkpoint checkpoint) {
+    String lastProcessedFile = checkpoint.getLastUploadedFile();
+    return lastProcessedFile.equals(HOODIE_PROPERTIES_FILE)
+            || (checkpoint.isArchivedCommitsProcessed()
+                && ARCHIVED_COMMIT_INSTANT_PATTERN.matcher(lastProcessedFile).matches())
+        ? null
+        : storageUtils.constructFileUri(prefix, checkpoint.getLastUploadedFile());
   }
 
   @VisibleForTesting
