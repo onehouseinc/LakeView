@@ -413,7 +413,8 @@ public class TimelineCommitInstantsUploader {
     return !file.isDirectory()
         && (!file.getLastModifiedAt().isBefore(checkpoint.getCheckpointTimestamp())
             || !applyLastModifiedAtFilter)
-        && !file.getFilename().equals(HOODIE_PROPERTIES_FILE);
+        && !file.getFilename().equals(HOODIE_PROPERTIES_FILE)
+        && StringUtils.isNotBlank(file.getFilename());
   }
 
   private String constructStorageUri(String directoryUri, String fileName) {
