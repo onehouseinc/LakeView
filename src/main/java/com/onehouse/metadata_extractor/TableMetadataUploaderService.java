@@ -65,7 +65,7 @@ public class TableMetadataUploaderService {
   }
 
   private CompletableFuture<Boolean> uploadInstantsInTable(Table table) {
-    log.debug("Fetching checkpoint for table: " + table);
+    log.info("Fetching checkpoint for table: " + table);
     UUID tableId = getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUri());
     return onehouseApiClient
         .getTableMetricsCheckpoint(tableId.toString())
@@ -145,7 +145,7 @@ public class TableMetadataUploaderService {
        * commits in archived timeline are uploaded only once, when the table is registered for the first time.
        */
       return timelineCommitInstantsUploader
-          .uploadInstantsInTimelineSinceCheckpoint(
+          .batchUploadWithCheckpoint(
               tableId, table, checkpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
           .thenComposeAsync(
               archivedTimelineCheckpoint -> {
@@ -157,10 +157,10 @@ public class TableMetadataUploaderService {
                   return CompletableFuture.completedFuture(false);
                 }
                 return timelineCommitInstantsUploader
-                    .uploadInstantsInTimelineSinceCheckpoint(
+                    .paginatedBatchUploadWithCheckpoint(
                         tableId,
                         table,
-                        resetCheckpointTimestampAndContinuationToken(archivedTimelineCheckpoint),
+                        resetCheckpointTimestamp(archivedTimelineCheckpoint),
                         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
                     .thenApply(Objects::nonNull);
               },
@@ -175,10 +175,10 @@ public class TableMetadataUploaderService {
      */
     Checkpoint activeTimelineCheckpoint =
         ARCHIVED_TIMELINE_COMMIT_INSTANT_PATTERN.matcher(checkpoint.getLastUploadedFile()).matches()
-            ? resetCheckpointTimestampAndContinuationToken(checkpoint)
+            ? resetCheckpointTimestamp(checkpoint)
             : checkpoint;
     return timelineCommitInstantsUploader
-        .uploadInstantsInTimelineSinceCheckpoint(
+        .paginatedBatchUploadWithCheckpoint(
             tableId,
             table,
             activeTimelineCheckpoint,
@@ -199,10 +199,7 @@ public class TableMetadataUploaderService {
     return UUID.nameUUIDFromBytes(tableAbsolutePathUrl.getBytes());
   }
 
-  private static Checkpoint resetCheckpointTimestampAndContinuationToken(Checkpoint checkpoint) {
-    return checkpoint.toBuilder()
-        .continuationToken(null)
-        .checkpointTimestamp(Instant.EPOCH)
-        .build();
+  private static Checkpoint resetCheckpointTimestamp(Checkpoint checkpoint) {
+    return checkpoint.toBuilder().checkpointTimestamp(Instant.EPOCH).build();
   }
 }

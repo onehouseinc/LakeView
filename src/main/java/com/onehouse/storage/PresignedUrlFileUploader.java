@@ -22,7 +22,7 @@ public class PresignedUrlFileUploader {
   }
 
   public CompletableFuture<Void> uploadFileToPresignedUrl(String presignedUrl, String fileUrl) {
-    log.debug("Uploading {} to retrieved presigned url", presignedUrl);
+    log.debug("Uploading {} to retrieved presigned url", fileUrl);
     return asyncStorageClient
         .readFileAsBytes(fileUrl)
         .thenComposeAsync(

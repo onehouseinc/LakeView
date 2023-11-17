@@ -64,7 +64,7 @@ class TableDiscoveryAndUploadJobTest {
             eq((long) TABLE_DISCOVERY_INTERVAL_MINUTES),
             eq(TimeUnit.MINUTES));
     verify(mockScheduler)
-        .scheduleWithFixedDelay(
+        .scheduleAtFixedRate(
             runnableCaptor.capture(),
             eq(0L),
             eq((long) job.getProcessTableMetadataSyncDurationSeconds()),

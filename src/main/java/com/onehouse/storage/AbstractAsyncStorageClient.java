@@ -30,7 +30,7 @@ public abstract class AbstractAsyncStorageClient implements AsyncStorageClient {
 
   protected CompletableFuture<List<File>> listAllObjectsStorage(
       String bucketName, String prefix, String continuationToken, List<File> files) {
-    return fetchObjectsByPage(bucketName, prefix, continuationToken)
+    return fetchObjectsByPage(bucketName, prefix, continuationToken, null)
         .thenComposeAsync(
             continuationTokenAndFiles -> {
               String newContinuationToken = continuationTokenAndFiles.getLeft();

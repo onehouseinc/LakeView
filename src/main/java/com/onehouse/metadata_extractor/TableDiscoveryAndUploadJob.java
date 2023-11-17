@@ -48,7 +48,7 @@ public class TableDiscoveryAndUploadJob {
         this::discoverTables, 0, TABLE_DISCOVERY_INTERVAL_MINUTES, TimeUnit.MINUTES);
 
     // Schedule table processing
-    scheduler.scheduleWithFixedDelay(
+    scheduler.scheduleAtFixedRate(
         this::processTables, 0, PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS, TimeUnit.SECONDS);
   }
 
@@ -78,7 +78,8 @@ public class TableDiscoveryAndUploadJob {
             ex -> {
               log.error("Error discovering tables: ", ex);
               return null;
-            });
+            })
+        .join();
   }
 
   private void processTables() {
@@ -101,7 +102,8 @@ public class TableDiscoveryAndUploadJob {
                 ex -> {
                   log.error("Error uploading instants in tables: ", ex);
                   return null;
-                });
+                })
+            .join();
         previousTableMetadataUploadRunStartTime = tableMetadataUploadRunStartTime;
       }
     }

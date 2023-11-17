@@ -14,5 +14,5 @@ public interface AsyncStorageClient {
   CompletableFuture<byte[]> readFileAsBytes(String path);
 
   CompletableFuture<Pair<String, List<File>>> fetchObjectsByPage(
-      String bucketName, String prefix, String continuationToken);
+      String bucketName, String prefix, String continuationToken, String startAfter);
 }

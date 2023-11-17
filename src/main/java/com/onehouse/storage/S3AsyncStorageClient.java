@@ -37,10 +37,14 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
 
   @Override
   public CompletableFuture<Pair<String, List<File>>> fetchObjectsByPage(
-      String bucketName, String prefix, String continuationToken) {
+      String bucketName, String prefix, String continuationToken, String startAfter) {
 
     ListObjectsV2Request.Builder listObjectsV2RequestBuilder =
         ListObjectsV2Request.builder().bucket(bucketName).prefix(prefix).delimiter("/");
+
+    if (StringUtils.isNotBlank(startAfter)) {
+      listObjectsV2RequestBuilder.startAfter(startAfter);
+    }
 
     if (StringUtils.isNotBlank(continuationToken)) {
       listObjectsV2RequestBuilder.continuationToken(continuationToken);
