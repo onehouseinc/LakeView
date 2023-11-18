@@ -14,5 +14,5 @@ public class OnehouseClientConfig {
   @NonNull private String projectId;
   @NonNull private String apiKey;
   @NonNull private String apiSecret;
-  @NonNull private String userUuid;
+  @NonNull private String userId;
 }

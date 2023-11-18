@@ -88,7 +88,7 @@ public class OnehouseApiClient {
     headersBuilder.add(PROJECT_UID_KEY, onehouseClientConfig.getProjectId());
     headersBuilder.add(ONEHOUSE_API_KEY, onehouseClientConfig.getApiKey());
     headersBuilder.add(ONEHOUSE_API_SECRET_KEY, onehouseClientConfig.getApiSecret());
-    headersBuilder.add(ONEHOUSE_USER_UUID_KEY, onehouseClientConfig.getUserUuid());
+    headersBuilder.add(ONEHOUSE_USER_UUID_KEY, onehouseClientConfig.getUserId());
     return headersBuilder.build();
   }
 

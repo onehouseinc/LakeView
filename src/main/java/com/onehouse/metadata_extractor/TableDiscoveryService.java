@@ -33,7 +33,7 @@ public class TableDiscoveryService {
   private final StorageUtils storageUtils;
   private final MetadataExtractorConfig metadataExtractorConfig;
   private final ExecutorService executorService;
-  private final List<String> excludedPrefixes;
+  private final List<String> excludedPathPatterns;
 
   @Inject
   public TableDiscoveryService(
@@ -45,11 +45,12 @@ public class TableDiscoveryService {
     this.storageUtils = storageUtils;
     this.metadataExtractorConfig = ((ConfigV1) config).getMetadataExtractorConfig();
     this.executorService = executorService;
-    this.excludedPrefixes = metadataExtractorConfig.getPathsToExclude().orElse(List.of());
+    this.excludedPathPatterns =
+        metadataExtractorConfig.getPathExclusionPatterns().orElse(List.of());
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
-    log.info("Starting table discover service, excluding {}", excludedPrefixes);
+    log.info("Starting table discover service, excluding {}", excludedPathPatterns);
     List<Pair<String, CompletableFuture<Set<Table>>>> pathToDiscoveredTablesFuturePairList =
         new ArrayList<>();
 
@@ -158,6 +159,6 @@ public class TableDiscoveryService {
   }
 
   private boolean isExcluded(String filePath) {
-    return excludedPrefixes.stream().anyMatch(filePath::startsWith);
+    return excludedPathPatterns.stream().anyMatch(filePath::matches);
   }
 }

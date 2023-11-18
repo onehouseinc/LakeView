@@ -39,6 +39,11 @@ public class Main {
     Config config = null;
     try {
       parser.parse(args);
+
+      if (parser.isHelpRequested()) {
+        return;
+      }
+
       String configFilePath = parser.getConfigFilePath();
       String configYamlString = parser.getConfigYamlString();
       config = loadConfig(configFilePath, configYamlString);

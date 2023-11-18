@@ -92,13 +92,13 @@ class TableDiscoveryServiceTest {
         .thenReturn(CompletableFuture.completedFuture(List.of()));
 
     // paths to exclude
-    String dirToExclude = BASE_PATH + "excluded";
-    String tableToExclude = BASE_PATH + "nested-folder/excluded-table-3";
+    String dirToExclude = BASE_PATH + "excluded/"; // excluding using an absolute path
 
     // parser config
     when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
-    when(metadataExtractorConfig.getPathsToExclude())
-        .thenReturn(Optional.of(List.of(dirToExclude, tableToExclude)));
+    when(metadataExtractorConfig.getPathExclusionPatterns())
+        .thenReturn(
+            Optional.of(List.of(dirToExclude, ".*excluded-table.*"))); // also providing a regex exp
     when(metadataExtractorConfig.getParserConfig())
         .thenReturn(
             List.of(
@@ -156,7 +156,7 @@ class TableDiscoveryServiceTest {
 
     // parser config
     when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
-    when(metadataExtractorConfig.getPathsToExclude())
+    when(metadataExtractorConfig.getPathExclusionPatterns())
         .thenReturn(Optional.of(List.of(dirToExclude)));
     when(metadataExtractorConfig.getParserConfig())
         .thenReturn(

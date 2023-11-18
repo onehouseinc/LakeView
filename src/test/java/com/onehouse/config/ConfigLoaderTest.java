@@ -73,7 +73,7 @@ class ConfigLoaderTest {
   void testLoadingYamlFromString() {
     // minifying using https://onlineyamltools.com/minify-yaml
     String yamlString =
-        "{version: V1, onehouseClientConfig: {projectId: 0c043996-9e42-4904-95b9-f98918ebeda4, apiKey: WJ3wiaZLsX0mDrrcw234akQ==, apiSecret: /v+WFnHYscwgwerPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=, userUuid: KypBAFHYqAevFFeweB5UP2}, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {pathsToExclude: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+        "{version: V1, onehouseClientConfig: {projectId: 0c043996-9e42-4904-95b9-f98918ebeda4, apiKey: WJ3wiaZLsX0mDrrcw234akQ==, apiSecret: /v+WFnHYscwgwerPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=, userId: KypBAFHYqAevFFeweB5UP2}, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {pathExclusionPatterns: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
     Config config = configLoader.loadConfigFromString(yamlString);
     assertEquals(getValidConfigV1Obj(Filesystem.S3, "lake1", "database1"), config);
   }
@@ -82,7 +82,7 @@ class ConfigLoaderTest {
   void testLoadingInvalidYamlFromString() {
     // missing onehouseClientConfig
     String yamlString =
-        "{version: V1, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {pathsToExclude: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+        "{version: V1, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {pathExclusionPatterns: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
     assertThrows(RuntimeException.class, () -> configLoader.loadConfigFromString(yamlString));
   }
 
@@ -96,7 +96,7 @@ class ConfigLoaderTest {
         .projectId("0c043996-9e42-4904-95b9-f98918ebeda4")
         .apiKey("WJ3wiaZLsX0mDrrcw234akQ==")
         .apiSecret("/v+WFnHYscwgwerPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=")
-        .userUuid("KypBAFHYqAevFFeweB5UP2")
+        .userId("KypBAFHYqAevFFeweB5UP2")
         .build();
   }
 
@@ -122,7 +122,7 @@ class ConfigLoaderTest {
     String basePath = fileSystemPrefix + "lake_bucket/tables";
 
     return MetadataExtractorConfig.builder()
-        .pathsToExclude(Optional.of(List.of(pathToExclude)))
+        .pathExclusionPatterns(Optional.of(List.of(pathToExclude)))
         .parserConfig(
             List.of(
                 ParserConfig.builder()
