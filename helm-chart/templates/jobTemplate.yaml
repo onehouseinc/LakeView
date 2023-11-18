@@ -21,7 +21,7 @@ spec:
           - "{{ .Values.configPath }}"
           {{- else if .Values.config }}
           - "-c"
-          - '{{ toJson .Values.config | quote }}'
+          - {{ toJson .Values.config | quote }}
           {{- end }}
           resources:
           {{- toYaml .Values.resources | nindent 12 }}
