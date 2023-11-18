@@ -7,7 +7,7 @@ fileSystemConfiguration:
 
 
 metadataExtractorConfig:
-  pathsToExclude:
+  pathExclusionPatterns:
     - gs://lake_bucket/tables/excluded
   parserConfig:
     - lake: lake1

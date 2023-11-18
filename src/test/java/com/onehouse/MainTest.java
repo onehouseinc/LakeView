@@ -95,6 +95,13 @@ class MainTest {
     verifyShutdown();
   }
 
+  @Test
+  void testHelpOption() {
+    String[] args = {"-h"};
+    when(mockParser.isHelpRequested()).thenReturn(true);
+    main.start(args);
+  }
+
   private void verifyShutdown() {
     verify(mockJob).shutdown();
     verify(mockAsyncHttpClientWithRetry).shutdownScheduler();

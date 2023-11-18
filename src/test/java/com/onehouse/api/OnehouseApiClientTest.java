@@ -63,7 +63,7 @@ class OnehouseApiClientTest {
     when(onehouseClientConfig.getProjectId()).thenReturn("projectId");
     when(onehouseClientConfig.getApiKey()).thenReturn("apiKey");
     when(onehouseClientConfig.getApiSecret()).thenReturn("apiSecret");
-    when(onehouseClientConfig.getUserUuid()).thenReturn("userUuid");
+    when(onehouseClientConfig.getUserId()).thenReturn("userUuid");
     onehouseApiClient = new OnehouseApiClient(client, config);
   }
 

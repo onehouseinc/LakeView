@@ -42,4 +42,22 @@ class CliParserTest {
 
     assertTrue(actualMessage.contains(expectedMessage));
   }
+
+  @Test
+  void testHelpOption() throws ParseException {
+    CliParser parser = new CliParser();
+    String[] args = {"-h"};
+    parser.parse(args);
+    assertTrue(parser.isHelpRequested());
+  }
+
+  @Test
+  void testNoOptions() throws ParseException {
+    CliParser parser = new CliParser();
+    String[] args = {};
+    parser.parse(args);
+    assertFalse(parser.isHelpRequested());
+    assertNull(parser.getConfigFilePath());
+    assertNull(parser.getConfigYamlString());
+  }
 }
