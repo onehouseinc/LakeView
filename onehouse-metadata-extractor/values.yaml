@@ -1,0 +1,21 @@
+image:
+  repository: onehouse/hudi-metadata-extractor
+  pullPolicy: Always
+#  TODO: Replace with correct tag
+  tag: beta
+
+config: {}
+
+configPath: ""
+
+deployAsJob: false  # Set to true to deploy as a Job, false to deploy as a Deployment
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 400Mi
+  requests:
+    cpu: 700m
+    memory: 300Mi
+
+env: {}

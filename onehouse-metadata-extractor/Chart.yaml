@@ -1,0 +1,6 @@
+apiVersion: v2
+name: onehouse-metadata-extractor
+description: A Helm chart for Kubernetes to deploy onehouse-metadata-extractor
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

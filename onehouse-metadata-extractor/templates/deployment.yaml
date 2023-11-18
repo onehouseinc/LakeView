@@ -1,0 +1,36 @@
+{{- if not .Values.deployAsJob }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: onehouse-metadata-extractor
+  labels:
+    app: onehouse-metadata-extractor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: onehouse-metadata-extractor
+  template:
+    metadata:
+      labels:
+        app: onehouse-metadata-extractor
+    spec:
+      containers:
+        - name: onehouse-metadata-extractor
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+          {{- if .Values.configPath }}
+            - "-p"
+            - "{{ .Values.configPath }}"
+          {{- else if .Values.config }}
+            - "-c"
+            - '{{- toJson .Values.config | quote }}'
+          {{- end }}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          env:
+          {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: "{{ $value }}"
+          {{- end }}
+{{- end }}
