@@ -90,10 +90,6 @@ public class TableMetadataUploaderService {
                                       .tableId(tableId)
                                       .tableName(properties.getTableName())
                                       .tableType(properties.getTableType())
-                                      .tableBasePath(
-                                          table.getRelativeTablePath()) // sending relative instead
-                                      // of
-                                      // absolute path to avoid sending sensitive data
                                       .databaseName(table.getDatabaseName())
                                       .lakeName(table.getLakeName())
                                       .build()))

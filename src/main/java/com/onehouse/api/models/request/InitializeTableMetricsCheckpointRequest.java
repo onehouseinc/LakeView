@@ -11,7 +11,6 @@ import lombok.extern.jackson.Jacksonized;
 @Jacksonized
 public class InitializeTableMetricsCheckpointRequest {
   @NonNull UUID tableId;
-  @NonNull String tableBasePath;
   @NonNull String tableName;
   @NonNull TableType tableType;
   String lakeName;

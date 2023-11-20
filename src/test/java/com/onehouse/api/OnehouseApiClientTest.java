@@ -134,7 +134,6 @@ class OnehouseApiClientTest {
             .tableName("table")
             .databaseName("database")
             .lakeName("lake")
-            .tableBasePath("valid/path")
             .build();
     doReturn(
             CompletableFuture.completedFuture(

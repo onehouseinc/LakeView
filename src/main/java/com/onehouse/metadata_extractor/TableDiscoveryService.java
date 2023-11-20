@@ -80,18 +80,7 @@ public class TableDiscoveryService {
               Set<Table> allTablePaths = ConcurrentHashMap.newKeySet();
               for (Pair<String, CompletableFuture<Set<Table>>> pathToDiscoveredTablesPair :
                   pathToDiscoveredTablesFuturePairList) {
-                Set<Table> discoveredTables =
-                    pathToDiscoveredTablesPair.getRight().join().stream()
-                        .map(
-                            table ->
-                                table.toBuilder()
-                                    .relativeTablePath(
-                                        getRelativeTablePathFromUrl(
-                                            pathToDiscoveredTablesPair.getLeft(),
-                                            table.getAbsoluteTableUri()))
-                                    .build())
-                        .collect(Collectors.toSet());
-                allTablePaths.addAll(discoveredTables);
+                allTablePaths.addAll(pathToDiscoveredTablesPair.getRight().join());
               }
               return allTablePaths;
             });
@@ -145,17 +134,6 @@ public class TableDiscoveryService {
    */
   private static boolean isHudiTableFolder(List<File> listedFiles) {
     return listedFiles.stream().anyMatch(file -> file.getFilename().startsWith(HOODIE_FOLDER_NAME));
-  }
-
-  private String getRelativeTablePathFromUrl(String baseStorageUrl, String tableAbsoluteUrl) {
-    String baseStorageUrlWithoutTrailingSlash =
-        baseStorageUrl.endsWith("/")
-            ? baseStorageUrl.substring(0, baseStorageUrl.length() - 1)
-            : baseStorageUrl;
-    String prefixToRemove =
-        baseStorageUrlWithoutTrailingSlash.substring(
-            0, baseStorageUrlWithoutTrailingSlash.lastIndexOf("/"));
-    return tableAbsoluteUrl.substring(prefixToRemove.length());
   }
 
   private boolean isExcluded(String filePath) {

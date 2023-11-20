@@ -53,11 +53,10 @@ class TimelineCommitInstantsUploaderTest {
   private static final Table TABLE =
       Table.builder()
           .absoluteTableUri(S3_TABLE_URI)
-          .relativeTablePath("table")
           .databaseName("database")
           .lakeName("lake")
           .build();
-  ;
+  private static final String TABLE_PREFIX = "table";
   private static final UUID TABLE_ID = UUID.nameUUIDFromBytes(S3_TABLE_URI.getBytes());
   private static final String PRESIGNED_URL_PREFIX = "http://presigned-url/";
 
@@ -163,17 +162,17 @@ class TimelineCommitInstantsUploaderTest {
         .getUploadBatchSize(); // 1 file will be processed at a time
     // Page 1: returns 2 files
     mockListPage(
-        TABLE.getRelativeTablePath() + "/.hoodie/",
+            TABLE_PREFIX+ "/.hoodie/",
         CONTINUATION_TOKEN_PREFIX + "1",
-        TABLE.getRelativeTablePath() + "/.hoodie/" + INITIAL_CHECKPOINT.getLastUploadedFile(),
+            TABLE_PREFIX + "/.hoodie/" + INITIAL_CHECKPOINT.getLastUploadedFile(),
         List.of(
             generateFileObj("active_instant_1", false),
             generateFileObj("active_instant_2", false)));
     // page 2: returns 2 files (last page)
     mockListPage(
-        TABLE.getRelativeTablePath() + "/.hoodie/",
+            TABLE_PREFIX + "/.hoodie/",
         null,
-        TABLE.getRelativeTablePath() + "/.hoodie/" + "active_instant_2",
+            TABLE_PREFIX + "/.hoodie/" + "active_instant_2",
         List.of(
             generateFileObj(HOODIE_PROPERTIES_FILE, false), // will be listed
             generateFileObj("active_instant_3", false, currentTime)));
@@ -240,17 +239,17 @@ class TimelineCommitInstantsUploaderTest {
 
     // Page 1: returns 2 files
     mockListPage(
-        TABLE.getRelativeTablePath() + "/.hoodie/",
+            TABLE_PREFIX + "/.hoodie/",
         CONTINUATION_TOKEN_PREFIX + "1",
-        TABLE.getRelativeTablePath() + "/.hoodie/" + previousCheckpoint.getLastUploadedFile(),
+            TABLE_PREFIX + "/.hoodie/" + previousCheckpoint.getLastUploadedFile(),
         List.of(
             generateFileObj("active_instant_1", false),
             generateFileObj("active_instant_2", false)));
     // page 2: returns 2 files (last page)
     mockListPage(
-        TABLE.getRelativeTablePath() + "/.hoodie/",
+            TABLE_PREFIX + "/.hoodie/",
         null,
-        TABLE.getRelativeTablePath() + "/.hoodie/" + "active_instant_2",
+            TABLE_PREFIX + "/.hoodie/" + "active_instant_2",
         List.of(
             generateFileObj(HOODIE_PROPERTIES_FILE, false), // will be listed
             generateFileObj("active_instant_3", false, currentTime)));
@@ -306,9 +305,9 @@ class TimelineCommitInstantsUploaderTest {
             3, currentTime.minus(10, ChronoUnit.SECONDS), true, "active_instant_2");
 
     mockListPage(
-        TABLE.getRelativeTablePath() + "/.hoodie/",
+            TABLE_PREFIX + "/.hoodie/",
         null,
-        TABLE.getRelativeTablePath() + "/.hoodie/" + previousCheckpoint.getLastUploadedFile(),
+            TABLE_PREFIX + "/.hoodie/" + previousCheckpoint.getLastUploadedFile(),
         List.of(
             generateFileObj(
                 HOODIE_PROPERTIES_FILE, false, currentTime.minus(5, ChronoUnit.SECONDS)),
