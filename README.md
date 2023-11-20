@@ -8,11 +8,15 @@ The Onehouse Community Edition Metadata Extractor is a tool designed for Hudi co
   - ONCE Mode: Allows users to trigger the discovery and extraction flow on demand, the tool picks up from where it left off on the last run. This can be useful if you want to run the metadata extractor as a recurring job that you manage.
 - Efficient Data Processing: Utilizes checkpoints for incremental metadata extraction, enabling frequent and efficient metric updates.
 
+## Supported Cloud-Platforms:
+- Amazon Web Services (AWS)
+- Google Cloud Platform (GCP)
+
 ## Installation
 #### The Onehouse Community Edition Metadata Extractor is available in three formats:
-- JAR File: Download the JAR from the assets page in this repo and execute it with the required parameters.
+- JAR File: Download the latest JAR from the [releases page](https://github.com/onehouseinc/hudi-metadata-extractor/releases/latest) in this repo and execute it with the required parameters.
 - Docker Image: pull from docker hub and run in supported environments
-- Helm Chart: Deploy the tool in your Kubernetes cluster using our Helm chart.
+- Helm Chart: Deploy the tool in your Kubernetes cluster using our Helm chart (present in `/helm-chart` directory).
 
 # Configuration
 The configuration file for the Onehouse Community Edition Metadata Extractor is a YAML file
@@ -64,10 +68,10 @@ basePaths: [<path1>, <path2>, ...]
 **projectId:** Your Community Edition project ID. Get this by clicking on your profile in the top right of the Onehouse UI.\
 **userUuid:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse UI.\
 **apiKey:** The API key for authentication. Get this by opening Settings > API Settings in the Onehouse UI and creating an API key.\
-**apiSecret:** The corresponding secret for the API key. Get this by opening Settings > API Settings in the Onehouse UI and creating an API key.\
+**apiSecret:** The corresponding secret for the API key. Get this by opening Settings > API Settings in the Onehouse UI and creating an API key.
 
 ### fileSystemConfiguration
-**Description:** Authentication configuration to access file system, we support either AWS S3 or Google Cloud Storage (GCS).
+**Description:** Authentication configuration to access file system, only one of AWS S3 or Google Cloud Storage (GCS) credentials should be passed.
 
 #### s3Config:
 **region:** AWS region of the S3 bucket.\
