@@ -1,53 +1,49 @@
-name: Production Release
+name: gw-controller-release
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - 'release-*'
 
 jobs:
-  build-and-release:
+  generate-tags:
     runs-on: ubuntu-latest
-
+    outputs:
+      tags: ${{ steps.tags.outputs.tags }}
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up JDK 11
-        uses: actions/setup-java@v2
+      - name: Checkout repository (with submodules)
+        uses: actions/checkout@v2
         with:
-          java-version: '11'
-          distribution: 'adopt'
+          submodules: recursive
+          token: ${{ secrets.CI_PAT }}
+          fetch-depth: 0
+      - name: Set COMMIT_HASH
+        run: echo "COMMIT_HASH=$(git rev-parse $GITHUB_SHA)" >> $GITHUB_ENV
+      - name: Set IMAGE_TAG
+        run: |
+          if [ -z "$COMMIT_HASH"]; then
+            echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+          else
+            echo "IMAGE_TAG=$COMMIT_HASH" >> $GITHUB_ENV
+          fi
+      - name: Set BRANCH_PREFIX
+        run: echo "BRANCH_PREFIX=branch/" >> $GITHUB_ENV
+      - name: Set RELEASE_BRANCH
+        run: echo "RELEASE_BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
+      - name: Set RELEASE_TAG
+        run: echo "RELEASE_TAG=${RELEASE_BRANCH#'$BRANCH_PREFIX'}" >> $GITHUB_ENV
+      - id: tags
+        run: echo "tags=$COMMIT_HASH $RELEASE_TAG" >> $GITHUB_OUTPUT
+  build-images:
+    needs: generate-tags
+    uses: ./.github/workflows/build-images.yaml
+    secrets: inherit
+    with:
+      tags: ${{needs.generate-tags.outputs.tags}}
 
-      - name: Build with Gradle
-        run: ./gradlew build
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Fat JAR to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: build/libs/*-all.jar
-          asset_name: YourProject-${{ github.ref }}-all.jar
-          asset_content_type: application/java-archive
-
-      - name: Upload Source JAR to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: build/libs/*-sources.jar
-          asset_name: YourProject-${{ github.ref }}-sources.jar
-          asset_content_type: application/java-archive
+  build-jars:
+    needs: generate-tags
+    uses: ./.github/workflows/build-jar.yaml
+    secrets: inherit
+    with:
+      tags: ${{needs.generate-tags.outputs.tags}}
