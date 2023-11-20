@@ -32,7 +32,7 @@ jobs:
           tag_name: ${{ (startsWith(inputs.tags, 'release-') || (inputs.tags == 'latest')) && 'prod' || 'dev' }}-${{ github.run_number }}
           release_name: ${{ (startsWith(inputs.tags, 'release-') || (inputs.tags == 'latest')) && 'Stable Release' || 'Development Release' }}
           draft: false
-          prerelease: ${{ (startsWith(inputs.tags, 'release-') || (inputs.tags == 'latest')) && false || true }}
+          prerelease: ${{ !(startsWith(inputs.tags, 'release-') || (inputs.tags == 'latest')) }}
 
       - name: Set input tag
         run: echo "INPUT_TAG=${{ inputs.tags }}" >> $GITHUB_ENV
