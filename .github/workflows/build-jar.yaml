@@ -29,8 +29,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ startsWith(inputs.tags, 'release-') || (inputs.tags == 'latest') && 'prod' || 'dev' }}-${{ github.run_number }}
-          release_name: ${{ startsWith(inputs.tags, 'release-') || (inputs.tags == 'latest') && 'Stable Release' || 'Development Release' }}
+          tag_name: ${{ (startsWith(inputs.tags, 'release-') || (inputs.tags == 'latest')) && 'prod' || 'dev' }}-${{ github.run_number }}
+          release_name: ${{ (startsWith(inputs.tags, 'release-') || (inputs.tags == 'latest')) && 'Stable Release' || 'Development Release' }}
           draft: false
           prerelease: ${{ startsWith(inputs.tags, 'release-') || (inputs.tags == 'latest') && false || true }}
 

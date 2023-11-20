@@ -1,4 +1,4 @@
-name: gw-controller-release
+name: metadata-extractor-release
 
 on:
   push:
@@ -19,13 +19,6 @@ jobs:
           fetch-depth: 0
       - name: Set COMMIT_HASH
         run: echo "COMMIT_HASH=$(git rev-parse $GITHUB_SHA)" >> $GITHUB_ENV
-      - name: Set IMAGE_TAG
-        run: |
-          if [ -z "$COMMIT_HASH"]; then
-            echo "IMAGE_TAG=latest" >> $GITHUB_ENV
-          else
-            echo "IMAGE_TAG=$COMMIT_HASH" >> $GITHUB_ENV
-          fi
       - name: Set BRANCH_PREFIX
         run: echo "BRANCH_PREFIX=branch/" >> $GITHUB_ENV
       - name: Set RELEASE_BRANCH
@@ -33,7 +26,7 @@ jobs:
       - name: Set RELEASE_TAG
         run: echo "RELEASE_TAG=${RELEASE_BRANCH#'$BRANCH_PREFIX'}" >> $GITHUB_ENV
       - id: tags
-        run: echo "tags=$COMMIT_HASH $RELEASE_TAG" >> $GITHUB_OUTPUT
+        run: echo "tags=$RELEASE_TAG" >> $GITHUB_OUTPUT
   build-images:
     needs: generate-tags
     uses: ./.github/workflows/build-images.yaml
