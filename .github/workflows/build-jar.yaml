@@ -29,10 +29,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ startsWith(env.IMAGE_TAG, 'release-') || (env.IMAGE_TAG == 'latest') && 'prod' || 'dev' }}-${{ github.run_number }}
-          release_name: ${{ startsWith(env.IMAGE_TAG, 'release-') || (env.IMAGE_TAG == 'latest') && 'Stable Release' || 'Development Release' }}
+          tag_name: ${{ startsWith(inputs.tags, 'release-') || (inputs.tags == 'latest') && 'prod' || 'dev' }}-${{ github.run_number }}
+          release_name: ${{ startsWith(inputs.tags, 'release-') || (inputs.tags == 'latest') && 'Stable Release' || 'Development Release' }}
           draft: false
-          prerelease: ${{ startsWith(env.IMAGE_TAG, 'release-') || (env.IMAGE_TAG == 'latest') && false || true }}
+          prerelease: ${{ startsWith(inputs.tags, 'release-') || (inputs.tags == 'latest') && false || true }}
 
       - name: Upload JAR files to Release
         uses: actions/upload-release-asset@v1

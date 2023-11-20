@@ -34,8 +34,9 @@ jobs:
     secrets: inherit
     with:
       tags: ${{needs.generate-tags.outputs.tags}}
+
   build-jar:
-    if: ${{ github.event.issue.pull_request }} && contains(github.event.comment.body, '/push-image')
+    if: ${{ github.event.issue.pull_request }} && contains(github.event.comment.body, '/push-jar')
     needs: generate-tags
     uses: ./.github/workflows/build-jar.yaml
     secrets: inherit
