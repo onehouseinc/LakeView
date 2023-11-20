@@ -129,3 +129,10 @@ test {
         events "passed", "skipped", "failed"
     }
 }
+
+task sourceJar(type: Jar) {
+    archiveClassifier.set('sources')
+    from sourceSets.main.allSource
+}
+
+build.dependsOn sourceJar
