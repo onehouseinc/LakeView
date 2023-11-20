@@ -41,7 +41,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: build/libs/HudiMetadataExtractor-1.0-SNAPSHOT-all.jar
-          asset_name: hudiMetadataExtractor-all.jar
+          asset_name: hudiMetadataExtractor-$input_tag-all.jar
           asset_content_type: application/java-archive
 
       - name: Upload JAR files to Release
@@ -51,5 +51,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: build/libs/HudiMetadataExtractor-1.0-SNAPSHOT-sources.jar
-          asset_name: hudiMetadataExtractor-sources.jar
+          asset_name: hudiMetadataExtractor-$input_tag-sources.jar
           asset_content_type: application/java-archive

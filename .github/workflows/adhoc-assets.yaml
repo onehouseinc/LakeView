@@ -1,4 +1,4 @@
-name: build-adhoc-images
+name: build-adhoc-assets
 
 on:
   pull_request_review:
@@ -22,7 +22,7 @@ jobs:
         if: contains(github.event.review.body, '/push-jar')
         run: echo "JAR_TAG=$(echo ${{ github.event.review.body }} | sed -e s/\\/push-jar\ //)" >> $GITHUB_ENV
       - name: Fail if adhoc image or jar uses reserved tag or is empty
-        if: contains(env.IMAGE_TAG, 'release-v') || env.IMAGE_TAG == 'latest' || env.IMAGE_TAG == '' || contains(env.JAR_TAG, 'release-v') || env.JAR_TAG == 'latest' || env.JAR_TAG == ''
+        if: contains(env.IMAGE_TAG, 'release-v') || env.IMAGE_TAG == 'latest' || contains(env.JAR_TAG, 'release-v') || env.JAR_TAG == 'latest' || (env.JAR_TAG == '' && env.IMAGE_TAG == '')
         run: exit 1
       - id: tags
         run: echo "tags=$IMAGE_TAG$JAR_TAG" >> $GITHUB_OUTPUT
