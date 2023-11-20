@@ -1,6 +1,7 @@
 name: Development Release
 
 on:
+  pull_request:
   push:
     branches:
       - development
