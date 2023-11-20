@@ -14,5 +14,4 @@ public class Table {
   @NonNull private final String absoluteTableUri;
   private final String databaseName;
   private final String lakeName;
-  private String relativeTablePath;
 }

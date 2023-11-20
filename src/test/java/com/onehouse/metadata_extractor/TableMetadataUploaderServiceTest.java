@@ -45,7 +45,6 @@ class TableMetadataUploaderServiceTest {
   private static final Table TABLE =
       Table.builder()
           .absoluteTableUri(S3_TABLE_URI)
-          .relativeTablePath("table")
           .databaseName("database")
           .lakeName("lake")
           .build();
@@ -93,7 +92,6 @@ class TableMetadataUploaderServiceTest {
                 .tableId(TABLE_ID)
                 .tableName(PARSED_HUDI_PROPERTIES.getTableName())
                 .tableType(PARSED_HUDI_PROPERTIES.getTableType())
-                .tableBasePath(TABLE.getRelativeTablePath())
                 .databaseName(TABLE.getDatabaseName())
                 .lakeName(TABLE.getLakeName())
                 .build()))
@@ -116,7 +114,6 @@ class TableMetadataUploaderServiceTest {
                 .tableId(TABLE_ID)
                 .tableName(PARSED_HUDI_PROPERTIES.getTableName())
                 .tableType(PARSED_HUDI_PROPERTIES.getTableType())
-                .tableBasePath(TABLE.getRelativeTablePath())
                 .databaseName(TABLE.getDatabaseName())
                 .lakeName(TABLE.getLakeName())
                 .build());

@@ -122,13 +122,11 @@ class TableDiscoveryServiceTest {
         Stream.of(
                 Table.builder()
                     .absoluteTableUri(BASE_PATH + "table1/")
-                    .relativeTablePath("/base_path/table1/")
                     .databaseName(DATABASE)
                     .lakeName(LAKE)
                     .build(),
                 Table.builder()
                     .absoluteTableUri(BASE_PATH + "nested-folder/table2/")
-                    .relativeTablePath("/base_path/nested-folder/table2/")
                     .databaseName(DATABASE)
                     .lakeName(LAKE)
                     .build())
