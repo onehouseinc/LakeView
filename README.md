@@ -15,7 +15,8 @@ The Onehouse Community Edition Metadata Extractor is a tool designed for Hudi co
 ## Installation
 #### The Onehouse Community Edition Metadata Extractor is available in three formats:
 - JAR File: Download the latest JAR from the [releases page](https://github.com/onehouseinc/hudi-metadata-extractor/releases/latest) in this repo and execute it with the required parameters.
-- Docker Image: pull from docker hub and run in supported environments
+- Docker Image: pull from [docker hub](https://hub.docker.com/r/onehouse/hudi-metadata-extractor) and run in supported environments.
+  (image: `onehouse/hudi-metadata-extractor`)
 - Helm Chart: Deploy the tool in your Kubernetes cluster using our Helm chart (present in `/helm-chart` directory).
 
 # Configuration
