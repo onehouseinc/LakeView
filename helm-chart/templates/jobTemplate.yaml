@@ -2,17 +2,17 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: onehouse-metadata-extractor
+  name: hudi-metadata-extractor
   labels:
-    app: onehouse-metadata-extractor
+    app: hudi-metadata-extractor
 spec:
   template:
     metadata:
       labels:
-        app: onehouse-metadata-extractor
+        app: hudi-metadata-extractor
     spec:
       containers:
-        - name: onehouse-metadata-extractor
+        - name: hudi-metadata-extractor
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:

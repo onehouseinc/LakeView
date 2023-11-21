@@ -4,12 +4,19 @@ image:
 #  TODO: Replace with correct tag
   tag: beta
 
+# Config yaml to be provided to the extractor. Refer to readme for the format of the config file
+# not required if config path is being provided
 config: {}
 
+# path to the config file in the pod filesystem
+# not required if config is directly provided in previous field
 configPath: ""
 
-deployAsJob: false  # Set to true to deploy as a Job, false to deploy as a Deployment
+# specified whether to deploy the extractor as a job or deployment
+# deploying as a job is recommended when using ONCE mode
+deployAsJob: false
 
+# Pod resources
 resources:
   limits:
     cpu: 1000m
@@ -18,4 +25,5 @@ resources:
     cpu: 700m
     memory: 300Mi
 
+# environment variables if any
 env: {}
