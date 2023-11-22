@@ -50,4 +50,9 @@ jobs:
           for input_tag in ${{ inputs.tags }}; do
             docker tag hudi-metadata-extractor:latest ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:$input_tag
             docker push ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:$input_tag
+          
+            if [[ $input_tag == release-* ]]; then
+              docker tag hudi-metadata-extractor:latest ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:latest
+              docker push ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:latest
+            fi
           done
