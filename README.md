@@ -58,42 +58,44 @@ basePaths: [<path1>, <path2>, ...]
 # Add additional lakes and databases as needed
 ```
 
-### version
-**Description:** Specifies the configuration format version.\
-**Format:** String\
-**Example:** version: V1\
+### 1) version
+- **Description:** Specifies the configuration format version.
+- **Format:** String
+- **Example:** version: V1
 `Note: Currently, only version V1 is supported`
 
-### onehouseClientConfig
-**Description:** Contains credentials for communicating with the Community Edition UI. these values can be obtained from the UI\
-**projectId:** Your Community Edition project ID. Get this by clicking on your profile in the top right of the Onehouse UI.\
-**userUuid:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse UI.\
-**apiKey:** The API key for authentication. Get this by opening Settings > API Settings in the Onehouse UI and creating an API key.\
-**apiSecret:** The corresponding secret for the API key. Get this by opening Settings > API Settings in the Onehouse UI and creating an API key.
+### 2) onehouseClientConfig
+- **Description:** Contains credentials for communicating with the Community Edition UI. these values can be obtained from the UI
+- **projectId:** Your Community Edition project ID. Get this by clicking on your profile in the top right of the Onehouse UI.
+- **userUuid:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse UI.
+- **apiKey:** The API key for authentication. Get this by opening Settings > API Settings in the Onehouse UI and creating an API key.
+- **apiSecret:** The corresponding secret for the API key. Get this by opening Settings > API Settings in the Onehouse UI and creating an API key.
 
-### fileSystemConfiguration
-**Description:** Authentication configuration to access file system, only one of AWS S3 or Google Cloud Storage (GCS) credentials should be passed.
+### 3) fileSystemConfiguration
+- **Description:** Authentication configuration to access file system, only one of AWS S3 or Google Cloud Storage (GCS) credentials should be passed.
 
 #### s3Config:
-**region:** AWS region of the S3 bucket.\
-**[Optional] accessKey:** AWS access key (not recommended for production).\
-**[Optional] accessSecret:** AWS secret key (not recommended for production).\
+- **region:** AWS region of the S3 bucket.
+- **[Optional] accessKey:** AWS access key (not recommended for production).
+- **[Optional] accessSecret:** AWS secret key (not recommended for production).
 `Note: If access keys are not provided, we use the default AWS credentials chain. For example, you can run the package in an EC2 instance with IAM access to read from S3.`
 
 #### gcsConfig:
-**[Optional] projectId:** GCP project ID.
-**[Optional] gcpServiceAccountKeyPath:** Path to the GCP service account key.
+- **[Optional] projectId:** GCP project ID.
+- **[Optional] gcpServiceAccountKeyPath:** Path to the GCP service account key.
 `Note: If a service account key is not provided, we use the application default credentials. For example, you can run the package in a Compute Engine instance with IAM access to read from GCS.`
 
-### metadataExtractorConfig
-**Description:** Configuration for the metadata extraction job.\
-**jobRunMode:** Can be CONTINUOUS or ONCE.\
-**pathExclusionPatterns:** List of regex patterns to exclude from scanning. (Java regex patterns are supported)\
-**parserConfig:** List of lakes and databases to be parsed.\
-**lake:** Name of the lake (optional, defaults to community-lake ). This can be used to organize tables in the UI under the format Lake > Database > Table.\
-**databases:** List of databases and their respective base paths. This can be used to organize tables in the UI under the format Lake > Database > Table.\
-**name:** Database name (optional, defaults to community-db ).\
-**basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables
+### 4) metadataExtractorConfig
+- **Description:** Configuration for the metadata extraction job.
+- **jobRunMode:** Can be CONTINUOUS or ONCE.
+- **pathExclusionPatterns:** List of regex patterns to exclude from scanning. (Java regex patterns are supported)
+#### parserConfig:
+List of lakes and databases to be parsed.
+- **lake:** Name of the lake (optional, defaults to community-lake). This can be used to organize tables in the UI under the format Lake > Database > Table.
+##### databases:
+List of databases and their respective base paths. This can be used to organize tables in the UI under the format Lake > Database > Table.
+- **name:** Database name (optional, defaults to community-db ).
+- **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables
 
 # Deployment using Jar or Docker-Image
 The Onehouse Community Edition Metadata Extractor can be configured using command line arguments for both the JAR file and the Docker image:
@@ -134,7 +136,11 @@ Understanding these limitations will help in planning and managing your data mor
    **Scenario:** If the lake or database name for a given base path is changed after metrics have already been ingested, the tool will not use the new names.\
    **Implication:** Continuity in metric tracking may be lost due to the change in identifiers.\
    **Resolution:** Users should delete the table from the UI before making such changes
-3. Pausing and Resuming Metadata Ingestion\
+3. Changing Table type After Metric Ingestion\
+   **Scenario:** If the table type is changed after metrics have already been ingested, the tool will not use the new table_type.\
+   **Implication:** some metric calculations could be wrong.\
+   **Resolution:** Users should delete the table from the UI before making such changes
+4. Pausing and Resuming Metadata Ingestion\
    **Scenario:** If metadata ingestion for a table is paused and then resumed after a few days, there's a risk that the metrics displayed may be inaccurate. (mainly depends on archival configs) \
    **Reason:** The tool processes the archived timeline only once when the table is first discovered. If new instants are committed and moved to the archived timeline while the tool is not running, these instants will not be uploaded upon resumption, leading to potential data loss.\
    **Implication:** There can be a mismatch between the actual table state and the metrics shown.\
