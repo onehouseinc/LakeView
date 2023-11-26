@@ -1,5 +1,6 @@
 package com.onehouse.metadata_extractor;
 
+import static com.onehouse.constants.MetadataExtractorConstants.ARCHIVED_COMMIT_INSTANT_PATTERN;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
@@ -21,7 +22,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -36,8 +36,6 @@ public class TableMetadataUploaderService {
   private final TimelineCommitInstantsUploader timelineCommitInstantsUploader;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
-  private static final Pattern ARCHIVED_TIMELINE_COMMIT_INSTANT_PATTERN =
-      Pattern.compile("\\.commits_\\.archive\\.\\d+_\\d+-\\d+-\\d+");
 
   @Inject
   public TableMetadataUploaderService(
@@ -156,7 +154,7 @@ public class TableMetadataUploaderService {
                     .paginatedBatchUploadWithCheckpoint(
                         tableId,
                         table,
-                        resetCheckpointTimestamp(archivedTimelineCheckpoint),
+                        resetCheckpoint(archivedTimelineCheckpoint),
                         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
                     .thenApply(Objects::nonNull);
               },
@@ -170,8 +168,8 @@ public class TableMetadataUploaderService {
      * this allows us to continue from the previous batch id
      */
     Checkpoint activeTimelineCheckpoint =
-        ARCHIVED_TIMELINE_COMMIT_INSTANT_PATTERN.matcher(checkpoint.getLastUploadedFile()).matches()
-            ? resetCheckpointTimestamp(checkpoint)
+        ARCHIVED_COMMIT_INSTANT_PATTERN.matcher(checkpoint.getLastUploadedFile()).matches()
+            ? resetCheckpoint(checkpoint)
             : checkpoint;
     return timelineCommitInstantsUploader
         .paginatedBatchUploadWithCheckpoint(
@@ -195,7 +193,7 @@ public class TableMetadataUploaderService {
     return UUID.nameUUIDFromBytes(tableAbsolutePathUrl.getBytes());
   }
 
-  private static Checkpoint resetCheckpointTimestamp(Checkpoint checkpoint) {
-    return checkpoint.toBuilder().checkpointTimestamp(Instant.EPOCH).build();
+  private static Checkpoint resetCheckpoint(Checkpoint checkpoint) {
+    return checkpoint.toBuilder().checkpointTimestamp(Instant.EPOCH).lastUploadedFile("").build();
   }
 }

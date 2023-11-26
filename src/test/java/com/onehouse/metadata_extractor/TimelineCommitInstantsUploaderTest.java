@@ -46,6 +46,7 @@ class TimelineCommitInstantsUploaderTest {
   @Mock private AsyncStorageClient asyncStorageClient;
   @Mock private PresignedUrlFileUploader presignedUrlFileUploader;
   @Mock private OnehouseApiClient onehouseApiClient;
+  @Mock private ActiveTimelineInstantBatcher activeTimelineInstantBatcher;
   private TimelineCommitInstantsUploader timelineCommitInstantsUploader;
   private final ObjectMapper mapper = new ObjectMapper();
   private static final String S3_TABLE_URI = "s3://bucket/table/";
@@ -71,7 +72,8 @@ class TimelineCommitInstantsUploaderTest {
             presignedUrlFileUploader,
             onehouseApiClient,
             new StorageUtils(),
-            ForkJoinPool.commonPool());
+            ForkJoinPool.commonPool(),
+            activeTimelineInstantBatcher);
   }
 
   @Test
@@ -235,13 +237,13 @@ class TimelineCommitInstantsUploaderTest {
             Instant.EPOCH, // if archived timeline was processed before this, timestamp is reset to
             // epoch
             true,
-            "archived_instant_3");
+            ".commits_.archive.1_1-0-1");
 
     // Page 1: returns 2 files
     mockListPage(
         TABLE_PREFIX + "/.hoodie/",
         CONTINUATION_TOKEN_PREFIX + "1",
-        TABLE_PREFIX + "/.hoodie/" + previousCheckpoint.getLastUploadedFile(),
+        null, // as archived commits were processed previously, startAfter gets reset
         List.of(
             generateFileObj("active_instant_1", false),
             generateFileObj("active_instant_2", false)));

@@ -3,6 +3,7 @@ package com.onehouse.constants;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.storage.models.File;
 import java.time.Instant;
+import java.util.regex.Pattern;
 
 public class MetadataExtractorConstants {
   private MetadataExtractorConstants() {}
@@ -15,6 +16,10 @@ public class MetadataExtractorConstants {
   public static final int PRESIGNED_URL_REQUEST_BATCH_SIZE = 100;
   public static final int TABLE_DISCOVERY_INTERVAL_MINUTES = 30;
   public static final int TABLE_METADATA_UPLOAD_INTERVAL_MINUTES = 5;
+  public static final Pattern ARCHIVED_COMMIT_INSTANT_PATTERN =
+      Pattern.compile("\\.commits_\\.archive\\.\\d+_\\d+-\\d+-\\d+");
+  public static final Pattern ACTIVE_COMMIT_INSTANT_PATTERN =
+      Pattern.compile("\\d+(\\.[a-z]{1,20}){1,2}");
   public static final Checkpoint INITIAL_CHECKPOINT =
       Checkpoint.builder()
           .batchId(0)
