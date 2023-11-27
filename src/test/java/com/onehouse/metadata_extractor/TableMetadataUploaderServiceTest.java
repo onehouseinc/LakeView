@@ -56,11 +56,11 @@ class TableMetadataUploaderServiceTest {
           .tableType(TableType.COPY_ON_WRITE)
           .build();
   private final Checkpoint FINAL_ARCHIVED_TIMELINE_CHECKPOINT =
-      generateCheckpointObj(3, Instant.now(), true, ".commits_.archive.48_1-0-1", "token");
+      generateCheckpointObj(3, Instant.now(), true, ".commits_.archive.48_1-0-1");
   private final Checkpoint FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS =
-      generateCheckpointObj(3, Instant.EPOCH, true, ".commits_.archive.48_1-0-1", null);
+      generateCheckpointObj(3, Instant.EPOCH, true, "");
   private final Checkpoint FINAL_ACTIVE_TIMELINE_CHECKPOINT =
-      generateCheckpointObj(6, Instant.now(), true, "active_instant", "token");
+      generateCheckpointObj(6, Instant.now(), true, "active_instant");
 
   @BeforeEach
   void setup() {
@@ -133,7 +133,7 @@ class TableMetadataUploaderServiceTest {
   void testUploadMetadataFromPreviousCheckpointArchivedNotProcessed() {
     // few commits from archived timeline have been previously processed
     Checkpoint currentCheckpoint =
-        generateCheckpointObj(1, Instant.EPOCH, false, "archived_instant1", "token");
+        generateCheckpointObj(1, Instant.EPOCH, false, "archived_instant1");
     String currentCheckpointJson = mapper.writeValueAsString(currentCheckpoint);
 
     when(onehouseApiClient.getTableMetricsCheckpoint(TABLE_ID.toString()))
@@ -179,10 +179,12 @@ class TableMetadataUploaderServiceTest {
   void testUploadMetadataFromPreviousCheckpointArchivedProcessedActiveTimelineProcessingStarted(
       String lastUploadedFile, boolean shouldResetCheckpoint) {
     // archived timeline has already been processed
-    Checkpoint currentCheckpoint =
-        generateCheckpointObj(1, Instant.now(), true, lastUploadedFile, "token");
+    Checkpoint currentCheckpoint = generateCheckpointObj(1, Instant.now(), true, lastUploadedFile);
     Checkpoint currentCheckpointWithResetFields =
-        currentCheckpoint.toBuilder().checkpointTimestamp(Instant.EPOCH).build();
+        currentCheckpoint.toBuilder()
+            .checkpointTimestamp(Instant.EPOCH)
+            .lastUploadedFile("")
+            .build();
     String currentCheckpointJson = mapper.writeValueAsString(currentCheckpoint);
 
     when(onehouseApiClient.getTableMetricsCheckpoint(TABLE_ID.toString()))
@@ -226,8 +228,7 @@ class TableMetadataUploaderServiceTest {
       int batchId,
       Instant checkpointTimestamp,
       boolean archivedCommitsProcessed,
-      String lastUploadedFile,
-      String continuationToken) {
+      String lastUploadedFile) {
     return Checkpoint.builder()
         .batchId(batchId)
         .checkpointTimestamp(checkpointTimestamp)

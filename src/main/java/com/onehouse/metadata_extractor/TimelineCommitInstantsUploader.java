@@ -401,14 +401,16 @@ public class TimelineCommitInstantsUploader {
 
     // index of the last file which was uploaded
     OptionalInt lastUploadedIndexOpt =
-        IntStream.range(0, filteredAndSortedFiles.size())
-            .filter(
-                i ->
-                    filteredAndSortedFiles
-                        .get(i)
-                        .getFilename()
-                        .equals(checkpoint.getLastUploadedFile()))
-            .findFirst();
+        StringUtils.isNotBlank(checkpoint.getLastUploadedFile())
+            ? IntStream.range(0, filteredAndSortedFiles.size())
+                .filter(
+                    i ->
+                        filteredAndSortedFiles
+                            .get(i)
+                            .getFilename()
+                            .startsWith(checkpoint.getLastUploadedFile()))
+                .reduce((first, second) -> second) // finding last occurrence
+            : OptionalInt.empty();
 
     List<File> filesToUpload =
         lastUploadedIndexOpt.isPresent()

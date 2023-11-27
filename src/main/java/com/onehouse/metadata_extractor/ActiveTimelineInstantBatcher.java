@@ -1,5 +1,7 @@
 package com.onehouse.metadata_extractor;
 
+import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
+
 import com.onehouse.storage.models.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -7,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Value;
 
@@ -16,24 +19,42 @@ public class ActiveTimelineInstantBatcher {
    * Creates batches of Hudi instants, ensuring related instants are grouped together.
    *
    * @param instants The list of Hudi instants.
-   * @param batchSize the maximum number of instants per batch.
+   * @param maxBatchSize the maximum number of instants per batch.
    * @return A list of batches, each batch being a list of instants.
    */
-  public List<List<File>> createBatches(List<File> instants, int batchSize) {
-    instants.sort(Comparator.comparing(File::getFilename));
+  public List<List<File>> createBatches(List<File> instants, int maxBatchSize) {
+    if (maxBatchSize < 3) {
+      throw new IllegalArgumentException("max batch size cannot be less than 3");
+    }
+
+    List<File> sortedInstants =
+        instants.stream()
+            .sorted(
+                Comparator.comparing(
+                    File::getFilename,
+                    (name1, name2) -> {
+                      // hoodie.properties should come first
+                      if (HOODIE_PROPERTIES_FILE.equals(name1)) {
+                        return -1;
+                      } else if (HOODIE_PROPERTIES_FILE.equals(name2)) {
+                        return 1;
+                      }
+                      return name1.compareTo(name2); // Lexicographic sorting for other files
+                    }))
+            .collect(Collectors.toList());
     List<List<File>> batches = new ArrayList<>();
     int index = 0;
 
-    while (index < instants.size()) {
+    while (index < sortedInstants.size()) {
       // Check if the remaining files are fewer than 3
-      if (instants.size() - index < 3) {
+      if (sortedInstants.size() - index < 3) {
         break; // Skip these files completely
       }
 
-      int tentativeEndIndex = Math.min(index + batchSize, instants.size());
-      int actualEndIndex = adjustBatchEndIndex(instants, index, tentativeEndIndex);
+      int tentativeEndIndex = Math.min(index + maxBatchSize, sortedInstants.size());
+      int actualEndIndex = adjustBatchEndIndex(sortedInstants, index, tentativeEndIndex);
 
-      List<File> batch = new ArrayList<>(instants.subList(index, actualEndIndex));
+      List<File> batch = new ArrayList<>(sortedInstants.subList(index, actualEndIndex));
       batches.add(batch);
 
       index = actualEndIndex; // Update index for the next batch
@@ -109,7 +130,7 @@ public class ActiveTimelineInstantBatcher {
 
   @Builder
   @Value
-  private class ActiveTimelineInstant {
+  private static class ActiveTimelineInstant {
     String timestamp;
     String action;
     String state;
