@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Getter;
 
 public class ActiveTimelineInstantBatcher {
 
@@ -52,7 +52,7 @@ public class ActiveTimelineInstantBatcher {
       }
 
       int tentativeEndIndex = Math.min(index + maxBatchSize, sortedInstants.size());
-      int actualEndIndex = adjustBatchEndIndex(sortedInstants, index, tentativeEndIndex);
+      int actualEndIndex = adjustBatchEndIndex(sortedInstants, tentativeEndIndex);
 
       List<File> batch = new ArrayList<>(sortedInstants.subList(index, actualEndIndex));
       batches.add(batch);
@@ -68,16 +68,10 @@ public class ActiveTimelineInstantBatcher {
    * batches.
    *
    * @param instants The sorted list of Hudi instants.
-   * @param startIndex The start index of the current batch.
    * @param tentativeEndIndex The tentative end index of the current batch.
    * @return The adjusted end index of the batch.
    */
-  private static int adjustBatchEndIndex(
-      List<File> instants, int startIndex, int tentativeEndIndex) {
-    if (tentativeEndIndex - startIndex < 3) {
-      return startIndex; // Not enough instants for a complete commit
-    }
-
+  private static int adjustBatchEndIndex(List<File> instants, int tentativeEndIndex) {
     ActiveTimelineInstant instant1 =
         getActiveTimeLineInstant(instants.get(tentativeEndIndex - 3).getFilename());
     ActiveTimelineInstant instant2 =
@@ -129,10 +123,10 @@ public class ActiveTimelineInstantBatcher {
   }
 
   @Builder
-  @Value
+  @Getter
   private static class ActiveTimelineInstant {
-    String timestamp;
-    String action;
-    String state;
+    private final String timestamp;
+    private final String action;
+    private final String state;
   }
 }
