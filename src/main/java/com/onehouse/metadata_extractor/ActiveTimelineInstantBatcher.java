@@ -27,69 +27,67 @@ public class ActiveTimelineInstantBatcher {
       throw new IllegalArgumentException("max batch size cannot be less than 3");
     }
 
-    List<File> sortedInstants =
-        instants.stream()
-            .sorted(
-                Comparator.comparing(
-                    File::getFilename,
-                    (name1, name2) -> {
-                      // hoodie.properties should come first
-                      if (HOODIE_PROPERTIES_FILE.equals(name1)) {
-                        return -1;
-                      } else if (HOODIE_PROPERTIES_FILE.equals(name2)) {
-                        return 1;
-                      }
-                      return name1.compareTo(name2); // Lexicographic sorting for other files
-                    }))
-            .collect(Collectors.toList());
+    List<File> sortedInstants = sortInstants(instants);
     List<List<File>> batches = new ArrayList<>();
-    int index = 0;
+    List<File> currentBatch = new ArrayList<>();
 
-    while (index < sortedInstants.size()) {
-      // Check if the remaining files are fewer than 3
-      if (sortedInstants.size() - index < 3) {
-        break; // Skip these files completely
+    int startIndex = 0;
+    if (!sortedInstants.isEmpty()
+        && sortedInstants.get(0).getFilename().equals(HOODIE_PROPERTIES_FILE)) {
+      startIndex = 1;
+      currentBatch.add(sortedInstants.get(0));
+    }
+
+    for (int index = startIndex; index <= sortedInstants.size() - 3; index += 3) {
+      ActiveTimelineInstant instant1 =
+          getActiveTimeLineInstant(sortedInstants.get(index).getFilename());
+      ActiveTimelineInstant instant2 =
+          getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
+      ActiveTimelineInstant instant3 =
+          getActiveTimeLineInstant(sortedInstants.get(index + 2).getFilename());
+
+      if (areRelatedInstants(instant1, instant2, instant3)) {
+        if (currentBatch.size() + 3 <= maxBatchSize) {
+          // Add the next group of three instants to the current batch
+          currentBatch.addAll(sortedInstants.subList(index, index + 3));
+        } else {
+          // Current batch size limit reached, start a new batch
+          batches.add(new ArrayList<>(currentBatch));
+          currentBatch.clear();
+          currentBatch.addAll(sortedInstants.subList(index, index + 3));
+        }
+      } else {
+        // Instants are not related; add what we have and stop processing
+        if (!currentBatch.isEmpty()) {
+          batches.add(new ArrayList<>(currentBatch));
+          currentBatch.clear();
+        }
+        break;
       }
+    }
 
-      int tentativeEndIndex = Math.min(index + maxBatchSize, sortedInstants.size());
-      int actualEndIndex = adjustBatchEndIndex(sortedInstants, tentativeEndIndex);
-
-      List<File> batch = new ArrayList<>(sortedInstants.subList(index, actualEndIndex));
-      batches.add(batch);
-
-      index = actualEndIndex; // Update index for the next batch
+    // Add any remaining instants in the current batch
+    if (!currentBatch.isEmpty()) {
+      batches.add(currentBatch);
     }
 
     return batches;
   }
 
-  /**
-   * Adjusts the end index of the current batch to ensure that related instants are not split across
-   * batches.
-   *
-   * @param instants The sorted list of Hudi instants.
-   * @param tentativeEndIndex The tentative end index of the current batch.
-   * @return The adjusted end index of the batch.
-   */
-  private static int adjustBatchEndIndex(List<File> instants, int tentativeEndIndex) {
-    ActiveTimelineInstant instant1 =
-        getActiveTimeLineInstant(instants.get(tentativeEndIndex - 3).getFilename());
-    ActiveTimelineInstant instant2 =
-        getActiveTimeLineInstant(instants.get(tentativeEndIndex - 2).getFilename());
-    ActiveTimelineInstant instant3 =
-        getActiveTimeLineInstant(instants.get(tentativeEndIndex - 1).getFilename());
-
-    if (areRelatedInstants(instant1, instant2, instant3)) {
-      return tentativeEndIndex;
-    } else {
-      // Determine whether to exclude one or two instants from the batch
-      if (instant1.getTimestamp().equals(instant2.getTimestamp())
-          && instant1.getAction().equals(instant2.getAction())) {
-        return tentativeEndIndex - 1;
-      } else {
-        return tentativeEndIndex - 2;
-      }
-    }
+  private List<File> sortInstants(List<File> instants) {
+    return instants.stream()
+        .sorted(
+            Comparator.comparing(
+                File::getFilename,
+                (name1, name2) -> {
+                  if (HOODIE_PROPERTIES_FILE.equals(name1)) {
+                    return -1;
+                  } else if (HOODIE_PROPERTIES_FILE.equals(name2)) {
+                    return 1;
+                  }
+                  return name1.compareTo(name2);
+                }))
+        .collect(Collectors.toList());
   }
 
   private static boolean areRelatedInstants(
