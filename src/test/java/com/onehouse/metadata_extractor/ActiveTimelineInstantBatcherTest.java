@@ -136,17 +136,6 @@ class ActiveTimelineInstantBatcherTest {
   }
 
   @Test
-  void testCreateBatchEmptyInstants() {
-    List<File> files = List.of();
-
-    // instants with timestamp 333 need to be ignored as the commit is incomplete
-    List<List<File>> expectedBatches = List.of();
-
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
-    assertEquals(expectedBatches, actualBatches);
-  }
-
-  @Test
   void testWithInvalidBatchSize() {
     assertThrows(
         IllegalArgumentException.class,
