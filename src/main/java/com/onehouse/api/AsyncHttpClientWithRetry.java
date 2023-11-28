@@ -12,6 +12,7 @@ import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -52,12 +53,14 @@ public class AsyncHttpClientWithRetry {
               public void onFailure(@Nonnull Call call, @Nonnull IOException e) {
                 if (tryCount < maxRetries) {
                   Request request = call.request();
-
+                  HttpUrl url = request.url();
+                  String method = request.method();
                   log.warn(
-                      "API Request failed with error: {}, attempt: {}, request: {}",
+                      "API Request failed with error: {}, attempt: {}, url: {}, method: {}",
                       e.getMessage(),
                       tryCount,
-                      request);
+                      url,
+                      method);
 
                   scheduleRetry(request, tryCount, future);
                 } else {
@@ -71,12 +74,15 @@ public class AsyncHttpClientWithRetry {
                     && !ACCEPTABLE_HTTP_FAILURE_STATUS_CODES.contains(response.code())
                     && tryCount < maxRetries) {
                   Request request = call.request();
+                  HttpUrl url = request.url();
+                  String method = request.method();
                   int statusCode = response.code();
                   log.warn(
-                      "API Request failed with HTTP status: {}, attempt: {}, request: {}",
+                      "API Request failed with HTTP status: {}, attempt: {}, url: {}, method: {}",
                       statusCode,
                       tryCount,
-                      request);
+                      url,
+                      method);
                   scheduleRetry(request, tryCount, future);
                 } else {
                   future.complete(response);
