@@ -1,5 +1,7 @@
 package com.onehouse.metadata_extractor;
 
+import static com.onehouse.constants.MetadataExtractorConstants.ACTIVE_COMMIT_INSTANT_PATTERN;
+import static com.onehouse.constants.MetadataExtractorConstants.ARCHIVED_COMMIT_INSTANT_PATTERN;
 import static com.onehouse.constants.MetadataExtractorConstants.ARCHIVED_FOLDER_NAME;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
@@ -48,8 +50,7 @@ public class TimelineCommitInstantsUploader {
   private final OnehouseApiClient onehouseApiClient;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
-  private static final Pattern ARCHIVED_COMMIT_INSTANT_PATTERN =
-      Pattern.compile("archived/\\.commits_\\.archive\\.\\d+_\\d+-\\d+-\\d+");
+  private final ActiveTimelineInstantBatcher activeTimelineInstantBatcher;
 
   @Inject
   TimelineCommitInstantsUploader(
@@ -57,12 +58,14 @@ public class TimelineCommitInstantsUploader {
       @Nonnull PresignedUrlFileUploader presignedUrlFileUploader,
       @Nonnull OnehouseApiClient onehouseApiClient,
       @Nonnull StorageUtils storageUtils,
-      @Nonnull ExecutorService executorService) {
+      @Nonnull ExecutorService executorService,
+      @Nonnull ActiveTimelineInstantBatcher activeTimelineInstantBatcher) {
     this.asyncStorageClient = asyncStorageClient;
     this.presignedUrlFileUploader = presignedUrlFileUploader;
     this.onehouseApiClient = onehouseApiClient;
     this.storageUtils = storageUtils;
     this.executorService = executorService;
+    this.activeTimelineInstantBatcher = activeTimelineInstantBatcher;
     this.mapper = new ObjectMapper();
     mapper.registerModule(new JavaTimeModule());
   }
@@ -181,7 +184,11 @@ public class TimelineCommitInstantsUploader {
               }
             },
             executorService)
-        .exceptionally(throwable -> null);
+        .exceptionally(
+            throwable -> {
+              log.error("error occured", throwable);
+              return null;
+            });
   }
 
   /**
@@ -208,7 +215,12 @@ public class TimelineCommitInstantsUploader {
       Checkpoint checkpoint,
       CommitTimelineType commitTimelineType,
       boolean isLastPage) {
-    List<List<File>> batches = Lists.partition(filesToUpload, getUploadBatchSize());
+    List<List<File>> batches;
+    if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)) {
+      batches = Lists.partition(filesToUpload, getUploadBatchSize());
+    } else {
+      batches = activeTimelineInstantBatcher.createBatches(filesToUpload, getUploadBatchSize());
+    }
     int numBatches = batches.size();
 
     CompletableFuture<Checkpoint> sequentialBatchProcessingFuture =
@@ -223,7 +235,12 @@ public class TimelineCommitInstantsUploader {
                   return CompletableFuture.completedFuture(null);
                 }
 
-                File lastUploadedFile = batch.get(batch.size() - 1);
+                File lastUploadedFile =
+                    CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
+                        ? batch.get(batch.size() - 1)
+                        : batch.get(
+                            batch.size()
+                                - 3); // third last item in the batch will be the completed instant
                 return uploadBatch(
                         tableId,
                         batch,
@@ -384,14 +401,16 @@ public class TimelineCommitInstantsUploader {
 
     // index of the last file which was uploaded
     OptionalInt lastUploadedIndexOpt =
-        IntStream.range(0, filteredAndSortedFiles.size())
-            .filter(
-                i ->
-                    filteredAndSortedFiles
-                        .get(i)
-                        .getFilename()
-                        .equals(checkpoint.getLastUploadedFile()))
-            .findFirst();
+        StringUtils.isNotBlank(checkpoint.getLastUploadedFile())
+            ? IntStream.range(0, filteredAndSortedFiles.size())
+                .filter(
+                    i ->
+                        filteredAndSortedFiles
+                            .get(i)
+                            .getFilename()
+                            .startsWith(checkpoint.getLastUploadedFile()))
+                .reduce((first, second) -> second) // finding last occurrence
+            : OptionalInt.empty();
 
     List<File> filesToUpload =
         lastUploadedIndexOpt.isPresent()
@@ -413,8 +432,14 @@ public class TimelineCommitInstantsUploader {
     return !file.isDirectory()
         && (!file.getLastModifiedAt().isBefore(checkpoint.getCheckpointTimestamp())
             || !applyLastModifiedAtFilter)
+        && isInstantFile(file.getFilename())
         && !file.getFilename().equals(HOODIE_PROPERTIES_FILE)
         && StringUtils.isNotBlank(file.getFilename());
+  }
+
+  private boolean isInstantFile(String fileName) {
+    return ACTIVE_COMMIT_INSTANT_PATTERN.matcher(fileName).matches()
+        || ARCHIVED_COMMIT_INSTANT_PATTERN.matcher(fileName).matches();
   }
 
   private String constructStorageUri(String directoryUri, String fileName) {
@@ -458,8 +483,7 @@ public class TimelineCommitInstantsUploader {
   private String getStartAfterString(String prefix, Checkpoint checkpoint) {
     String lastProcessedFile = checkpoint.getLastUploadedFile();
     return lastProcessedFile.equals(HOODIE_PROPERTIES_FILE)
-            || (checkpoint.isArchivedCommitsProcessed()
-                && ARCHIVED_COMMIT_INSTANT_PATTERN.matcher(lastProcessedFile).matches())
+            || StringUtils.isBlank(lastProcessedFile)
         ? null
         : storageUtils.constructFileUri(prefix, checkpoint.getLastUploadedFile());
   }

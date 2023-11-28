@@ -20,10 +20,10 @@ deployAsJob: false
 resources:
   limits:
     cpu: 1000m
-    memory: 400Mi
+    memory: 1Gi
   requests:
     cpu: 700m
-    memory: 300Mi
+    memory: 700Mi
 
 # environment variables if any
 env: {}
