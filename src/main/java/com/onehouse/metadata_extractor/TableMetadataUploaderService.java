@@ -118,7 +118,7 @@ public class TableMetadataUploaderService {
               for (Table table : tables) {
                 if (tableCheckpointMap.containsKey(table.getTableId())) {
                   try {
-                    // process from previous checkpoint
+                    // checkpoints found, continue from previous checkpoint
                     String checkpointString =
                         tableCheckpointMap.get(table.getTableId()).getCheckpoint();
                     processTablesFuture.add(
@@ -137,105 +137,21 @@ public class TableMetadataUploaderService {
                 }
               }
 
-              CompletableFuture<Void> initialiseNewlyDiscoveredTablesFuture =
-                  CompletableFuture.completedFuture(null);
-              if (!tablesToInitialise.isEmpty()) {
-                // checkpoint not found, table needs to be registered
-                log.info("Initializing following tables {}", tablesToInitialise);
-                List<
-                        CompletableFuture<
-                            InitializeTableMetricsCheckpointRequest
-                                .InitializeSingleTableMetricsCheckpointRequest>>
-                    initializeSingleTableMetricsCheckpointRequestFutureList = new ArrayList<>();
-                for (Table table : tablesToInitialise) {
-                  initializeSingleTableMetricsCheckpointRequestFutureList.add(
-                      hoodiePropertiesReader
-                          .readHoodieProperties(getHoodiePropertiesFilePath(table))
-                          .thenApply(
-                              properties ->
-                                  InitializeTableMetricsCheckpointRequest
-                                      .InitializeSingleTableMetricsCheckpointRequest.builder()
-                                      .tableId(table.getTableId())
-                                      .tableName(properties.getTableName())
-                                      .tableType(properties.getTableType())
-                                      .databaseName(table.getDatabaseName())
-                                      .lakeName(table.getLakeName())
-                                      .build()));
-                }
-                initialiseNewlyDiscoveredTablesFuture =
-                    CompletableFuture.allOf(
-                            initializeSingleTableMetricsCheckpointRequestFutureList.toArray(
-                                new CompletableFuture[0]))
-                        .thenComposeAsync(
-                            ignored -> {
-                              List<
-                                      InitializeTableMetricsCheckpointRequest
-                                          .InitializeSingleTableMetricsCheckpointRequest>
-                                  initializeSingleTableMetricsCheckpointRequestList =
-                                      initializeSingleTableMetricsCheckpointRequestFutureList
-                                          .stream()
-                                          .map(CompletableFuture::join)
-                                          .collect(Collectors.toList());
-                              return onehouseApiClient.initializeTableMetricsCheckpoint(
-                                  InitializeTableMetricsCheckpointRequest.builder()
-                                      .tables(initializeSingleTableMetricsCheckpointRequestList)
-                                      .build());
-                            },
-                            executorService)
-                        .thenComposeAsync(
-                            initializeTableMetricsCheckpointResponse -> {
-                              if (initializeTableMetricsCheckpointResponse.isFailure()) {
-                                log.error(
-                                    "Error encountered when initialising tables, skipping table processing.status code: {} message {}",
-                                    initializeTableMetricsCheckpointResponse.getStatusCode(),
-                                    initializeTableMetricsCheckpointResponse.getCause());
-                                return CompletableFuture.completedFuture(null);
-                              }
+              CompletableFuture<List<CompletableFuture<Boolean>>>
+                  initialiseAndProcessNewlyDiscoveredTablesFuture =
+                      initialiseAndProcessNewlyDiscoveredTables(tablesToInitialise);
 
-                              Map<
-                                      String,
-                                      InitializeTableMetricsCheckpointResponse
-                                          .InitializeSingleTableMetricsCheckpointResponse>
-                                  initialiseTableMetricsCheckpointMap =
-                                      initializeTableMetricsCheckpointResponse
-                                          .getResponse()
-                                          .stream()
-                                          .collect(
-                                              Collectors.toMap(
-                                                  InitializeTableMetricsCheckpointResponse
-                                                          .InitializeSingleTableMetricsCheckpointResponse
-                                                      ::getTableId,
-                                                  Function.identity()));
-                              for (Table table : tablesToInitialise) {
-                                InitializeTableMetricsCheckpointResponse
-                                        .InitializeSingleTableMetricsCheckpointResponse
-                                    response =
-                                        initialiseTableMetricsCheckpointMap.get(table.getTableId());
-                                if (!StringUtils.isBlank(response.getError())) {
-                                  log.error(
-                                      "Error initialising table: {} error: {}, skipping table processing",
-                                      table,
-                                      response.getError());
-                                  continue;
-                                }
-                                processTablesFuture.add(
-                                    uploadNewInstantsSinceCheckpoint(
-                                        table.getTableId(), table, INITIAL_CHECKPOINT));
-                              }
-                              return CompletableFuture.completedFuture(null);
-                            },
-                            executorService);
-              }
-
-              return initialiseNewlyDiscoveredTablesFuture.thenComposeAsync(
-                  ignore ->
-                      CompletableFuture.allOf(processTablesFuture.toArray(new CompletableFuture[0]))
-                          .thenApply(
-                              ignored ->
-                                  processTablesFuture.stream()
-                                      .map(CompletableFuture::join)
-                                      .anyMatch(response -> !response)), // return false
-                  // if processing any table failed
+              return initialiseAndProcessNewlyDiscoveredTablesFuture.thenComposeAsync(
+                  discoveredTablesProcessingFuture -> {
+                    processTablesFuture.addAll(discoveredTablesProcessingFuture);
+                    return CompletableFuture.allOf(
+                            processTablesFuture.toArray(new CompletableFuture[0]))
+                        .thenApply(
+                            ignored ->
+                                processTablesFuture.stream()
+                                    .map(CompletableFuture::join)
+                                    .anyMatch(response -> !response));
+                  }, // return false if processing any table failed
                   executorService);
             },
             executorService)
@@ -244,6 +160,97 @@ public class TableMetadataUploaderService {
               log.error("Encountered exception when uploading instants", throwable);
               return null;
             });
+  }
+
+  private CompletableFuture<List<CompletableFuture<Boolean>>>
+      initialiseAndProcessNewlyDiscoveredTables(List<Table> tablesToInitialise) {
+    List<CompletableFuture<Boolean>> processTablesFuture = new ArrayList<>();
+    CompletableFuture<List<CompletableFuture<Boolean>>>
+        initialiseAndProcessNewlyDiscoveredTablesFuture =
+            CompletableFuture.completedFuture(processTablesFuture);
+    if (!tablesToInitialise.isEmpty()) {
+      log.info("Initializing following tables {}", tablesToInitialise);
+      List<
+              CompletableFuture<
+                  InitializeTableMetricsCheckpointRequest
+                      .InitializeSingleTableMetricsCheckpointRequest>>
+          initializeSingleTableMetricsCheckpointRequestFutureList = new ArrayList<>();
+      for (Table table : tablesToInitialise) {
+        initializeSingleTableMetricsCheckpointRequestFutureList.add(
+            hoodiePropertiesReader
+                .readHoodieProperties(getHoodiePropertiesFilePath(table))
+                .thenApply(
+                    properties ->
+                        InitializeTableMetricsCheckpointRequest
+                            .InitializeSingleTableMetricsCheckpointRequest.builder()
+                            .tableId(table.getTableId())
+                            .tableName(properties.getTableName())
+                            .tableType(properties.getTableType())
+                            .databaseName(table.getDatabaseName())
+                            .lakeName(table.getLakeName())
+                            .build()));
+      }
+      initialiseAndProcessNewlyDiscoveredTablesFuture =
+          CompletableFuture.allOf(
+                  initializeSingleTableMetricsCheckpointRequestFutureList.toArray(
+                      new CompletableFuture[0]))
+              .thenComposeAsync(
+                  ignored -> {
+                    List<
+                            InitializeTableMetricsCheckpointRequest
+                                .InitializeSingleTableMetricsCheckpointRequest>
+                        initializeSingleTableMetricsCheckpointRequestList =
+                            initializeSingleTableMetricsCheckpointRequestFutureList.stream()
+                                .map(CompletableFuture::join)
+                                .collect(Collectors.toList());
+                    return onehouseApiClient.initializeTableMetricsCheckpoint(
+                        InitializeTableMetricsCheckpointRequest.builder()
+                            .tables(initializeSingleTableMetricsCheckpointRequestList)
+                            .build());
+                  },
+                  executorService)
+              .thenComposeAsync(
+                  initializeTableMetricsCheckpointResponse -> {
+                    if (initializeTableMetricsCheckpointResponse.isFailure()) {
+                      log.error(
+                          "Error encountered when initialising tables, skipping table processing.status code: {} message {}",
+                          initializeTableMetricsCheckpointResponse.getStatusCode(),
+                          initializeTableMetricsCheckpointResponse.getCause());
+                      return CompletableFuture.completedFuture(null);
+                    }
+
+                    Map<
+                            String,
+                            InitializeTableMetricsCheckpointResponse
+                                .InitializeSingleTableMetricsCheckpointResponse>
+                        initialiseTableMetricsCheckpointMap =
+                            initializeTableMetricsCheckpointResponse.getResponse().stream()
+                                .collect(
+                                    Collectors.toMap(
+                                        InitializeTableMetricsCheckpointResponse
+                                                .InitializeSingleTableMetricsCheckpointResponse
+                                            ::getTableId,
+                                        Function.identity()));
+                    for (Table table : tablesToInitialise) {
+                      InitializeTableMetricsCheckpointResponse
+                              .InitializeSingleTableMetricsCheckpointResponse
+                          response = initialiseTableMetricsCheckpointMap.get(table.getTableId());
+                      if (!StringUtils.isBlank(response.getError())) {
+                        log.error(
+                            "Error initialising table: {} error: {}, skipping table processing",
+                            table,
+                            response.getError());
+                        continue;
+                      }
+                      processTablesFuture.add(
+                          uploadNewInstantsSinceCheckpoint(
+                              table.getTableId(), table, INITIAL_CHECKPOINT));
+                    }
+                    return CompletableFuture.completedFuture(processTablesFuture);
+                  },
+                  executorService);
+    }
+    return initialiseAndProcessNewlyDiscoveredTablesFuture;
   }
 
   private CompletableFuture<Boolean> uploadNewInstantsSinceCheckpoint(
