@@ -8,12 +8,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nonnull;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+@Slf4j
 public class AsyncHttpClientWithRetry {
 
   private final ScheduledExecutorService scheduler;
@@ -24,7 +28,7 @@ public class AsyncHttpClientWithRetry {
   // using mapping from:
   // https://chromium.googlesource.com/external/github.com/grpc/grpc/+/refs/tags/v1.21.4-pre1/doc/statuscodes.md
   private static final List<Integer> ACCEPTABLE_HTTP_FAILURE_STATUS_CODES =
-      List.of(404, 400, 403, 401);
+      List.of(404, 400, 403, 401, 409);
   private static final Random random = new Random();
 
   public AsyncHttpClientWithRetry(
@@ -46,8 +50,18 @@ public class AsyncHttpClientWithRetry {
         .enqueue(
             new Callback() {
               @Override
-              public void onFailure(Call call, IOException e) {
+              public void onFailure(@Nonnull Call call, @Nonnull IOException e) {
                 if (tryCount < maxRetries) {
+                  Request request = call.request();
+                  HttpUrl url = request.url();
+                  String method = request.method();
+                  log.warn(
+                      "API Request failed with error: {}, attempt: {}, url: {}, method: {}",
+                      e.getMessage(),
+                      tryCount,
+                      url,
+                      method);
+
                   scheduleRetry(request, tryCount, future);
                 } else {
                   future.completeExceptionally(e);
@@ -55,10 +69,20 @@ public class AsyncHttpClientWithRetry {
               }
 
               @Override
-              public void onResponse(Call call, Response response) {
+              public void onResponse(@Nonnull Call call, @Nonnull Response response) {
                 if (!response.isSuccessful()
                     && !ACCEPTABLE_HTTP_FAILURE_STATUS_CODES.contains(response.code())
                     && tryCount < maxRetries) {
+                  Request request = call.request();
+                  HttpUrl url = request.url();
+                  String method = request.method();
+                  int statusCode = response.code();
+                  log.warn(
+                      "API Request failed with HTTP status: {}, attempt: {}, url: {}, method: {}",
+                      statusCode,
+                      tryCount,
+                      url,
+                      method);
                   scheduleRetry(request, tryCount, future);
                 } else {
                   future.complete(response);
