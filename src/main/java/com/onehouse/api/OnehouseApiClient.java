@@ -65,7 +65,7 @@ public class OnehouseApiClient {
     HttpUrl.Builder urlBuilder =
         HttpUrl.parse(ONEHOUSE_API_ENDPOINT + GET_TABLE_METRICS_CHECKPOINT).newBuilder();
     for (String tableId : tableIds) {
-      urlBuilder.addQueryParameter("tableId", tableId);
+      urlBuilder.addQueryParameter("tableIds", tableId);
     }
     String url = urlBuilder.build().toString();
     return asyncGet(url, GetTableMetricsCheckpointResponse.class);

@@ -173,7 +173,7 @@ class OnehouseApiClientTest {
         .when(onehouseApiClientSpy)
         .asyncGet(
             String.format(
-                "%s%s?tableId=%s&tableId=%s",
+                "%s%s?tableIds=%s&tableIds=%s",
                 ONEHOUSE_API_ENDPOINT,
                 GET_TABLE_METRICS_CHECKPOINT,
                 tableId1,
