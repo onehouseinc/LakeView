@@ -29,7 +29,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
-import okhttp3.Call;
 import okhttp3.MediaType;
 import okhttp3.Protocol;
 import okhttp3.Request;
@@ -50,10 +49,10 @@ class OnehouseApiClientTest {
   @Mock private AsyncHttpClientWithRetry client;
   @Mock private ConfigV1 config;
   @Mock private OnehouseClientConfig onehouseClientConfig;
-  @Mock private Call call;
   private OnehouseApiClient onehouseApiClient;
 
   private static final int FAILURE_STATUS_CODE = 500;
+  private static final String SAMPLE_HOST = "http://example.com";
   private static final String FAILURE_ERROR = "call failed";
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -97,7 +96,8 @@ class OnehouseApiClientTest {
     String apiEndpoint = "/testEndpoint";
     stubOkHttpCall(apiEndpoint, false);
     CompletableFuture<GetTableMetricsCheckpointResponse> futureResult =
-        onehouseApiClient.asyncGet(apiEndpoint, GetTableMetricsCheckpointResponse.class);
+        onehouseApiClient.asyncGet(
+            SAMPLE_HOST + apiEndpoint, GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse result = futureResult.join();
     assertEquals("checkpoint", result.getCheckpoint());
   }
@@ -129,11 +129,16 @@ class OnehouseApiClientTest {
     OnehouseApiClient onehouseApiClientSpy = spy(onehouseApiClient);
     InitializeTableMetricsCheckpointRequest request =
         InitializeTableMetricsCheckpointRequest.builder()
-            .tableId(tableId)
-            .tableType(tableType)
-            .tableName("table")
-            .databaseName("database")
-            .lakeName("lake")
+            .tables(
+                List.of(
+                    InitializeTableMetricsCheckpointRequest
+                        .InitializeSingleTableMetricsCheckpointRequest.builder()
+                        .tableId(tableId)
+                        .tableType(tableType)
+                        .tableName("table")
+                        .databaseName("database")
+                        .lakeName("lake")
+                        .build()))
             .build();
     doReturn(
             CompletableFuture.completedFuture(
@@ -151,7 +156,8 @@ class OnehouseApiClientTest {
   @Test
   @SneakyThrows
   void verifyGetTableMetricsCheckpoint() {
-    UUID tableId = UUID.randomUUID();
+    UUID tableId1 = UUID.randomUUID();
+    UUID tableId2 = UUID.randomUUID();
     OnehouseApiClient onehouseApiClientSpy = spy(onehouseApiClient);
 
     doReturn(
@@ -159,10 +165,14 @@ class OnehouseApiClientTest {
                 GetTableMetricsCheckpointResponse.builder().checkpoint("").build()))
         .when(onehouseApiClientSpy)
         .asyncGet(
-            (MessageFormat.format(GET_TABLE_METRICS_CHECKPOINT, tableId)),
-            (GetTableMetricsCheckpointResponse.class));
+            String.format(
+                "%s%s?tableId=%s&tableId=%s",
+                SAMPLE_HOST, GET_TABLE_METRICS_CHECKPOINT, tableId1, tableId2), // get request url
+            GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse response =
-        onehouseApiClientSpy.getTableMetricsCheckpoint(String.valueOf(tableId)).get();
+        onehouseApiClientSpy
+            .getTableMetricsCheckpoints(List.of(tableId1.toString(), tableId2.toString()))
+            .get();
     assertNotNull(response);
   }
 
@@ -227,7 +237,7 @@ class OnehouseApiClientTest {
           new Response.Builder()
               .code(FAILURE_STATUS_CODE)
               .message(FAILURE_ERROR)
-              .request(new Request.Builder().url("http://example.com" + apiEndpoint).build())
+              .request(new Request.Builder().url(SAMPLE_HOST + apiEndpoint).build())
               .protocol(Protocol.HTTP_1_1)
               .build();
     } else {
@@ -235,7 +245,7 @@ class OnehouseApiClientTest {
           new Response.Builder()
               .code(200)
               .message("OK")
-              .request(new Request.Builder().url("http://example.com" + apiEndpoint).build())
+              .request(new Request.Builder().url(SAMPLE_HOST + apiEndpoint).build())
               .protocol(Protocol.HTTP_1_1)
               .body(responseBody)
               .build();

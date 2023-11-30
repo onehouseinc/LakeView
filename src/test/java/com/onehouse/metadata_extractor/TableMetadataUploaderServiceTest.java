@@ -82,7 +82,7 @@ class TableMetadataUploaderServiceTest {
     InitializeTableMetricsCheckpointResponse initializeTableMetricsCheckpointResponse =
         InitializeTableMetricsCheckpointResponse.builder().build();
 
-    when(onehouseApiClient.getTableMetricsCheckpoint(TABLE_ID.toString()))
+    when(onehouseApiClient.getTableMetricsCheckpoints(TABLE_ID.toString()))
         .thenReturn(CompletableFuture.completedFuture(mockedResponse));
     when(hoodiePropertiesReader.readHoodieProperties(
             String.format("%s%s/%s", S3_TABLE_URI, HOODIE_FOLDER_NAME, HOODIE_PROPERTIES_FILE)))
@@ -136,7 +136,7 @@ class TableMetadataUploaderServiceTest {
         generateCheckpointObj(1, Instant.EPOCH, false, "archived_instant1");
     String currentCheckpointJson = mapper.writeValueAsString(currentCheckpoint);
 
-    when(onehouseApiClient.getTableMetricsCheckpoint(TABLE_ID.toString()))
+    when(onehouseApiClient.getTableMetricsCheckpoints(TABLE_ID.toString()))
         .thenReturn(
             CompletableFuture.completedFuture(
                 GetTableMetricsCheckpointResponse.builder()
@@ -187,7 +187,7 @@ class TableMetadataUploaderServiceTest {
             .build();
     String currentCheckpointJson = mapper.writeValueAsString(currentCheckpoint);
 
-    when(onehouseApiClient.getTableMetricsCheckpoint(TABLE_ID.toString()))
+    when(onehouseApiClient.getTableMetricsCheckpoints(TABLE_ID.toString()))
         .thenReturn(
             CompletableFuture.completedFuture(
                 GetTableMetricsCheckpointResponse.builder()
@@ -213,13 +213,13 @@ class TableMetadataUploaderServiceTest {
         GetTableMetricsCheckpointResponse.builder().build();
     mockedResponse.setError(500, ""); // any non 404 error
 
-    when(onehouseApiClient.getTableMetricsCheckpoint(TABLE_ID.toString()))
+    when(onehouseApiClient.getTableMetricsCheckpoints(TABLE_ID.toString()))
         .thenReturn(CompletableFuture.completedFuture(mockedResponse));
 
     tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join();
 
     verify(onehouseApiClient, times(1))
-        .getTableMetricsCheckpoint(
+        .getTableMetricsCheckpoints(
             TABLE_ID.toString()); // placeholder to ensure that onehouseApiClient is interacted with
     // just once
   }

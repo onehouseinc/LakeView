@@ -1,7 +1,6 @@
 package com.onehouse.api;
 
 import static com.onehouse.constants.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD_URL;
-import static com.onehouse.constants.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
 import static com.onehouse.constants.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
 import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_ENDPOINT;
 import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_KEY;
@@ -27,10 +26,12 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
 import lombok.SneakyThrows;
 import okhttp3.Headers;
+import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -52,17 +53,20 @@ public class OnehouseApiClient {
   public CompletableFuture<InitializeTableMetricsCheckpointResponse>
       initializeTableMetricsCheckpoint(InitializeTableMetricsCheckpointRequest request) {
     return asyncPost(
-        MessageFormat.format(INITIALIZE_TABLE_METRICS_CHECKPOINT, request.getTableId()),
+        INITIALIZE_TABLE_METRICS_CHECKPOINT,
         mapper.writeValueAsString(request),
         InitializeTableMetricsCheckpointResponse.class);
   }
 
   @SneakyThrows
-  public CompletableFuture<GetTableMetricsCheckpointResponse> getTableMetricsCheckpoint(
-      String tableId) {
-    return asyncGet(
-        MessageFormat.format(GET_TABLE_METRICS_CHECKPOINT, tableId),
-        GetTableMetricsCheckpointResponse.class);
+  public CompletableFuture<GetTableMetricsCheckpointResponse> getTableMetricsCheckpoints(
+      List<String> tableIds) {
+    HttpUrl.Builder urlBuilder = HttpUrl.parse("http://example.com/getTables").newBuilder();
+    for (String tableId : tableIds) {
+      urlBuilder.addQueryParameter("tableId", tableId);
+    }
+    String url = urlBuilder.build().toString();
+    return asyncGet(url, GetTableMetricsCheckpointResponse.class);
   }
 
   @SneakyThrows
@@ -93,9 +97,8 @@ public class OnehouseApiClient {
   }
 
   @VisibleForTesting
-  <T> CompletableFuture<T> asyncGet(String apiEndpoint, Class<T> typeReference) {
-    Request request =
-        new Request.Builder().url(ONEHOUSE_API_ENDPOINT + apiEndpoint).headers(headers).build();
+  <T> CompletableFuture<T> asyncGet(String url, Class<T> typeReference) {
+    Request request = new Request.Builder().url(url).headers(headers).build();
 
     return asyncClient
         .makeRequestWithRetry(request)

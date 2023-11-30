@@ -1,8 +1,21 @@
 package com.onehouse.api.models.response;
 
-import lombok.AllArgsConstructor;
+import java.util.List;
 import lombok.Builder;
+import lombok.Value;
+import lombok.extern.jackson.Jacksonized;
 
 @Builder
-@AllArgsConstructor
-public class InitializeTableMetricsCheckpointResponse extends ApiResponse {}
+@Value
+@Jacksonized
+public class InitializeTableMetricsCheckpointResponse extends ApiResponse {
+  @Builder
+  @Value
+  @Jacksonized
+  public static class InitializeSingleTableMetricsCheckpointResponse {
+    String tableId;
+    String error;
+  }
+
+  List<InitializeSingleTableMetricsCheckpointResponse> response;
+}
