@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -204,6 +205,9 @@ class TableMetadataUploaderServiceTest {
         generateCheckpointObj(1, Instant.EPOCH, false, "archived_instant1");
     String currentCheckpointJson = mapper.writeValueAsString(currentCheckpoint);
 
+    Set<Table> discoveredTables = Set.of(TABLE, table2);
+    List<String> getCheckpointsRequest =
+        discoveredTables.stream().map(Table::getTableId).collect(Collectors.toList());
     // TABLE (table 1) needs to be initialised
     InitializeTableMetricsCheckpointResponse initializeTableMetricsCheckpointResponse =
         InitializeTableMetricsCheckpointResponse.builder()
@@ -228,8 +232,7 @@ class TableMetadataUploaderServiceTest {
                         .lakeName(TABLE.getLakeName())
                         .build()))
             .build();
-    when(onehouseApiClient.getTableMetricsCheckpoints(
-            List.of(TABLE_ID.toString(), tableId2.toString())))
+    when(onehouseApiClient.getTableMetricsCheckpoints(getCheckpointsRequest))
         .thenReturn(
             CompletableFuture.completedFuture(
                 GetTableMetricsCheckpointResponse.builder()
@@ -272,10 +275,9 @@ class TableMetadataUploaderServiceTest {
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
         .thenReturn(CompletableFuture.completedFuture(FINAL_ACTIVE_TIMELINE_CHECKPOINT));
 
-    tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE, table2)).join();
+    tableMetadataUploaderService.uploadInstantsInTables(discoveredTables).join();
 
-    verify(onehouseApiClient, times(1))
-        .getTableMetricsCheckpoints(List.of(TABLE_ID.toString(), tableId2.toString()));
+    verify(onehouseApiClient, times(1)).getTableMetricsCheckpoints(getCheckpointsRequest);
     verify(onehouseApiClient, times(1)).initializeTableMetricsCheckpoint(expectedRequest);
     // table 1
     verify(timelineCommitInstantsUploader, times(1))
