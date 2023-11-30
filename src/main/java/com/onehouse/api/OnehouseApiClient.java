@@ -1,6 +1,7 @@
 package com.onehouse.api;
 
 import static com.onehouse.constants.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD_URL;
+import static com.onehouse.constants.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
 import static com.onehouse.constants.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
 import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_ENDPOINT;
 import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_KEY;
@@ -61,7 +62,7 @@ public class OnehouseApiClient {
   @SneakyThrows
   public CompletableFuture<GetTableMetricsCheckpointResponse> getTableMetricsCheckpoints(
       List<String> tableIds) {
-    HttpUrl.Builder urlBuilder = HttpUrl.parse("http://example.com/getTables").newBuilder();
+    HttpUrl.Builder urlBuilder = HttpUrl.parse(ONEHOUSE_API_ENDPOINT+GET_TABLE_METRICS_CHECKPOINT).newBuilder();
     for (String tableId : tableIds) {
       urlBuilder.addQueryParameter("tableId", tableId);
     }
