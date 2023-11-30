@@ -46,7 +46,7 @@ public class TableDiscoveryService {
     this.metadataExtractorConfig = ((ConfigV1) config).getMetadataExtractorConfig();
     this.executorService = executorService;
     this.excludedPathPatterns =
-        metadataExtractorConfig.getPathExclusionPatterns().orElse(List.of());
+        metadataExtractorConfig.getPathExclusionPatterns().orElse(new ArrayList<>());
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
