@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.OptionalInt;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
@@ -85,7 +84,7 @@ public class TimelineCommitInstantsUploader {
    *     upload is finished.
    */
   public CompletableFuture<Checkpoint> batchUploadWithCheckpoint(
-      UUID tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
+      String tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
 
     String timelineUri =
         storageUtils.constructFileUri(
@@ -109,7 +108,7 @@ public class TimelineCommitInstantsUploader {
    *     paginated upload.
    */
   public CompletableFuture<Checkpoint> paginatedBatchUploadWithCheckpoint(
-      UUID tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
+      String tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
     String bucketName = storageUtils.getBucketNameFromUri(table.getAbsoluteTableUri());
     String prefix =
         storageUtils.getPathFromUrl(
@@ -121,7 +120,7 @@ public class TimelineCommitInstantsUploader {
   }
 
   private CompletableFuture<Checkpoint> executeFullBatchUpload(
-      UUID tableId,
+      String tableId,
       Table table,
       String timelineUri,
       Checkpoint checkpoint,
@@ -144,7 +143,7 @@ public class TimelineCommitInstantsUploader {
   }
 
   private CompletableFuture<Checkpoint> executePaginatedBatchUpload(
-      UUID tableId,
+      String tableId,
       Table table,
       String bucketName,
       String prefix,
@@ -209,7 +208,7 @@ public class TimelineCommitInstantsUploader {
    *     paginated upload.
    */
   private CompletableFuture<Checkpoint> uploadInstantsInSequentialBatches(
-      UUID tableId,
+      String tableId,
       Table table,
       List<File> filesToUpload,
       Checkpoint checkpoint,
@@ -277,7 +276,10 @@ public class TimelineCommitInstantsUploader {
   }
 
   private CompletableFuture<Void> uploadBatch(
-      UUID tableId, List<File> batch, CommitTimelineType commitTimelineType, String directoryUri) {
+      String tableId,
+      List<File> batch,
+      CommitTimelineType commitTimelineType,
+      String directoryUri) {
     List<String> commitInstants =
         batch.stream()
             .map(file -> getFileNameWithPrefix(file, commitTimelineType))
@@ -313,7 +315,7 @@ public class TimelineCommitInstantsUploader {
   }
 
   private CompletableFuture<Checkpoint> updateCheckpointAfterProcessingBatch(
-      UUID tableId,
+      String tableId,
       Checkpoint previousCheckpoint,
       boolean processedAllBatchesInCurrentPage,
       File lastUploadedFile,
