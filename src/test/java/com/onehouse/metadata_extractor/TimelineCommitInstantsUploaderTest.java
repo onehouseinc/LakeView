@@ -128,7 +128,7 @@ class TimelineCommitInstantsUploaderTest {
     Checkpoint response =
         timelineCommitInstantsUploaderSpy
             .batchUploadWithCheckpoint(
-                TABLE_ID,
+                TABLE_ID.toString(),
                 TABLE,
                 INITIAL_CHECKPOINT,
                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
@@ -234,7 +234,10 @@ class TimelineCommitInstantsUploaderTest {
     Checkpoint response =
         timelineCommitInstantsUploaderSpy
             .paginatedBatchUploadWithCheckpoint(
-                TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+                TABLE_ID.toString(),
+                TABLE,
+                INITIAL_CHECKPOINT,
+                CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
             .join();
 
     verify(asyncStorageClient, times(2)).fetchObjectsByPage(anyString(), anyString(), any(), any());
@@ -304,7 +307,10 @@ class TimelineCommitInstantsUploaderTest {
 
     timelineCommitInstantsUploaderSpy
         .paginatedBatchUploadWithCheckpoint(
-            TABLE_ID, TABLE, previousCheckpoint, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+            TABLE_ID.toString(),
+            TABLE,
+            previousCheckpoint,
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
         .join();
 
     verify(asyncStorageClient, times(1)).fetchObjectsByPage(anyString(), anyString(), any(), any());
@@ -324,7 +330,7 @@ class TimelineCommitInstantsUploaderTest {
     Checkpoint checkpoint =
         timelineCommitInstantsUploader
             .batchUploadWithCheckpoint(
-                TABLE_ID,
+                TABLE_ID.toString(),
                 TABLE,
                 INITIAL_CHECKPOINT,
                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
@@ -365,7 +371,10 @@ class TimelineCommitInstantsUploaderTest {
     // uploading instants in archived timeline for the first time
     timelineCommitInstantsUploaderSpy
         .batchUploadWithCheckpoint(
-            TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+            TABLE_ID.toString(),
+            TABLE,
+            INITIAL_CHECKPOINT,
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
         .join();
 
     // generate commit metadata api call will fail and no more batches will be processed
@@ -424,7 +433,10 @@ class TimelineCommitInstantsUploaderTest {
     // uploading instants in archived timeline for the first time
     timelineCommitInstantsUploaderSpy
         .batchUploadWithCheckpoint(
-            TABLE_ID, TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+            TABLE_ID.toString(),
+            TABLE,
+            INITIAL_CHECKPOINT,
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
         .join();
 
     // update checkpoint api call will fail and no more batches will be processed
