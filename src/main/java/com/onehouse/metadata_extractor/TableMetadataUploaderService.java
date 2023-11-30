@@ -9,7 +9,6 @@ import static com.onehouse.constants.MetadataExtractorConstants.TABLE_PROCESSING
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.onehouse.api.OnehouseApiClient;
@@ -72,7 +71,7 @@ public class TableMetadataUploaderService {
             .collect(Collectors.toList());
     List<CompletableFuture<Boolean>> processTablesFuture = new ArrayList<>();
     List<List<Table>> tableBatches =
-        Lists.partition(new ArrayList<>(tableWithIds), getTableProcessingBatchSize());
+        Lists.partition(new ArrayList<>(tableWithIds), TABLE_PROCESSING_BATCH_SIZE);
 
     for (List<Table> tableBatch : tableBatches) {
       processTablesFuture.add(uploadInstantsInTableBatch(tableBatch));
@@ -223,7 +222,7 @@ public class TableMetadataUploaderService {
                                     uploadNewInstantsSinceCheckpoint(
                                         table.getTableId(), table, INITIAL_CHECKPOINT));
                               }
-                              return null;
+                              return CompletableFuture.completedFuture(null);
                             },
                             executorService);
               }
@@ -311,10 +310,5 @@ public class TableMetadataUploaderService {
 
   private static Checkpoint resetCheckpoint(Checkpoint checkpoint) {
     return checkpoint.toBuilder().checkpointTimestamp(Instant.EPOCH).lastUploadedFile("").build();
-  }
-
-  @VisibleForTesting
-  int getTableProcessingBatchSize() {
-    return TABLE_PROCESSING_BATCH_SIZE;
   }
 }
