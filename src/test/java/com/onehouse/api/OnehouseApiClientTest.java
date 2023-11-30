@@ -3,6 +3,7 @@ package com.onehouse.api;
 import static com.onehouse.constants.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD_URL;
 import static com.onehouse.constants.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
 import static com.onehouse.constants.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_ENDPOINT;
 import static com.onehouse.constants.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -75,7 +76,7 @@ class OnehouseApiClientTest {
         onehouseApiClient.asyncPost(
             apiEndpoint, requestJson, GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse result = futureResult.join();
-    assertEquals("checkpoint", result.getCheckpoint());
+    assertEquals("checkpoint", result.getCheckpoints().get(0).getCheckpoint());
   }
 
   @Test
@@ -99,7 +100,7 @@ class OnehouseApiClientTest {
         onehouseApiClient.asyncGet(
             SAMPLE_HOST + apiEndpoint, GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse result = futureResult.join();
-    assertEquals("checkpoint", result.getCheckpoint());
+    assertEquals("checkpoint", result.getCheckpoints().get(0).getCheckpoint());
   }
 
   @Test
@@ -107,7 +108,8 @@ class OnehouseApiClientTest {
     String apiEndpoint = "/testEndpoint";
     stubOkHttpCall(apiEndpoint, true);
     CompletableFuture<GetTableMetricsCheckpointResponse> futureResult =
-        onehouseApiClient.asyncGet(apiEndpoint, GetTableMetricsCheckpointResponse.class);
+        onehouseApiClient.asyncGet(
+            SAMPLE_HOST + apiEndpoint, GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse result = futureResult.join();
     assertTrue(result.isFailure());
     assertEquals(FAILURE_STATUS_CODE, result.getStatusCode());
@@ -133,7 +135,7 @@ class OnehouseApiClientTest {
                 List.of(
                     InitializeTableMetricsCheckpointRequest
                         .InitializeSingleTableMetricsCheckpointRequest.builder()
-                        .tableId(tableId)
+                        .tableId(tableId.toString())
                         .tableType(tableType)
                         .tableName("table")
                         .databaseName("database")
@@ -162,12 +164,20 @@ class OnehouseApiClientTest {
 
     doReturn(
             CompletableFuture.completedFuture(
-                GetTableMetricsCheckpointResponse.builder().checkpoint("").build()))
+                GetTableMetricsCheckpointResponse.builder()
+                    .checkpoints(
+                        List.of(
+                            buildTableMetadataCheckpoint(tableId1.toString(), "checkpoint1"),
+                            buildTableMetadataCheckpoint(tableId2.toString(), "checkpoint2")))
+                    .build()))
         .when(onehouseApiClientSpy)
         .asyncGet(
             String.format(
                 "%s%s?tableId=%s&tableId=%s",
-                SAMPLE_HOST, GET_TABLE_METRICS_CHECKPOINT, tableId1, tableId2), // get request url
+                ONEHOUSE_API_ENDPOINT,
+                GET_TABLE_METRICS_CHECKPOINT,
+                tableId1,
+                tableId2), // get request url
             GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse response =
         onehouseApiClientSpy
@@ -228,7 +238,8 @@ class OnehouseApiClientTest {
   }
 
   private void stubOkHttpCall(String apiEndpoint, boolean isFailure) {
-    String responseBodyContent = "{\"checkpoint\":\"checkpoint\"}";
+    String responseBodyContent =
+        "{\"checkpoints\":[{\"checkpoint\":\"checkpoint\",\"tableId\":\"tableId\"}]}";
     ResponseBody responseBody =
         ResponseBody.create(responseBodyContent, MediaType.parse("application/json"));
     Response response;
@@ -253,5 +264,13 @@ class OnehouseApiClientTest {
 
     when(client.makeRequestWithRetry(any(Request.class)))
         .thenReturn(CompletableFuture.completedFuture(response));
+  }
+
+  private GetTableMetricsCheckpointResponse.TableMetadataCheckpoint buildTableMetadataCheckpoint(
+      String tableId, String checkpoint) {
+    return GetTableMetricsCheckpointResponse.TableMetadataCheckpoint.builder()
+        .tableId(tableId)
+        .checkpoint(checkpoint)
+        .build();
   }
 }

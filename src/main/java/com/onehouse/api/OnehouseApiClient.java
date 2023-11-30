@@ -62,7 +62,8 @@ public class OnehouseApiClient {
   @SneakyThrows
   public CompletableFuture<GetTableMetricsCheckpointResponse> getTableMetricsCheckpoints(
       List<String> tableIds) {
-    HttpUrl.Builder urlBuilder = HttpUrl.parse(ONEHOUSE_API_ENDPOINT+GET_TABLE_METRICS_CHECKPOINT).newBuilder();
+    HttpUrl.Builder urlBuilder =
+        HttpUrl.parse(ONEHOUSE_API_ENDPOINT + GET_TABLE_METRICS_CHECKPOINT).newBuilder();
     for (String tableId : tableIds) {
       urlBuilder.addQueryParameter("tableId", tableId);
     }

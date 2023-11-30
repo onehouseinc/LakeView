@@ -113,7 +113,7 @@ public class TableMetadataUploaderService {
                           .collect(
                               Collectors.toMap(
                                   GetTableMetricsCheckpointResponse.TableMetadataCheckpoint
-                                      ::getCheckpoint,
+                                      ::getTableId,
                                   Function.identity()));
 
               for (Table table : tables) {
