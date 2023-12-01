@@ -83,6 +83,7 @@ public class AsyncHttpClientWithRetry {
                       tryCount,
                       url,
                       method);
+                  response.close();
                   scheduleRetry(request, tryCount, future);
                 } else {
                   future.complete(response);

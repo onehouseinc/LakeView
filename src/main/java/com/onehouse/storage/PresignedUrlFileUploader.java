@@ -35,11 +35,15 @@ public class PresignedUrlFileUploader {
                   .thenApply(
                       uploadResponse -> {
                         if (!uploadResponse.isSuccessful()) {
+                          int statusCode = uploadResponse.code();
+                          String message = uploadResponse.message();
+                          uploadResponse.close();
                           throw new RuntimeException(
                               String.format(
                                   "file upload failed failed: response code: %s error message: %s",
-                                  uploadResponse.code(), uploadResponse.message()));
+                                  statusCode, message));
                         }
+                        uploadResponse.close();
                         return null; // Successfully uploaded
                       });
             });

@@ -8,9 +8,10 @@ public class ApiConstants {
       System.getenv().getOrDefault("ONEHOUSE_API_ENDPOINT", "https://api.onehouse.ai");
 
   // API Endpoints
-  public static final String INITIALIZE_TABLE_METRICS_CHECKPOINT = "/v1/community/{0}";
+  public static final String INITIALIZE_TABLE_METRICS_CHECKPOINT =
+      "/v1/community/initialize-tables";
   public static final String UPSERT_TABLE_METRICS_CHECKPOINT = "/v1/community/{0}/checkpoint";
-  public static final String GET_TABLE_METRICS_CHECKPOINT = "/v1/community/{0}/checkpoint";
+  public static final String GET_TABLE_METRICS_CHECKPOINT = "/v1/community/checkpoints";
   public static final String GENERATE_COMMIT_METADATA_UPLOAD_URL = "/v1/community/{0}/upload-urls";
 
   // Header constants
