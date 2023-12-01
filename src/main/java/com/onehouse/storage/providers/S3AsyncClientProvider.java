@@ -47,8 +47,8 @@ public class S3AsyncClientProvider {
     return s3AsyncClientBuilder
         .httpClient(
             NettyNioAsyncHttpClient.builder()
-                .maxConcurrency(100)
-                .maxPendingConnectionAcquires(1_000)
+                .maxConcurrency(500)
+                .maxPendingConnectionAcquires(10_000)
                 .connectionMaxIdleTime(Duration.ofSeconds(60))
                 .connectionTimeout(Duration.ofSeconds(30))
                 .connectionAcquisitionTimeout(Duration.ofSeconds(30))
