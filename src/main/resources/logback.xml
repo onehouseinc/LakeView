@@ -5,8 +5,8 @@
         </encoder>
     </appender>
 
-    <logger name="software.amazon" level="info"/>
-    <logger name="com.google.cloud" level="info"/>
+    <logger name="software.amazon" level="debug"/>
+    <logger name="com.google.cloud" level="debug"/>
     <logger name="io.netty" level="info" />
 
     <root level="info">
