@@ -37,6 +37,7 @@ import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class OnehouseApiClient {
   private final AsyncHttpClientWithRetry asyncClient;
@@ -139,6 +140,7 @@ public class OnehouseApiClient {
         if (errorResponse instanceof ApiResponse) {
           ((ApiResponse) errorResponse).setError(response.code(), response.message());
         }
+        response.close();
         return errorResponse;
       } catch (InstantiationException
           | IllegalAccessException

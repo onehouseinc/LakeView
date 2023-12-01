@@ -4,6 +4,8 @@ import com.google.inject.Inject;
 import com.onehouse.config.Config;
 import com.onehouse.config.models.common.FileSystemConfiguration;
 import com.onehouse.config.models.common.S3Config;
+
+import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
 import org.slf4j.Logger;
@@ -14,6 +16,7 @@ import software.amazon.awssdk.core.client.config.SdkAdvancedAsyncClientOption;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 
 public class S3AsyncClientProvider {
   private final S3Config s3Config;
@@ -42,6 +45,10 @@ public class S3AsyncClientProvider {
     }
 
     return s3AsyncClientBuilder
+            .httpClient(NettyNioAsyncHttpClient.builder()
+                    .maxConcurrency(100) // Increase max concurrency (connections)
+                    .connectionAcquisitionTimeout(Duration.ofSeconds(2)) // Increase acquisition timeout
+                    .build())
         .region(Region.of(s3Config.getRegion()))
         .asyncConfiguration(
             builder ->

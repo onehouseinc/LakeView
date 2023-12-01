@@ -1,0 +1,137 @@
+version: V1
+onehouseClientConfig:
+  projectId: fcd03032-70d3-4705-be86-afa3206ef1a9
+  apiKey: 0Kkg6Zqt3YTnm1hcgYubLg==
+  apiSecret: b8arisp8S0rf7lXXhCI7hlGy66bblmklfkGAOUKdZ68=
+  userId: bsxggYJxqxNulTAkqc9AmbBb8kJ2
+fileSystemConfiguration:
+  s3Config:
+    region: us-west-2
+metadataExtractorConfig:
+  jobRunMode: ONCE
+  parserConfig:
+    - lake: a1dfa429-76ec-4c14-a014-6b48c8852d19
+      databases:
+        - name: community-db
+          basePaths:
+            - "s3://jenkins-infra-hudi/ce_load_test/0/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/1/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/2/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/3/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/4/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/5/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/6/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/7/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/8/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/9/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/10/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/11/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/12/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/13/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/14/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/15/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/16/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/17/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/18/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/19/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/20/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/21/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/22/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/23/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/24/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/25/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/26/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/27/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/28/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/29/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/30/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/31/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/32/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/33/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/34/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/35/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/36/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/37/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/38/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/39/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/40/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/41/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/42/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/43/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/44/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/45/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/46/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/47/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/48/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/49/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/50/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/51/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/52/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/53/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/54/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/55/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/56/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/57/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/58/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/59/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/60/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/61/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/62/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/63/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/64/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/65/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/66/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/67/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/68/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/69/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/70/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/71/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/72/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/73/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/74/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/75/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/76/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/77/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/78/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/79/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/80/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/81/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/82/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/83/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/84/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/85/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/86/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/87/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/88/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/89/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/90/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/91/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/92/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/93/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/94/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/95/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/96/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/97/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/98/oh_datagen_events_clickstream"
+            - "s3://jenkins-infra-hudi/ce_load_test/99/oh_datagen_events_clickstream"
+
+
+#version: V1
+#onehouseClientConfig:
+#  projectId: fcd03032-70d3-4705-be86-afa3206ef1a9
+#  apiKey: 0Kkg6Zqt3YTnm1hcgYubLg==
+#  apiSecret: b8arisp8S0rf7lXXhCI7hlGy66bblmklfkGAOUKdZ68=
+#  userId: bsxggYJxqxNulTAkqc9AmbBb8kJ2
+#fileSystemConfiguration:
+#  s3Config:
+#    region: us-west-2
+#metadataExtractorConfig:
+#  jobRunMode: CONTINUOUS
+#  parserConfig:
+#    - lake: demo-test
+#      databases:
+#        - name: demo-test
+#          basePaths:
+#            - s3://acme-lake/test/test_hemanth/kafka_postgrescdc_transform_device_final_1/ # clustering and compaction
+#            - s3://acme-lake/staging/events/clickstream_raw # no partition
+#            - s3://acme-lake/test/test_hemanth/slack_table_final/ # no partition
