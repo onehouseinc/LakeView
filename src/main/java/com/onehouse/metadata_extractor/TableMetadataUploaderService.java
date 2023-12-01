@@ -230,7 +230,14 @@ public class TableMetadataUploaderService {
                                         InitializeTableMetricsCheckpointResponse
                                                 .InitializeSingleTableMetricsCheckpointResponse
                                             ::getTableId,
-                                        Function.identity()));
+                                        Function.identity(),
+                                        (oldValue, newValue) -> {
+                                          log.warn(
+                                              "duplicate found! old value: {} new value: {}",
+                                              oldValue,
+                                              newValue);
+                                          return newValue;
+                                        }));
                     for (Table table : tablesToInitialise) {
                       InitializeTableMetricsCheckpointResponse
                               .InitializeSingleTableMetricsCheckpointResponse
