@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 @Slf4j
 public class RuntimeModule extends AbstractModule {
   private static final Logger logger = LoggerFactory.getLogger(RuntimeModule.class);
-  private static final int IO_WORKLOAD_NUM_THREAD_MULTIPLIER = 3;
+  private static final int IO_WORKLOAD_NUM_THREAD_MULTIPLIER = 2;
   private static final int HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS = 15;
   private static final int HTTP_CLIENT_MAX_RETRIES = 3;
   private static final long HTTP_CLIENT_RETRY_DELAY_MS = 1000;

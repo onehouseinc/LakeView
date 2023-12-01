@@ -14,7 +14,7 @@ public class MetadataExtractorConstants {
   public static final String HOODIE_TABLE_NAME_KEY = "hoodie.table.name";
   public static final String HOODIE_TABLE_TYPE_KEY = "hoodie.table.type";
   public static final int PRESIGNED_URL_REQUEST_BATCH_SIZE = 100;
-  public static final int TABLE_PROCESSING_BATCH_SIZE = 30;
+  public static final int TABLE_PROCESSING_BATCH_SIZE = 10;
   public static final int TABLE_DISCOVERY_INTERVAL_MINUTES = 30;
   public static final int TABLE_METADATA_UPLOAD_INTERVAL_MINUTES = 5;
   public static final Pattern ARCHIVED_COMMIT_INSTANT_PATTERN =
