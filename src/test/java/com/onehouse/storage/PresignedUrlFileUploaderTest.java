@@ -9,9 +9,11 @@ import static org.mockito.Mockito.when;
 import com.onehouse.api.AsyncHttpClientWithRetry;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import okhttp3.MediaType;
 import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -68,6 +70,7 @@ class PresignedUrlFileUploaderTest {
 
   private void mockOkHttpCall(String url, boolean failure) {
     Response fakeResponse;
+    ResponseBody responseBody = ResponseBody.create("", MediaType.get("text/plain"));
     if (failure) {
       fakeResponse =
           new Response.Builder()
@@ -75,6 +78,7 @@ class PresignedUrlFileUploaderTest {
               .protocol(Protocol.HTTP_1_1)
               .code(FAILURE_STATUS_CODE)
               .message(FAILURE_ERROR)
+              .body(responseBody)
               .build();
     } else {
       fakeResponse =
@@ -83,6 +87,7 @@ class PresignedUrlFileUploaderTest {
               .protocol(Protocol.HTTP_1_1)
               .code(200)
               .message("OK")
+              .body(responseBody)
               .build();
     }
     when(asyncHttpClientWithRetry.makeRequestWithRetry(any(Request.class)))
