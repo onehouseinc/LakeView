@@ -18,14 +18,16 @@ import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Singleton;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Dispatcher;
 import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Slf4j
 public class RuntimeModule extends AbstractModule {
   private static final Logger logger = LoggerFactory.getLogger(RuntimeModule.class);
-  private static final int IO_WORKLOAD_NUM_THREAD_MULTIPLIER = 5;
+  private static final int IO_WORKLOAD_NUM_THREAD_MULTIPLIER = 3;
   private static final int HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS = 15;
   private static final int HTTP_CLIENT_MAX_RETRIES = 3;
   private static final long HTTP_CLIENT_RETRY_DELAY_MS = 1000;
@@ -77,6 +79,9 @@ public class RuntimeModule extends AbstractModule {
   @Provides
   @Singleton
   static ExecutorService providesExecutorService() {
+    // more threads as most operation are IO intensive workload
+    int numThreads = Runtime.getRuntime().availableProcessors() * IO_WORKLOAD_NUM_THREAD_MULTIPLIER;
+    log.debug("Spinning up {} threads", numThreads);
     class ApplicationThreadFactory implements ForkJoinPool.ForkJoinWorkerThreadFactory {
       private static final String THREAD_GROUP_NAME_TEMPLATE = "metadata-extractor-%d";
       private final AtomicInteger counter = new AtomicInteger(1);
@@ -92,9 +97,7 @@ public class RuntimeModule extends AbstractModule {
     }
 
     return new ForkJoinPool(
-        Runtime.getRuntime().availableProcessors()
-            * IO_WORKLOAD_NUM_THREAD_MULTIPLIER, // more threads as most operation are IO intensive
-        // workload
+        numThreads,
         new ApplicationThreadFactory(),
         (thread, throwable) -> {
           if (throwable != null) {
