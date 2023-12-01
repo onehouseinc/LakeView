@@ -250,6 +250,7 @@ class OnehouseApiClientTest {
               .message(FAILURE_ERROR)
               .request(new Request.Builder().url(SAMPLE_HOST + apiEndpoint).build())
               .protocol(Protocol.HTTP_1_1)
+              .body(responseBody)
               .build();
     } else {
       response =
