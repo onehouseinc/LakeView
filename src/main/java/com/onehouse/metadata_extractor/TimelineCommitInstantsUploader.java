@@ -139,7 +139,15 @@ public class TimelineCommitInstantsUploader {
                       tableId, table, filesToUpload, checkpoint, commitTimelineType, true);
             },
             executorService)
-        .exceptionally(throwable -> null);
+        .exceptionally(
+            throwable -> {
+              log.error(
+                  "Encountered exception when uploading instants for table {} timeline {}",
+                  table,
+                  commitTimelineType,
+                  throwable);
+              return null;
+            });
   }
 
   private CompletableFuture<Checkpoint> executePaginatedBatchUpload(
@@ -185,7 +193,11 @@ public class TimelineCommitInstantsUploader {
             executorService)
         .exceptionally(
             throwable -> {
-              log.error("error occured", throwable);
+              log.error(
+                  "Encountered exception when uploading instants for table {} timeline {}",
+                  table,
+                  commitTimelineType,
+                  throwable);
               return null;
             });
   }
