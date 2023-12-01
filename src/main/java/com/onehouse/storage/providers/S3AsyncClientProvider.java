@@ -48,11 +48,11 @@ public class S3AsyncClientProvider {
         .httpClient(
             NettyNioAsyncHttpClient.builder()
                 .maxConcurrency(100)
-                .maxPendingConnectionAcquires(10_000)
+                .maxPendingConnectionAcquires(5_000)
                 .connectionMaxIdleTime(Duration.ofSeconds(60))
                 .connectionTimeout(Duration.ofSeconds(30))
                 .connectionAcquisitionTimeout(Duration.ofSeconds(30))
-                .readTimeout(Duration.ofSeconds(60))
+                .readTimeout(Duration.ofSeconds(30))
                 .build())
         .region(Region.of(s3Config.getRegion()))
         .asyncConfiguration(
