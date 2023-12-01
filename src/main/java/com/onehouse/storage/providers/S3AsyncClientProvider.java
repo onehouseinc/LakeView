@@ -43,12 +43,16 @@ public class S3AsyncClientProvider {
       s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
     }
 
+    // tuning based on https://github.com/aws/aws-sdk-java-v2/issues/3221#issuecomment-1142717337
     return s3AsyncClientBuilder
         .httpClient(
             NettyNioAsyncHttpClient.builder()
-                .maxConcurrency(100) // Increase max concurrency (connections)
-                .connectionAcquisitionTimeout(
-                    Duration.ofSeconds(30)) // Increase acquisition timeout
+                .maxConcurrency(500)
+                .maxPendingConnectionAcquires(10_000)
+                .connectionMaxIdleTime(Duration.ofSeconds(60))
+                .connectionTimeout(Duration.ofSeconds(30))
+                .connectionAcquisitionTimeout(Duration.ofSeconds(30))
+                .readTimeout(Duration.ofSeconds(30))
                 .build())
         .region(Region.of(s3Config.getRegion()))
         .asyncConfiguration(
