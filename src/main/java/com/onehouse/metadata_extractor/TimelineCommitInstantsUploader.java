@@ -85,7 +85,7 @@ public class TimelineCommitInstantsUploader {
    */
   public CompletableFuture<Checkpoint> batchUploadWithCheckpoint(
       String tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
-    log.info("uploading instants in table: {} timeline: {}",table,commitTimelineType);
+    log.info("uploading instants in table: {} timeline: {}", table, commitTimelineType);
 
     String timelineUri =
         storageUtils.constructFileUri(
@@ -110,7 +110,7 @@ public class TimelineCommitInstantsUploader {
    */
   public CompletableFuture<Checkpoint> paginatedBatchUploadWithCheckpoint(
       String tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
-    log.info("uploading instants in table: {} timeline: {}",table,commitTimelineType);
+    log.info("uploading instants in table: {} timeline: {}", table, commitTimelineType);
     String bucketName = storageUtils.getBucketNameFromUri(table.getAbsoluteTableUri());
     String prefix =
         storageUtils.getPathFromUrl(

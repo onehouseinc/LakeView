@@ -69,15 +69,19 @@ public class TableMetadataUploaderService {
                             getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUri()).toString())
                         .build())
             .collect(Collectors.toList());
-    List<CompletableFuture<Boolean>> processTablesFuture = new ArrayList<>();
     List<List<Table>> tableBatches =
         Lists.partition(new ArrayList<>(tableWithIds), TABLE_PROCESSING_BATCH_SIZE);
 
+    CompletableFuture<Boolean> processTableBatchFuture = CompletableFuture.completedFuture(true);
+
+    // process batches one after another
     for (List<Table> tableBatch : tableBatches) {
-      processTablesFuture.add(uploadInstantsInTableBatch(tableBatch));
+      processTableBatchFuture =
+          processTableBatchFuture.thenComposeAsync(
+              ignore -> uploadInstantsInTableBatch(tableBatch), executorService);
     }
 
-    return CompletableFuture.allOf(processTablesFuture.toArray(new CompletableFuture[0]));
+    return processTableBatchFuture.thenApply(ignored -> null);
   }
 
   private CompletableFuture<Boolean> uploadInstantsInTableBatch(List<Table> tables) {
