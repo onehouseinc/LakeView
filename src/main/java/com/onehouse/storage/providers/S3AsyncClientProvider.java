@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import com.onehouse.config.Config;
 import com.onehouse.config.models.common.FileSystemConfiguration;
 import com.onehouse.config.models.common.S3Config;
-import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
 import org.slf4j.Logger;
@@ -12,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.SdkAdvancedAsyncClientOption;
-import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
@@ -45,15 +43,14 @@ public class S3AsyncClientProvider {
 
     // tuning based on https://github.com/aws/aws-sdk-java-v2/issues/3221#issuecomment-1142717337
     return s3AsyncClientBuilder
-        .httpClient(
-            NettyNioAsyncHttpClient.builder()
-                .maxConcurrency(100)
-                .maxPendingConnectionAcquires(5_000)
-                .connectionMaxIdleTime(Duration.ofSeconds(60))
-                .connectionTimeout(Duration.ofSeconds(30))
-                .connectionAcquisitionTimeout(Duration.ofSeconds(30))
-                .readTimeout(Duration.ofSeconds(30))
-                .build())
+        //        .httpClient(
+        //            NettyNioAsyncHttpClient.builder()
+        //                .maxConcurrency(100)
+        //                .connectionMaxIdleTime(Duration.ofSeconds(60))
+        //                .connectionTimeout(Duration.ofSeconds(30))
+        //                .connectionAcquisitionTimeout(Duration.ofSeconds(30))
+        //                .readTimeout(Duration.ofSeconds(30))
+        //                .build())
         .region(Region.of(s3Config.getRegion()))
         .asyncConfiguration(
             builder ->
