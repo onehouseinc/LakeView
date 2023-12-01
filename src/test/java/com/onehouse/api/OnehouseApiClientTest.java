@@ -3,6 +3,7 @@ package com.onehouse.api;
 import static com.onehouse.constants.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD_URL;
 import static com.onehouse.constants.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
 import static com.onehouse.constants.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_ENDPOINT;
 import static com.onehouse.constants.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,7 +30,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
-import okhttp3.Call;
 import okhttp3.MediaType;
 import okhttp3.Protocol;
 import okhttp3.Request;
@@ -50,10 +50,10 @@ class OnehouseApiClientTest {
   @Mock private AsyncHttpClientWithRetry client;
   @Mock private ConfigV1 config;
   @Mock private OnehouseClientConfig onehouseClientConfig;
-  @Mock private Call call;
   private OnehouseApiClient onehouseApiClient;
 
   private static final int FAILURE_STATUS_CODE = 500;
+  private static final String SAMPLE_HOST = "http://example.com";
   private static final String FAILURE_ERROR = "call failed";
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -76,7 +76,7 @@ class OnehouseApiClientTest {
         onehouseApiClient.asyncPost(
             apiEndpoint, requestJson, GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse result = futureResult.join();
-    assertEquals("checkpoint", result.getCheckpoint());
+    assertEquals("checkpoint", result.getCheckpoints().get(0).getCheckpoint());
   }
 
   @Test
@@ -97,9 +97,10 @@ class OnehouseApiClientTest {
     String apiEndpoint = "/testEndpoint";
     stubOkHttpCall(apiEndpoint, false);
     CompletableFuture<GetTableMetricsCheckpointResponse> futureResult =
-        onehouseApiClient.asyncGet(apiEndpoint, GetTableMetricsCheckpointResponse.class);
+        onehouseApiClient.asyncGet(
+            SAMPLE_HOST + apiEndpoint, GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse result = futureResult.join();
-    assertEquals("checkpoint", result.getCheckpoint());
+    assertEquals("checkpoint", result.getCheckpoints().get(0).getCheckpoint());
   }
 
   @Test
@@ -107,7 +108,8 @@ class OnehouseApiClientTest {
     String apiEndpoint = "/testEndpoint";
     stubOkHttpCall(apiEndpoint, true);
     CompletableFuture<GetTableMetricsCheckpointResponse> futureResult =
-        onehouseApiClient.asyncGet(apiEndpoint, GetTableMetricsCheckpointResponse.class);
+        onehouseApiClient.asyncGet(
+            SAMPLE_HOST + apiEndpoint, GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse result = futureResult.join();
     assertTrue(result.isFailure());
     assertEquals(FAILURE_STATUS_CODE, result.getStatusCode());
@@ -129,11 +131,16 @@ class OnehouseApiClientTest {
     OnehouseApiClient onehouseApiClientSpy = spy(onehouseApiClient);
     InitializeTableMetricsCheckpointRequest request =
         InitializeTableMetricsCheckpointRequest.builder()
-            .tableId(tableId)
-            .tableType(tableType)
-            .tableName("table")
-            .databaseName("database")
-            .lakeName("lake")
+            .tables(
+                List.of(
+                    InitializeTableMetricsCheckpointRequest
+                        .InitializeSingleTableMetricsCheckpointRequest.builder()
+                        .tableId(tableId.toString())
+                        .tableType(tableType)
+                        .tableName("table")
+                        .databaseName("database")
+                        .lakeName("lake")
+                        .build()))
             .build();
     doReturn(
             CompletableFuture.completedFuture(
@@ -151,18 +158,31 @@ class OnehouseApiClientTest {
   @Test
   @SneakyThrows
   void verifyGetTableMetricsCheckpoint() {
-    UUID tableId = UUID.randomUUID();
+    UUID tableId1 = UUID.randomUUID();
+    UUID tableId2 = UUID.randomUUID();
     OnehouseApiClient onehouseApiClientSpy = spy(onehouseApiClient);
 
     doReturn(
             CompletableFuture.completedFuture(
-                GetTableMetricsCheckpointResponse.builder().checkpoint("").build()))
+                GetTableMetricsCheckpointResponse.builder()
+                    .checkpoints(
+                        List.of(
+                            buildTableMetadataCheckpoint(tableId1.toString(), "checkpoint1"),
+                            buildTableMetadataCheckpoint(tableId2.toString(), "checkpoint2")))
+                    .build()))
         .when(onehouseApiClientSpy)
         .asyncGet(
-            (MessageFormat.format(GET_TABLE_METRICS_CHECKPOINT, tableId)),
-            (GetTableMetricsCheckpointResponse.class));
+            String.format(
+                "%s%s?tableIds=%s&tableIds=%s",
+                ONEHOUSE_API_ENDPOINT,
+                GET_TABLE_METRICS_CHECKPOINT,
+                tableId1,
+                tableId2), // get request url
+            GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse response =
-        onehouseApiClientSpy.getTableMetricsCheckpoint(String.valueOf(tableId)).get();
+        onehouseApiClientSpy
+            .getTableMetricsCheckpoints(List.of(tableId1.toString(), tableId2.toString()))
+            .get();
     assertNotNull(response);
   }
 
@@ -218,7 +238,8 @@ class OnehouseApiClientTest {
   }
 
   private void stubOkHttpCall(String apiEndpoint, boolean isFailure) {
-    String responseBodyContent = "{\"checkpoint\":\"checkpoint\"}";
+    String responseBodyContent =
+        "{\"checkpoints\":[{\"checkpoint\":\"checkpoint\",\"tableId\":\"tableId\"}]}";
     ResponseBody responseBody =
         ResponseBody.create(responseBodyContent, MediaType.parse("application/json"));
     Response response;
@@ -227,15 +248,16 @@ class OnehouseApiClientTest {
           new Response.Builder()
               .code(FAILURE_STATUS_CODE)
               .message(FAILURE_ERROR)
-              .request(new Request.Builder().url("http://example.com" + apiEndpoint).build())
+              .request(new Request.Builder().url(SAMPLE_HOST + apiEndpoint).build())
               .protocol(Protocol.HTTP_1_1)
+              .body(responseBody)
               .build();
     } else {
       response =
           new Response.Builder()
               .code(200)
               .message("OK")
-              .request(new Request.Builder().url("http://example.com" + apiEndpoint).build())
+              .request(new Request.Builder().url(SAMPLE_HOST + apiEndpoint).build())
               .protocol(Protocol.HTTP_1_1)
               .body(responseBody)
               .build();
@@ -243,5 +265,13 @@ class OnehouseApiClientTest {
 
     when(client.makeRequestWithRetry(any(Request.class)))
         .thenReturn(CompletableFuture.completedFuture(response));
+  }
+
+  private GetTableMetricsCheckpointResponse.TableMetadataCheckpoint buildTableMetadataCheckpoint(
+      String tableId, String checkpoint) {
+    return GetTableMetricsCheckpointResponse.TableMetadataCheckpoint.builder()
+        .tableId(tableId)
+        .checkpoint(checkpoint)
+        .build();
   }
 }
