@@ -254,6 +254,11 @@ public class TimelineCommitInstantsUploader {
                         : batch.get(
                             batch.size()
                                 - 3); // third last item in the batch will be the completed instant
+                log.info(
+                    "uploading batch {} for table {} timeline: {}",
+                    updatedCheckpoint.getBatchId() + 1,
+                    table,
+                    commitTimelineType);
                 return uploadBatch(
                         tableId,
                         batch,
