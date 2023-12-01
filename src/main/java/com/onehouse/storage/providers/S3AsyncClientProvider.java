@@ -47,7 +47,7 @@ public class S3AsyncClientProvider {
     return s3AsyncClientBuilder
             .httpClient(NettyNioAsyncHttpClient.builder()
                     .maxConcurrency(100) // Increase max concurrency (connections)
-                    .connectionAcquisitionTimeout(Duration.ofSeconds(2)) // Increase acquisition timeout
+                    .connectionAcquisitionTimeout(Duration.ofSeconds(30)) // Increase acquisition timeout
                     .build())
         .region(Region.of(s3Config.getRegion()))
         .asyncConfiguration(
