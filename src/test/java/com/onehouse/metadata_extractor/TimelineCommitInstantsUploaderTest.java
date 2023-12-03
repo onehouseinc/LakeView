@@ -214,9 +214,9 @@ class TimelineCommitInstantsUploaderTest {
 
     stubCreateBatches(
         List.of(
+            generateFileObj("222.action", false, currentTime),
             generateFileObj("222.action.inflight", false),
-            generateFileObj("222.action.requested", false),
-            generateFileObj("222.action", false, currentTime)),
+            generateFileObj("222.action.requested", false)),
         List.of(batch2));
 
     Checkpoint checkpoint1 = generateCheckpointObj(1, Instant.EPOCH, true, "111.action");
@@ -295,9 +295,9 @@ class TimelineCommitInstantsUploaderTest {
 
     stubCreateBatches(
         List.of(
+            generateFileObj("333.action", false, currentTime),
             generateFileObj("333.action.inflight", false),
-            generateFileObj("333.action.requested", false),
-            generateFileObj("333.action", false, currentTime)),
+            generateFileObj("333.action.requested", false)),
         List.of(batch3));
 
     stubUploadInstantsCalls(

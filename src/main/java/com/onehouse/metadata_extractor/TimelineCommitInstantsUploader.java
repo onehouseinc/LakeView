@@ -7,7 +7,6 @@ import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NA
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE_OBJ;
 import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE;
-import static com.onehouse.utils.CompletableFutureUtils.applyTimeout;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,7 +30,6 @@ import java.util.List;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -93,12 +91,7 @@ public class TimelineCommitInstantsUploader {
         storageUtils.constructFileUri(
             table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType));
 
-    return applyTimeout(
-        executeFullBatchUpload(tableId, table, timelineUri, checkpoint, commitTimelineType),
-        5,
-        TimeUnit.MINUTES,
-        String.format(
-            "Reached timeout when processing table: %s, timeline: %s", table, commitTimelineType));
+    return executeFullBatchUpload(tableId, table, timelineUri, checkpoint, commitTimelineType);
   }
 
   /**
@@ -124,13 +117,8 @@ public class TimelineCommitInstantsUploader {
             storageUtils.constructFileUri(
                 table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType)));
 
-    return applyTimeout(
-        executePaginatedBatchUpload(
-            tableId, table, bucketName, prefix, checkpoint, commitTimelineType),
-        5,
-        TimeUnit.MINUTES,
-        String.format(
-            "Reached timeout when processing table: %s, timeline: %s", table, commitTimelineType));
+    return executePaginatedBatchUpload(
+        tableId, table, bucketName, prefix, checkpoint, commitTimelineType);
   }
 
   private CompletableFuture<Checkpoint> executeFullBatchUpload(
@@ -254,6 +242,13 @@ public class TimelineCommitInstantsUploader {
       batches = activeTimelineInstantBatcher.createBatches(filesToUpload, getUploadBatchSize());
     }
     int numBatches = batches.size();
+
+    log.info(
+        "Processing {} instants in table {} timeline {} sequentially in {} batches",
+        filesToUpload.size(),
+        table,
+        commitTimelineType,
+        numBatches);
 
     CompletableFuture<Checkpoint> sequentialBatchProcessingFuture =
         CompletableFuture.completedFuture(checkpoint);
@@ -422,15 +417,13 @@ public class TimelineCommitInstantsUploader {
     if (filesList.isEmpty()) {
       return filesList;
     }
-    Comparator<File> baseComparator = Comparator.comparing(File::getLastModifiedAt);
     Comparator<File> fileComparator;
 
     if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE.equals(commitTimelineType)) {
-      fileComparator = baseComparator.thenComparing(File::getFilename);
+      fileComparator = Comparator.comparing(File::getFilename);
     } else {
       fileComparator =
-          baseComparator.thenComparing(
-              file -> getNumericPartFromArchivedCommit(file.getFilename()));
+          Comparator.comparing(file -> getNumericPartFromArchivedCommit(file.getFilename()));
     }
 
     List<File> filteredAndSortedFiles =

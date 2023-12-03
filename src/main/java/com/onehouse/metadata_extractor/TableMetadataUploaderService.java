@@ -5,7 +5,6 @@ import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NA
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
 import static com.onehouse.constants.MetadataExtractorConstants.TABLE_PROCESSING_BATCH_SIZE;
-import static com.onehouse.utils.CompletableFutureUtils.applyTimeouts;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +27,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -151,12 +149,7 @@ public class TableMetadataUploaderService {
                   discoveredTablesProcessingFuture -> {
                     processTablesFuture.addAll(discoveredTablesProcessingFuture);
                     return CompletableFuture.allOf(
-                            applyTimeouts(
-                                    processTablesFuture,
-                                    2,
-                                    TimeUnit.MINUTES,
-                                    "failed in uploadInstantsInTableBatch")
-                                .toArray(new CompletableFuture[0]))
+                            processTablesFuture.toArray(new CompletableFuture[0]))
                         .thenApply(
                             ignored ->
                                 processTablesFuture.stream()
@@ -203,12 +196,8 @@ public class TableMetadataUploaderService {
       }
       initialiseAndProcessNewlyDiscoveredTablesFuture =
           CompletableFuture.allOf(
-                  applyTimeouts(
-                          initializeSingleTableMetricsCheckpointRequestFutureList,
-                          2,
-                          TimeUnit.MINUTES,
-                          "failed in initialise single table metrics checkpoint request list")
-                      .toArray(new CompletableFuture[0]))
+                  initializeSingleTableMetricsCheckpointRequestFutureList.toArray(
+                      new CompletableFuture[0]))
               .thenComposeAsync(
                   ignored -> {
                     List<
