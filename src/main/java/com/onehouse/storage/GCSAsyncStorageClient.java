@@ -36,6 +36,11 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
   @Override
   public CompletableFuture<Pair<String, List<File>>> fetchObjectsByPage(
       String bucketName, String prefix, String continuationToken, String startAfter) {
+    log.debug(
+        "fetching files in dir {} continuationToken {} startAfter {}",
+        prefix,
+        continuationToken,
+        startAfter);
     return CompletableFuture.supplyAsync(
         () -> {
           List<Storage.BlobListOption> optionList =

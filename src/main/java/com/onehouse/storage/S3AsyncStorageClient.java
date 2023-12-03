@@ -39,6 +39,11 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
   public CompletableFuture<Pair<String, List<File>>> fetchObjectsByPage(
       String bucketName, String prefix, String continuationToken, String startAfter) {
 
+    log.debug(
+        "fetching files in dir {} continuationToken {} startAfter {}",
+        prefix,
+        continuationToken,
+        startAfter);
     ListObjectsV2Request.Builder listObjectsV2RequestBuilder =
         ListObjectsV2Request.builder().bucket(bucketName).prefix(prefix).delimiter("/");
 

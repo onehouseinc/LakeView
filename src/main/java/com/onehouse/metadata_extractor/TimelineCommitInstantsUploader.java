@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.OptionalInt;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
@@ -85,7 +84,8 @@ public class TimelineCommitInstantsUploader {
    *     upload is finished.
    */
   public CompletableFuture<Checkpoint> batchUploadWithCheckpoint(
-      UUID tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
+      String tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
+    log.info("uploading instants in table: {} timeline: {}", table, commitTimelineType);
 
     String timelineUri =
         storageUtils.constructFileUri(
@@ -109,7 +109,8 @@ public class TimelineCommitInstantsUploader {
    *     paginated upload.
    */
   public CompletableFuture<Checkpoint> paginatedBatchUploadWithCheckpoint(
-      UUID tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
+      String tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
+    log.info("uploading instants in table: {} timeline: {}", table, commitTimelineType);
     String bucketName = storageUtils.getBucketNameFromUri(table.getAbsoluteTableUri());
     String prefix =
         storageUtils.getPathFromUrl(
@@ -121,7 +122,7 @@ public class TimelineCommitInstantsUploader {
   }
 
   private CompletableFuture<Checkpoint> executeFullBatchUpload(
-      UUID tableId,
+      String tableId,
       Table table,
       String timelineUri,
       Checkpoint checkpoint,
@@ -140,11 +141,19 @@ public class TimelineCommitInstantsUploader {
                       tableId, table, filesToUpload, checkpoint, commitTimelineType, true);
             },
             executorService)
-        .exceptionally(throwable -> null);
+        .exceptionally(
+            throwable -> {
+              log.error(
+                  "Encountered exception when uploading instants for table {} timeline {}",
+                  table,
+                  commitTimelineType,
+                  throwable);
+              return null;
+            });
   }
 
   private CompletableFuture<Checkpoint> executePaginatedBatchUpload(
-      UUID tableId,
+      String tableId,
       Table table,
       String bucketName,
       String prefix,
@@ -168,25 +177,36 @@ public class TimelineCommitInstantsUploader {
                         commitTimelineType,
                         nextContinuationToken == null)
                     .thenComposeAsync(
-                        updatedCheckpoint ->
-                            StringUtils.isBlank(nextContinuationToken)
-                                ? CompletableFuture.completedFuture(updatedCheckpoint)
-                                : executePaginatedBatchUpload(
-                                    tableId,
-                                    table,
-                                    bucketName,
-                                    prefix,
-                                    updatedCheckpoint,
-                                    commitTimelineType),
+                        updatedCheckpoint -> {
+                          if (StringUtils.isBlank(nextContinuationToken)) {
+                            log.info(
+                                "Reached end of instants in {} for table {}",
+                                commitTimelineType,
+                                table);
+                            return CompletableFuture.completedFuture(updatedCheckpoint);
+                          }
+                          return executePaginatedBatchUpload(
+                              tableId,
+                              table,
+                              bucketName,
+                              prefix,
+                              updatedCheckpoint,
+                              commitTimelineType);
+                        },
                         executorService);
               } else {
+                log.info("Reached end of instants in {} for table {}", commitTimelineType, table);
                 return CompletableFuture.completedFuture(checkpoint);
               }
             },
             executorService)
         .exceptionally(
             throwable -> {
-              log.error("error occured", throwable);
+              log.error(
+                  "Encountered exception when uploading instants for table {} timeline {}",
+                  table,
+                  commitTimelineType,
+                  throwable);
               return null;
             });
   }
@@ -209,7 +229,7 @@ public class TimelineCommitInstantsUploader {
    *     paginated upload.
    */
   private CompletableFuture<Checkpoint> uploadInstantsInSequentialBatches(
-      UUID tableId,
+      String tableId,
       Table table,
       List<File> filesToUpload,
       Checkpoint checkpoint,
@@ -222,6 +242,13 @@ public class TimelineCommitInstantsUploader {
       batches = activeTimelineInstantBatcher.createBatches(filesToUpload, getUploadBatchSize());
     }
     int numBatches = batches.size();
+
+    log.info(
+        "Processing {} instants in table {} timeline {} sequentially in {} batches",
+        filesToUpload.size(),
+        table,
+        commitTimelineType,
+        numBatches);
 
     CompletableFuture<Checkpoint> sequentialBatchProcessingFuture =
         CompletableFuture.completedFuture(checkpoint);
@@ -241,6 +268,11 @@ public class TimelineCommitInstantsUploader {
                         : batch.get(
                             batch.size()
                                 - 3); // third last item in the batch will be the completed instant
+                log.info(
+                    "uploading batch {} for table {} timeline: {}",
+                    updatedCheckpoint.getBatchId() + 1,
+                    table,
+                    commitTimelineType);
                 return uploadBatch(
                         tableId,
                         batch,
@@ -277,7 +309,10 @@ public class TimelineCommitInstantsUploader {
   }
 
   private CompletableFuture<Void> uploadBatch(
-      UUID tableId, List<File> batch, CommitTimelineType commitTimelineType, String directoryUri) {
+      String tableId,
+      List<File> batch,
+      CommitTimelineType commitTimelineType,
+      String directoryUri) {
     List<String> commitInstants =
         batch.stream()
             .map(file -> getFileNameWithPrefix(file, commitTimelineType))
@@ -313,7 +348,7 @@ public class TimelineCommitInstantsUploader {
   }
 
   private CompletableFuture<Checkpoint> updateCheckpointAfterProcessingBatch(
-      UUID tableId,
+      String tableId,
       Checkpoint previousCheckpoint,
       boolean processedAllBatchesInCurrentPage,
       File lastUploadedFile,
@@ -382,15 +417,13 @@ public class TimelineCommitInstantsUploader {
     if (filesList.isEmpty()) {
       return filesList;
     }
-    Comparator<File> baseComparator = Comparator.comparing(File::getLastModifiedAt);
     Comparator<File> fileComparator;
 
     if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE.equals(commitTimelineType)) {
-      fileComparator = baseComparator.thenComparing(File::getFilename);
+      fileComparator = Comparator.comparing(File::getFilename);
     } else {
       fileComparator =
-          baseComparator.thenComparing(
-              file -> getNumericPartFromArchivedCommit(file.getFilename()));
+          Comparator.comparing(file -> getNumericPartFromArchivedCommit(file.getFilename()));
     }
 
     List<File> filteredAndSortedFiles =
