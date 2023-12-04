@@ -56,12 +56,18 @@ public class TableDiscoveryAndUploadJob {
    * Runs table discovery followed by metadata uploader once
    */
   public void runOnce() {
+    log.info("Current pid: {}", ProcessHandle.current().pid());
     log.info("Running metadata-extractor one time");
-    tableDiscoveryService
-        .discoverTables()
-        .thenCompose(tableMetadataUploaderService::uploadInstantsInTables)
-        .join();
-    log.info("Run Completed");
+    Boolean isSucceeded =
+        tableDiscoveryService
+            .discoverTables()
+            .thenCompose(tableMetadataUploaderService::uploadInstantsInTables)
+            .join();
+    if (Boolean.TRUE.equals(isSucceeded)) {
+      log.info("Run Completed");
+    } else {
+      log.error("Run failed");
+    }
   }
 
   private void discoverTables() {

@@ -1,8 +1,6 @@
 package com.onehouse.metadata_extractor;
 
-import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
-import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
-import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
+import static com.onehouse.constants.MetadataExtractorConstants.*;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
