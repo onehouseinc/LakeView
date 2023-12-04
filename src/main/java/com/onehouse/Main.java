@@ -81,13 +81,14 @@ public class Main {
     } else {
       job.runOnce();
     }
+    // explicitly shutdown scheduler so that JVM can exit
+    asyncHttpClientWithRetry.shutdownScheduler();
   }
 
   @VisibleForTesting
   void shutdownJob() {
     if (job != null) {
       job.shutdown();
-      asyncHttpClientWithRetry.shutdownScheduler();
     }
   }
 }
