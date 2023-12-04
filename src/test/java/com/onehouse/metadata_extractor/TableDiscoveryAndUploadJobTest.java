@@ -1,7 +1,6 @@
 package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_INTERVAL_MINUTES;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.onehouse.metadata_extractor.models.Table;
@@ -12,6 +11,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -80,8 +81,9 @@ class TableDiscoveryAndUploadJobTest {
         .uploadInstantsInTables(Set.of(discoveredTable));
   }
 
-  @Test
-  void testRunOnce() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testRunOnce(boolean isSucceeded) {
     Table discoveredTable =
         Table.builder()
             .absoluteTableUri("absolute_uri")
@@ -91,7 +93,7 @@ class TableDiscoveryAndUploadJobTest {
     when(mockTableDiscoveryService.discoverTables())
         .thenReturn(CompletableFuture.completedFuture(Set.of(discoveredTable)));
     when(mockTableMetadataUploaderService.uploadInstantsInTables(Set.of(discoveredTable)))
-        .thenReturn(CompletableFuture.completedFuture(null));
+        .thenReturn(CompletableFuture.completedFuture(isSucceeded));
     job.runOnce();
     verify(mockTableDiscoveryService, times(1)).discoverTables();
     verify(mockTableMetadataUploaderService, times(1))

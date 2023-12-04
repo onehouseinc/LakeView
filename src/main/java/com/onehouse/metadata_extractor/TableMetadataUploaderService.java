@@ -58,7 +58,7 @@ public class TableMetadataUploaderService {
     mapper.registerModule(new JavaTimeModule());
   }
 
-  public CompletableFuture<Void> uploadInstantsInTables(Set<Table> tablesToProcess) {
+  public CompletableFuture<Boolean> uploadInstantsInTables(Set<Table> tablesToProcess) {
     log.info("Uploading metadata of following tables: " + tablesToProcess);
     List<Table> tableWithIds =
         tablesToProcess.stream()
@@ -78,10 +78,13 @@ public class TableMetadataUploaderService {
     for (List<Table> tableBatch : tableBatches) {
       processTableBatchFuture =
           processTableBatchFuture.thenComposeAsync(
-              ignore -> uploadInstantsInTableBatch(tableBatch), executorService);
+              previousResult ->
+                  uploadInstantsInTableBatch(tableBatch)
+                      .thenApply(currentResult -> previousResult && currentResult),
+              executorService);
     }
 
-    return processTableBatchFuture.thenApply(ignored -> null);
+    return processTableBatchFuture;
   }
 
   private CompletableFuture<Boolean> uploadInstantsInTableBatch(List<Table> tables) {

@@ -97,6 +97,7 @@ public class AsyncHttpClientWithRetry {
   private void scheduleRetry(Request request, int tryCount, CompletableFuture<Response> future) {
     scheduler.schedule(
         () -> {
+          log.info("Scheduling request with attempt: {}", (tryCount + 1));
           attemptRequest(request, tryCount + 1)
               .whenComplete(
                   (resp, throwable) -> {
