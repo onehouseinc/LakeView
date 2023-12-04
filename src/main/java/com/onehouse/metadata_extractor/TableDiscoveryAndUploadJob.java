@@ -56,7 +56,6 @@ public class TableDiscoveryAndUploadJob {
    * Runs table discovery followed by metadata uploader once
    */
   public void runOnce() {
-    log.info("Current pid: {}", ProcessHandle.current().pid());
     log.info("Running metadata-extractor one time");
     Boolean isSucceeded =
         tableDiscoveryService
