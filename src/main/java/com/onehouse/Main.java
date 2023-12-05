@@ -76,7 +76,7 @@ public class Main {
   private void runJob(Config config) {
     try {
       MetadataExtractorConfig.JobRunMode jobRunMode =
-              ((ConfigV1) config).getMetadataExtractorConfig().getJobRunMode();
+          ((ConfigV1) config).getMetadataExtractorConfig().getJobRunMode();
       if (MetadataExtractorConfig.JobRunMode.CONTINUOUS.equals(jobRunMode)) {
         job.runInContinuousMode();
       } else {
