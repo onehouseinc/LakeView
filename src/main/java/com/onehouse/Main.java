@@ -74,12 +74,19 @@ public class Main {
   }
 
   private void runJob(Config config) {
-    MetadataExtractorConfig.JobRunMode jobRunMode =
-        ((ConfigV1) config).getMetadataExtractorConfig().getJobRunMode();
-    if (MetadataExtractorConfig.JobRunMode.CONTINUOUS.equals(jobRunMode)) {
-      job.runInContinuousMode();
-    } else {
-      job.runOnce();
+    try {
+      MetadataExtractorConfig.JobRunMode jobRunMode =
+          ((ConfigV1) config).getMetadataExtractorConfig().getJobRunMode();
+      if (MetadataExtractorConfig.JobRunMode.CONTINUOUS.equals(jobRunMode)) {
+        job.runInContinuousMode();
+      } else {
+        job.runOnce();
+      }
+    } catch (Exception e) {
+      log.error(e.getMessage(), e);
+    } finally {
+      // explicitly shutdown scheduler so that JVM can exit
+      asyncHttpClientWithRetry.shutdownScheduler();
     }
   }
 
@@ -87,7 +94,6 @@ public class Main {
   void shutdownJob() {
     if (job != null) {
       job.shutdown();
-      asyncHttpClientWithRetry.shutdownScheduler();
     }
   }
 }

@@ -70,6 +70,32 @@ class MainTest {
   }
 
   @Test
+  void testLoadConfigFromFileAndRunOnceFail() {
+    String[] args = {"-p", "configFilePath"};
+    when(mockParser.getConfigFilePath()).thenReturn("configFilePath");
+    when(mockConfigLoader.loadConfigFromConfigFile(anyString())).thenReturn(mockConfig);
+    when(mockConfig.getMetadataExtractorConfig())
+        .thenReturn(
+            MetadataExtractorConfig.builder()
+                .jobRunMode(MetadataExtractorConfig.JobRunMode.ONCE)
+                .parserConfig(List.of())
+                .build());
+    when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
+    when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
+        .thenReturn(mockAsyncHttpClientWithRetry);
+    doThrow(new RuntimeException()).when(mockJob).runOnce();
+    guiceMockedStatic
+        .when(() -> Guice.createInjector(any(RuntimeModule.class)))
+        .thenReturn(mockInjector);
+    main.start(args);
+    main.shutdownJob();
+
+    verify(mockConfigLoader).loadConfigFromConfigFile("configFilePath");
+    verify(mockJob).runOnce();
+    verifyShutdown();
+  }
+
+  @Test
   void testLoadConfigFromStringAndRunContinuous() {
     String[] args = {"-c", "configYamlString"};
 
