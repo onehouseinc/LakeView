@@ -29,33 +29,33 @@ Below is a detailed explanation of each section and its respective fields within
 version: V1
 
 onehouseClientConfig:
-# can be obtained from the community edition UI
-projectId: <CE project id>
-apiKey: <api key>
-apiSecret: <api secret>
-userId: <user id>
+    # can be obtained from the community edition UI
+    projectId: <CE project id>
+    apiKey: <api key>
+    apiSecret: <api secret>
+    userId: <user id>
 
 fileSystemConfiguration:
-# Provide either s3Config or gcsConfig
-s3Config:
-region: <aws-region>
-accessKey: <optional>
-accessSecret: <optional>
-gcsConfig:
-projectId: <optional projectId>
-gcpServiceAccountKeyPath: <optional path_to_gcp_auth_key>
+    # Provide either s3Config or gcsConfig
+    s3Config:
+        region: <aws-region>
+        accessKey: <optional>
+        accessSecret: <optional>
+    gcsConfig:
+        projectId: <optional projectId>
+        gcpServiceAccountKeyPath: <optional path_to_gcp_auth_key>
 
 metadataExtractorConfig:
-jobRunMode: CONTINUOUS | ONCE
-pathExclusionPatterns: [<pattern1>, <pattern2>, ...]
-parserConfig:
-- lake: <lake1>
-databases:
-- name: <database1>
-basePaths: [basepath11, basepath12, ...]
-- name: <database2>
-basePaths: [<path1>, <path2>, ...]
-# Add additional lakes and databases as needed
+    jobRunMode: CONTINUOUS | ONCE
+    pathExclusionPatterns: [<pattern1>, <pattern2>, ...]
+    parserConfig:
+        - lake: <lake1>
+          databases:
+            - name: <database1>
+              basePaths: [basepath11, basepath12, ...]
+            - name: <database2>
+              basePaths: [<path1>, <path2>, ...]
+        # Add additional lakes and databases as needed
 ```
 
 ### 1) version
