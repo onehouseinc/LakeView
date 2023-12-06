@@ -95,7 +95,7 @@ List of lakes and databases to be parsed.
 ##### databases:
 List of databases and their respective base paths. This can be used to organize tables in the UI under the format Lake > Database > Table.
 - **name:** Database name (optional, defaults to community-db ).
-- **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables
+- **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
 
 # Deployment using Jar or Docker-Image
 The Onehouse Community Edition Metadata Extractor can be configured using command line arguments for both the JAR file and the Docker image:
