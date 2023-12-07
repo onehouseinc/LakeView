@@ -29,33 +29,33 @@ Below is a detailed explanation of each section and its respective fields within
 version: V1
 
 onehouseClientConfig:
-# can be obtained from the community edition UI
-projectId: <CE project id>
-apiKey: <api key>
-apiSecret: <api secret>
-userId: <user id>
+    # can be obtained from the community edition UI
+    projectId: <CE project id>
+    apiKey: <api key>
+    apiSecret: <api secret>
+    userId: <user id>
 
 fileSystemConfiguration:
-# Provide either s3Config or gcsConfig
-s3Config:
-region: <aws-region>
-accessKey: <optional>
-accessSecret: <optional>
-gcsConfig:
-projectId: <optional projectId>
-gcpServiceAccountKeyPath: <optional path_to_gcp_auth_key>
+    # Provide either s3Config or gcsConfig
+    s3Config:
+        region: <aws-region>
+        accessKey: <optional>
+        accessSecret: <optional>
+    gcsConfig:
+        projectId: <optional projectId>
+        gcpServiceAccountKeyPath: <optional path_to_gcp_auth_key>
 
 metadataExtractorConfig:
-jobRunMode: CONTINUOUS | ONCE
-pathExclusionPatterns: [<pattern1>, <pattern2>, ...]
-parserConfig:
-- lake: <lake1>
-databases:
-- name: <database1>
-basePaths: [basepath11, basepath12, ...]
-- name: <database2>
-basePaths: [<path1>, <path2>, ...]
-# Add additional lakes and databases as needed
+    jobRunMode: CONTINUOUS | ONCE
+    pathExclusionPatterns: [<pattern1>, <pattern2>, ...]
+    parserConfig:
+        - lake: <lake1>
+          databases:
+            - name: <database1>
+              basePaths: [basepath11, basepath12, ...]
+            - name: <database2>
+              basePaths: [<path1>, <path2>, ...]
+        # Add additional lakes and databases as needed
 ```
 
 ### 1) version
@@ -95,7 +95,7 @@ List of lakes and databases to be parsed.
 ##### databases:
 List of databases and their respective base paths. This can be used to organize tables in the UI under the format Lake > Database > Table.
 - **name:** Database name (optional, defaults to community-db ).
-- **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables
+- **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
 
 # Deployment using Jar or Docker-Image
 The Onehouse Community Edition Metadata Extractor can be configured using command line arguments for both the JAR file and the Docker image:
