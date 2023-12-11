@@ -1,6 +1,7 @@
 package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
+import static com.onehouse.constants.MetadataExtractorConstants.WHITELISTED_ACTION_TYPES;
 
 import com.onehouse.storage.models.File;
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 public class ActiveTimelineInstantBatcher {
+  private static final String SAVEPOINT_ACTION = "savepoint";
 
   /**
    * Creates batches of Hudi instants, ensuring related instants are grouped together.
@@ -27,7 +29,7 @@ public class ActiveTimelineInstantBatcher {
       throw new IllegalArgumentException("max batch size cannot be less than 3");
     }
 
-    List<File> sortedInstants = sortInstants(instants);
+    List<File> sortedInstants = sortAndFilterInstants(instants);
     List<List<File>> batches = new ArrayList<>();
     List<File> currentBatch = new ArrayList<>();
 
@@ -43,18 +45,27 @@ public class ActiveTimelineInstantBatcher {
           getActiveTimeLineInstant(sortedInstants.get(index).getFilename());
       ActiveTimelineInstant instant2 =
           getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
-      ActiveTimelineInstant instant3 =
-          getActiveTimeLineInstant(sortedInstants.get(index + 2).getFilename());
 
-      if (areRelatedInstants(instant1, instant2, instant3)) {
-        if (currentBatch.size() + 3 <= maxBatchSize) {
+      int groupSize = 3;
+      boolean areInstantsInGrpRelated;
+      if (instant1.action.equals(SAVEPOINT_ACTION)) {
+        areInstantsInGrpRelated = areRelatedSavepointInstants(instant1, instant2);
+        groupSize = 2;
+      } else {
+        ActiveTimelineInstant instant3 =
+            getActiveTimeLineInstant(sortedInstants.get(index + 2).getFilename());
+        areInstantsInGrpRelated = areRelatedInstants(instant1, instant2, instant3);
+      }
+
+      if (areInstantsInGrpRelated) {
+        if (currentBatch.size() + groupSize <= maxBatchSize) {
           // Add the next group of three instants to the current batch
-          currentBatch.addAll(sortedInstants.subList(index, index + 3));
+          currentBatch.addAll(sortedInstants.subList(index, index + groupSize));
         } else {
           // Current batch size limit reached, start a new batch
           batches.add(new ArrayList<>(currentBatch));
           currentBatch.clear();
-          currentBatch.addAll(sortedInstants.subList(index, index + 3));
+          currentBatch.addAll(sortedInstants.subList(index, index + groupSize));
         }
       } else {
         // Instants are not related; add what we have and stop processing
@@ -63,6 +74,10 @@ public class ActiveTimelineInstantBatcher {
           currentBatch.clear();
         }
         break;
+      }
+
+      if (groupSize != 3) {
+        index = index - 1;
       }
     }
 
@@ -74,8 +89,13 @@ public class ActiveTimelineInstantBatcher {
     return batches;
   }
 
-  private List<File> sortInstants(List<File> instants) {
+  private List<File> sortAndFilterInstants(List<File> instants) {
     return instants.stream()
+        .filter(
+            file ->
+                file.getFilename().equals(HOODIE_PROPERTIES_FILE)
+                    || WHITELISTED_ACTION_TYPES.contains(
+                        getActiveTimeLineInstant(file.getFilename()).action))
         .sorted(
             Comparator.comparing(
                 File::getFilename,
@@ -103,6 +123,17 @@ public class ActiveTimelineInstantBatcher {
     Set<String> states =
         new HashSet<>(Arrays.asList(instant1.getState(), instant2.getState(), instant3.getState()));
     return states.containsAll(Arrays.asList("inflight", "requested", "completed"));
+  }
+
+  // Savepoint instants only have inflight and final commit
+  private static boolean areRelatedSavepointInstants(
+      ActiveTimelineInstant instant1, ActiveTimelineInstant instant2) {
+    if (!instant1.getTimestamp().equals(instant2.getTimestamp())) {
+      return false;
+    }
+
+    Set<String> states = new HashSet<>(Arrays.asList(instant1.getState(), instant2.getState()));
+    return states.containsAll(Arrays.asList("inflight", "completed"));
   }
 
   private static ActiveTimelineInstant getActiveTimeLineInstant(String instant) {

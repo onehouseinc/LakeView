@@ -178,6 +178,10 @@ public class TimelineCommitInstantsUploader {
                         nextContinuationToken == null)
                     .thenComposeAsync(
                         updatedCheckpoint -> {
+                          if (updatedCheckpoint == null) {
+                            // no batches to process, returning existing checkpoint
+                            return CompletableFuture.completedFuture(checkpoint);
+                          }
                           if (StringUtils.isBlank(nextContinuationToken)) {
                             log.info(
                                 "Reached end of instants in {} for table {}",
@@ -242,6 +246,10 @@ public class TimelineCommitInstantsUploader {
       batches = activeTimelineInstantBatcher.createBatches(filesToUpload, getUploadBatchSize());
     }
     int numBatches = batches.size();
+
+    if (numBatches == 0) {
+      return CompletableFuture.completedFuture(null);
+    }
 
     log.info(
         "Processing {} instants in table {} timeline {} sequentially in {} batches",
