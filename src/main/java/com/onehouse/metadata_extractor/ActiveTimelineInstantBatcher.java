@@ -99,11 +99,6 @@ public class ActiveTimelineInstantBatcher {
       return false;
     }
 
-    if (!instant1.getAction().equals(instant2.getAction())
-        || !instant2.getAction().equals(instant3.getAction())) {
-      return false;
-    }
-
     // Check if all three states are present
     Set<String> states =
         new HashSet<>(Arrays.asList(instant1.getState(), instant2.getState(), instant3.getState()));
