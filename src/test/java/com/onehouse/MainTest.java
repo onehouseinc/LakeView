@@ -87,7 +87,6 @@ class MainTest {
         .when(() -> Guice.createInjector(any(RuntimeModule.class)))
         .thenReturn(mockInjector);
     main.start(args);
-    main.shutdown();
 
     verify(mockConfigLoader).loadConfigFromConfigFile("configFilePath");
     verify(mockJob).runOnce();
