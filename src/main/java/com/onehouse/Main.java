@@ -83,6 +83,7 @@ public class Main {
       }
     } catch (Exception e) {
       log.error(e.getMessage(), e);
+      shutdown();
     }
   }
 
