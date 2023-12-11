@@ -56,8 +56,6 @@ public class Main {
     job = injector.getInstance(TableDiscoveryAndUploadJob.class);
     asyncHttpClientWithRetry = injector.getInstance(AsyncHttpClientWithRetry.class);
 
-    Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownJob));
-
     runJob(config);
   }
 
@@ -81,19 +79,17 @@ public class Main {
         job.runInContinuousMode();
       } else {
         job.runOnce();
+        shutdown();
       }
     } catch (Exception e) {
       log.error(e.getMessage(), e);
-    } finally {
-      // explicitly shutdown scheduler so that JVM can exit
-      asyncHttpClientWithRetry.shutdownScheduler();
+      shutdown();
     }
   }
 
   @VisibleForTesting
-  void shutdownJob() {
-    if (job != null) {
-      job.shutdown();
-    }
+  void shutdown() {
+    asyncHttpClientWithRetry.shutdownScheduler();
+    job.shutdown();
   }
 }

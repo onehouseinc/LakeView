@@ -157,7 +157,7 @@ public class TableMetadataUploaderService {
                             ignored ->
                                 processTablesFuture.stream()
                                     .map(CompletableFuture::join)
-                                    .anyMatch(response -> !response));
+                                    .allMatch(Boolean.TRUE::equals));
                   }, // return false if processing any table failed
                   executorService);
             },
@@ -174,7 +174,7 @@ public class TableMetadataUploaderService {
     List<CompletableFuture<Boolean>> processTablesFuture = new ArrayList<>();
     CompletableFuture<List<CompletableFuture<Boolean>>>
         initialiseAndProcessNewlyDiscoveredTablesFuture =
-            CompletableFuture.completedFuture(processTablesFuture);
+            CompletableFuture.completedFuture(List.of(CompletableFuture.completedFuture(true)));
     if (!tablesToInitialise.isEmpty()) {
       log.info("Initializing following tables {}", tablesToInitialise);
       List<

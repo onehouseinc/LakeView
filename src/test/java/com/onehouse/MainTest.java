@@ -62,7 +62,6 @@ class MainTest {
         .when(() -> Guice.createInjector(any(RuntimeModule.class)))
         .thenReturn(mockInjector);
     main.start(args);
-    main.shutdownJob();
 
     verify(mockConfigLoader).loadConfigFromConfigFile("configFilePath");
     verify(mockJob).runOnce();
@@ -88,7 +87,6 @@ class MainTest {
         .when(() -> Guice.createInjector(any(RuntimeModule.class)))
         .thenReturn(mockInjector);
     main.start(args);
-    main.shutdownJob();
 
     verify(mockConfigLoader).loadConfigFromConfigFile("configFilePath");
     verify(mockJob).runOnce();
@@ -114,7 +112,7 @@ class MainTest {
         .when(() -> Guice.createInjector(any(RuntimeModule.class)))
         .thenReturn(mockInjector);
     main.start(args);
-    main.shutdownJob();
+    main.shutdown();
 
     verify(mockConfigLoader).loadConfigFromString("configYamlString");
     verify(mockJob).runInContinuousMode();
