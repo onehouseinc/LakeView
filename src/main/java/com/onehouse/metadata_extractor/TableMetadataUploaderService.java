@@ -155,7 +155,9 @@ public class TableMetadataUploaderService {
                             processTablesFuture.toArray(new CompletableFuture[0]))
                         .thenApply(
                             ignored ->
-                                processTablesFuture.stream().map(CompletableFuture::join).allMatch(Boolean.TRUE::equals));
+                                processTablesFuture.stream()
+                                    .map(CompletableFuture::join)
+                                    .allMatch(Boolean.TRUE::equals));
                   }, // return false if processing any table failed
                   executorService);
             },
