@@ -1,18 +1,26 @@
 package com.onehouse;
 
-import com.onehouse.cli_parser.CliParser;
-import com.onehouse.config.ConfigLoader;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.spark.sql.api.java.UDF1;
 
-public class GlueWrapperMain implements UDF1<Integer, Integer> {
+public class GlueWrapperMain implements UDF1<String, Void> {
+  private static final ObjectMapper MAPPER = new ObjectMapper();
+
   @Override
-  public Integer call(Integer number) throws Exception {
-    CliParser parser = new CliParser();
-    ConfigLoader configLoader = new ConfigLoader();
+  public Void call(String argJson) throws Exception {
+    String[] argList = MAPPER.readValue(argJson, String[].class);
+    Main.main(argList);
+    return null;
+  }
 
-    Main main = new Main(parser, configLoader);
-    main.print();
-
-    return number * number;
+  /**
+   * Only for testing, to be removed.
+   * @param args .
+   * @throws Exception .
+   */
+  public static void main(String[] args) throws Exception {
+    GlueWrapperMain wrapperMain = new GlueWrapperMain();
+    String argsJson = "[\"-h\"]";
+    wrapperMain.call(argsJson);
   }
 }

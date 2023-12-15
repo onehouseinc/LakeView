@@ -34,10 +34,6 @@ public class Main {
     main.start(args);
   }
 
-  public void print() {
-    log.info("Running the main print()");
-  }
-
   public void start(String[] args) {
     log.info("Starting table metadata extractor service");
     Config config = null;
