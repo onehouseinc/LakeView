@@ -1,20 +1,19 @@
 package com.onehouse;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class GlueWrapperMainTest {
 
-    @Test
-    @SneakyThrows
-    public void testMain() {
-        try {
-            GlueWrapperMain.main(new String[]{});
-        } catch (Exception e) {
-            fail(e);
-        }
+  @Test
+  @SneakyThrows
+  public void testMain() {
+    try {
+      GlueWrapperMain.main(new String[] {});
+    } catch (Exception e) {
+      fail(e);
     }
-
+  }
 }
