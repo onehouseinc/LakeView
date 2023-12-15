@@ -25,12 +25,12 @@ jobs:
         with:
           submodules: recursive
           token: ${{ secrets.CI_PAT }}
-      - name: Set up JDK 17 (for sonar analysis) & 11 (default)
+      - name: Set up JDK 17 (for sonar analysis) & 8 (default)
         uses: actions/setup-java@v3
         with:
           java-version: |
             17
-            11
+            8
           distribution: 'adopt'
           cache: gradle
       - name: Setup Gradle
