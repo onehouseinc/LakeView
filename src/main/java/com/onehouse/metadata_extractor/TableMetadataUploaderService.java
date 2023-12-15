@@ -175,7 +175,8 @@ public class TableMetadataUploaderService {
     List<CompletableFuture<Boolean>> processTablesFuture = new ArrayList<>();
     CompletableFuture<List<CompletableFuture<Boolean>>>
         initialiseAndProcessNewlyDiscoveredTablesFuture =
-            CompletableFuture.completedFuture(Collections.singletonList(CompletableFuture.completedFuture(true)));
+            CompletableFuture.completedFuture(
+                Collections.singletonList(CompletableFuture.completedFuture(true)));
     if (!tablesToInitialise.isEmpty()) {
       log.info("Initializing following tables {}", tablesToInitialise);
       List<
