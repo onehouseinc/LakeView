@@ -46,9 +46,9 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
         () -> {
           List<Storage.BlobListOption> optionList =
               new ArrayList<>(
-                      Arrays.asList(
-                              Storage.BlobListOption.prefix(prefix),
-                              Storage.BlobListOption.delimiter("/")));
+                  Arrays.asList(
+                      Storage.BlobListOption.prefix(prefix),
+                      Storage.BlobListOption.delimiter("/")));
           if (StringUtils.isNotBlank(continuationToken)) {
             optionList.add(Storage.BlobListOption.pageToken(continuationToken));
           }

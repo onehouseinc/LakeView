@@ -6,7 +6,6 @@ import com.onehouse.config.models.common.FileSystemConfiguration;
 import com.onehouse.config.models.common.S3Config;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
-
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

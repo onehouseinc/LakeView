@@ -15,6 +15,7 @@ public class GlueWrapperMain implements UDF1<String, Void> {
 
   /**
    * Only for testing, to be removed.
+   *
    * @param args .
    * @throws Exception .
    */
