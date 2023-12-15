@@ -53,7 +53,6 @@ class TableMetadataUploaderServiceTest {
           .databaseName("database")
           .lakeName("lake")
           .build();
-  ;
   private static final ParsedHudiProperties PARSED_HUDI_PROPERTIES =
       ParsedHudiProperties.builder()
           .tableName("tableName")
@@ -328,7 +327,8 @@ class TableMetadataUploaderServiceTest {
     // archived timeline has already been processed
     Checkpoint currentCheckpoint = generateCheckpointObj(1, Instant.now(), true, lastUploadedFile);
     Checkpoint currentCheckpointWithResetFields =
-        currentCheckpoint.toBuilder()
+        currentCheckpoint
+            .toBuilder()
             .checkpointTimestamp(Instant.EPOCH)
             .lastUploadedFile("")
             .build();
