@@ -186,7 +186,7 @@ class ActiveTimelineInstantBatcherTest {
     return Stream.of(
         // just hoodie.properties present
         Arguments.of(
-            Collections.singleton(generateFileObj("hoodie.properties")),
+            Collections.singletonList(generateFileObj("hoodie.properties")),
             Collections.singletonList(
                 Collections.singletonList(generateFileObj("hoodie.properties")))),
         // no instants to batch
