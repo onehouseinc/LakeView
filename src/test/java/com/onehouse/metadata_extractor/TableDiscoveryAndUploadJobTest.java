@@ -4,7 +4,7 @@ import static com.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_
 import static org.mockito.Mockito.*;
 
 import com.onehouse.metadata_extractor.models.Table;
-import java.util.Set;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -52,8 +52,9 @@ class TableDiscoveryAndUploadJobTest {
             .databaseName("database")
             .build();
     when(mockTableDiscoveryService.discoverTables())
-        .thenReturn(CompletableFuture.completedFuture(Set.of(discoveredTable)));
-    when(mockTableMetadataUploaderService.uploadInstantsInTables(Set.of(discoveredTable)))
+        .thenReturn(CompletableFuture.completedFuture(Collections.singleton(discoveredTable)));
+    when(mockTableMetadataUploaderService.uploadInstantsInTables(
+            Collections.singleton(discoveredTable)))
         .thenReturn(CompletableFuture.completedFuture(null));
 
     job.runInContinuousMode();
@@ -78,7 +79,7 @@ class TableDiscoveryAndUploadJobTest {
 
     verify(mockTableDiscoveryService, times(1)).discoverTables();
     verify(mockTableMetadataUploaderService, times(1))
-        .uploadInstantsInTables(Set.of(discoveredTable));
+        .uploadInstantsInTables(Collections.singleton(discoveredTable));
   }
 
   @ParameterizedTest
@@ -91,13 +92,14 @@ class TableDiscoveryAndUploadJobTest {
             .databaseName("database")
             .build();
     when(mockTableDiscoveryService.discoverTables())
-        .thenReturn(CompletableFuture.completedFuture(Set.of(discoveredTable)));
-    when(mockTableMetadataUploaderService.uploadInstantsInTables(Set.of(discoveredTable)))
+        .thenReturn(CompletableFuture.completedFuture(Collections.singleton(discoveredTable)));
+    when(mockTableMetadataUploaderService.uploadInstantsInTables(
+            Collections.singleton(discoveredTable)))
         .thenReturn(CompletableFuture.completedFuture(isSucceeded));
     job.runOnce();
     verify(mockTableDiscoveryService, times(1)).discoverTables();
     verify(mockTableMetadataUploaderService, times(1))
-        .uploadInstantsInTables(Set.of(discoveredTable));
+        .uploadInstantsInTables(Collections.singleton(discoveredTable));
   }
 
   @Test

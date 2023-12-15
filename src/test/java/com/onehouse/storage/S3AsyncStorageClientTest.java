@@ -86,7 +86,7 @@ class S3AsyncStorageClientTest {
     List<File> result = s3AsyncStorageClient.listAllFilesInDir(S3_URI).get();
 
     List<File> expectedFiles =
-        List.of(
+        Arrays.asList(
             File.builder()
                 .isDirectory(false)
                 .filename(fileName)

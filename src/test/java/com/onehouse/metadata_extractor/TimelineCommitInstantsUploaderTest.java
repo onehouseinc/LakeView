@@ -28,6 +28,8 @@ import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -88,7 +90,7 @@ class TimelineCommitInstantsUploaderTest {
 
     mockListAllFilesInDir(
         TABLE.getAbsoluteTableUri() + ".hoodie/" + ARCHIVED_FOLDER_PREFIX,
-        List.of(
+        Arrays.asList(
             generateFileObj("should_be_ignored", false),
             generateFileObj(".commits_.archive.1_1-0-1", false),
             generateFileObj(".commits_.archive.2_1-0-1", false),
@@ -107,20 +109,20 @@ class TimelineCommitInstantsUploaderTest {
             ".commits_.archive.3_1-0-1"); // testing to makesure checkpoint timestamp has updated
 
     stubUploadInstantsCalls(
-        List.of(HOODIE_PROPERTIES_FILE),
+        Collections.singletonList(HOODIE_PROPERTIES_FILE),
         checkpoint0,
         CommitTimelineType
             .COMMIT_TIMELINE_TYPE_ARCHIVED); // will be sent as part of archived timeline batch 1
     stubUploadInstantsCalls(
-        List.of(".commits_.archive.1_1-0-1"),
+        Collections.singletonList(".commits_.archive.1_1-0-1"),
         checkpoint1,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     stubUploadInstantsCalls(
-        List.of(".commits_.archive.2_1-0-1"),
+        Collections.singletonList(".commits_.archive.2_1-0-1"),
         checkpoint2,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     stubUploadInstantsCalls(
-        List.of(".commits_.archive.3_1-0-1"),
+        Collections.singletonList(".commits_.archive.3_1-0-1"),
         checkpoint3,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
 
@@ -136,19 +138,19 @@ class TimelineCommitInstantsUploaderTest {
 
     verify(asyncStorageClient, times(1)).listAllFilesInDir(anyString());
     verifyFilesUploaded(
-        List.of(HOODIE_PROPERTIES_FILE),
+        Collections.singletonList(HOODIE_PROPERTIES_FILE),
         checkpoint0,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     verifyFilesUploaded(
-        List.of(".commits_.archive.1_1-0-1"),
+        Collections.singletonList(".commits_.archive.1_1-0-1"),
         checkpoint1,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     verifyFilesUploaded(
-        List.of(".commits_.archive.2_1-0-1"),
+        Collections.singletonList(".commits_.archive.2_1-0-1"),
         checkpoint2,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     verifyFilesUploaded(
-        List.of(".commits_.archive.3_1-0-1"),
+        Collections.singletonList(".commits_.archive.3_1-0-1"),
         checkpoint3,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     assertEquals(checkpoint3, response);
@@ -168,7 +170,7 @@ class TimelineCommitInstantsUploaderTest {
         TABLE_PREFIX + "/.hoodie/",
         CONTINUATION_TOKEN_PREFIX + "1",
         null,
-        List.of(
+        Arrays.asList(
             generateFileObj("should_be_ignored", false),
             generateFileObj("111.action", false),
             generateFileObj("111.action.inflight", false),
@@ -181,7 +183,7 @@ class TimelineCommitInstantsUploaderTest {
         TABLE_PREFIX
             + "/.hoodie/"
             + "111.action", // last successful commit is used for checkpointing
-        List.of(
+        Arrays.asList(
             generateFileObj("111.action.inflight", false),
             generateFileObj("111.action.requested", false),
             generateFileObj("222.action", false, currentTime),
@@ -191,33 +193,33 @@ class TimelineCommitInstantsUploaderTest {
             ));
 
     List<File> batch1 =
-        List.of(
+        Arrays.asList(
             generateFileObj(HOODIE_PROPERTIES_FILE, false),
             generateFileObj("111.action", false),
             generateFileObj("111.action.inflight", false),
             generateFileObj("111.action.requested", false));
 
     List<File> batch2 =
-        List.of(
+        Arrays.asList(
             generateFileObj("222.action", false, currentTime),
             generateFileObj("222.action.inflight", false),
             generateFileObj("222.action.requested", false));
 
     stubCreateBatches(
-        List.of(
+        Arrays.asList(
             generateFileObj(HOODIE_PROPERTIES_FILE, false),
             generateFileObj("111.action", false),
             generateFileObj("111.action.inflight", false),
             generateFileObj("111.action.requested", false),
             generateFileObj("222.action", false, currentTime)),
-        List.of(batch1));
+        Collections.singletonList(batch1));
 
     stubCreateBatches(
-        List.of(
+        Arrays.asList(
             generateFileObj("222.action", false, currentTime),
             generateFileObj("222.action.inflight", false),
             generateFileObj("222.action.requested", false)),
-        List.of(batch2));
+        Collections.singletonList(batch2));
 
     Checkpoint checkpoint1 = generateCheckpointObj(1, Instant.EPOCH, true, "111.action");
     Checkpoint checkpoint2 = generateCheckpointObj(2, currentTime, true, "222.action");
@@ -272,7 +274,7 @@ class TimelineCommitInstantsUploaderTest {
         TABLE_PREFIX + "/.hoodie/",
         null,
         TABLE_PREFIX + "/.hoodie/" + previousCheckpoint.getLastUploadedFile(),
-        List.of(
+        Arrays.asList(
             generateFileObj("222.action.inflight", false),
             generateFileObj("222.action.requested", false),
             generateFileObj("333.action", false, currentTime),
@@ -288,17 +290,17 @@ class TimelineCommitInstantsUploaderTest {
             "333.action");
 
     List<File> batch3 =
-        List.of(
+        Arrays.asList(
             generateFileObj("333.action", false, currentTime),
             generateFileObj("333.action.inflight", false),
             generateFileObj("333.action.requested", false));
 
     stubCreateBatches(
-        List.of(
+        Arrays.asList(
             generateFileObj("333.action", false, currentTime),
             generateFileObj("333.action.inflight", false),
             generateFileObj("333.action.requested", false)),
-        List.of(batch3));
+        Collections.singletonList(batch3));
 
     stubUploadInstantsCalls(
         batch3.stream().map(File::getFilename).collect(Collectors.toList()),
@@ -324,7 +326,7 @@ class TimelineCommitInstantsUploaderTest {
   void testUploadInstantsInArchivedTimelineWhenNoInstantsPresent() {
     // no files present in archived timeline
     mockListAllFilesInDir(
-        TABLE.getAbsoluteTableUri() + ".hoodie/" + ARCHIVED_FOLDER_PREFIX, List.of());
+        TABLE.getAbsoluteTableUri() + ".hoodie/" + ARCHIVED_FOLDER_PREFIX, Collections.emptyList());
 
     // uploading instants in archived timeline for the first time
     Checkpoint checkpoint =
@@ -351,11 +353,11 @@ class TimelineCommitInstantsUploaderTest {
 
     mockListAllFilesInDir(
         TABLE.getAbsoluteTableUri() + ".hoodie/" + ARCHIVED_FOLDER_PREFIX,
-        List.of(
+        Arrays.asList(
             generateFileObj(".commits_.archive.1_1-0-1", false),
             generateFileObj(".commits_.archive.2_1-0-1", false)));
 
-    List<String> filesUploadedWithUpdatedName = List.of("hoodie.properties");
+    List<String> filesUploadedWithUpdatedName = Collections.singletonList("hoodie.properties");
     GenerateCommitMetadataUploadUrlRequest expectedRequest =
         GenerateCommitMetadataUploadUrlRequest.builder()
             .tableId(TABLE_ID.toString())
@@ -394,13 +396,13 @@ class TimelineCommitInstantsUploaderTest {
         .getUploadBatchSize(); // 1 file will be processed at a time
     mockListAllFilesInDir(
         TABLE.getAbsoluteTableUri() + ".hoodie/" + ARCHIVED_FOLDER_PREFIX,
-        List.of(
+        Arrays.asList(
             generateFileObj(".commits_.archive.1_1-0-1", false),
             generateFileObj(".commits_.archive.2_1-0-1", false)));
 
     Checkpoint checkpoint0 = generateCheckpointObj(1, Instant.EPOCH, false, HOODIE_PROPERTIES_FILE);
 
-    List<String> filesUploadedWithUpdatedName = List.of("hoodie.properties");
+    List<String> filesUploadedWithUpdatedName = Collections.singletonList("hoodie.properties");
     GenerateCommitMetadataUploadUrlRequest expectedRequest =
         GenerateCommitMetadataUploadUrlRequest.builder()
             .tableId(TABLE_ID.toString())

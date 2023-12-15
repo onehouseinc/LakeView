@@ -5,6 +5,8 @@ import static org.junit.Assert.assertThrows;
 
 import com.onehouse.storage.models.File;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +27,7 @@ class ActiveTimelineInstantBatcherTest {
   @Test
   void testCreateBatchWithExclusion() {
     List<File> files =
-        List.of(
+        Arrays.asList(
             generateFileObj("111.deltacommit.requested"),
             generateFileObj("111.deltacommit.inflight"),
             generateFileObj("333.clean"),
@@ -42,13 +44,13 @@ class ActiveTimelineInstantBatcherTest {
     // instants with timestamp 222 need to be ignored as the actionType is unknown and
     // instants with timestamp 333 are skipped as the commit is not yet complete
     List<List<File>> expectedBatches =
-        List.of(
-            List.of(
+        Arrays.asList(
+            Arrays.asList(
                 generateFileObj("hoodie.properties"),
                 generateFileObj("111.deltacommit"),
                 generateFileObj("111.deltacommit.inflight"),
                 generateFileObj("111.deltacommit.requested")),
-            List.of(
+            Arrays.asList(
                 generateFileObj("333.clean"),
                 generateFileObj("333.clean.inflight"),
                 generateFileObj("333.clean.requested")));
@@ -60,7 +62,7 @@ class ActiveTimelineInstantBatcherTest {
   @Test
   void testCreateBatchWithCompactionCommits() {
     List<File> files =
-        List.of(
+        Arrays.asList(
             generateFileObj("111.deltacommit.requested"),
             generateFileObj("111.deltacommit.inflight"),
             generateFileObj(
@@ -74,13 +76,13 @@ class ActiveTimelineInstantBatcherTest {
 
     // instants with timestamp 333 need to be ignored as the commit is incomplete
     List<List<File>> expectedBatches =
-        List.of(
-            List.of(
+        Arrays.asList(
+            Arrays.asList(
                 generateFileObj("hoodie.properties"),
                 generateFileObj("111.deltacommit"),
                 generateFileObj("111.deltacommit.inflight"),
                 generateFileObj("111.deltacommit.requested")),
-            List.of(
+            Arrays.asList(
                 generateFileObj("222.commit"),
                 generateFileObj("222.compaction.inflight"),
                 generateFileObj("222.compaction.requested")));
@@ -92,7 +94,7 @@ class ActiveTimelineInstantBatcherTest {
   @Test
   void testCreateBatchWithSavepointCommits() {
     List<File> files =
-        List.of(
+        Arrays.asList(
             generateFileObj("111.deltacommit.requested"),
             generateFileObj("111.deltacommit.inflight"),
             generateFileObj("222.savepoint"),
@@ -104,13 +106,14 @@ class ActiveTimelineInstantBatcherTest {
 
     // instants with timestamp 333 need to be ignored as the commit is incomplete
     List<List<File>> expectedBatches =
-        List.of(
-            List.of(
+        Arrays.asList(
+            Arrays.asList(
                 generateFileObj("hoodie.properties"),
                 generateFileObj("111.deltacommit"),
                 generateFileObj("111.deltacommit.inflight"),
                 generateFileObj("111.deltacommit.requested")),
-            List.of(generateFileObj("222.savepoint"), generateFileObj("222.savepoint.inflight")));
+            Arrays.asList(
+                generateFileObj("222.savepoint"), generateFileObj("222.savepoint.inflight")));
 
     List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
     assertEquals(expectedBatches, actualBatches);
@@ -119,7 +122,7 @@ class ActiveTimelineInstantBatcherTest {
   @Test
   void testCreateBatchExcludeOne() {
     List<File> files =
-        List.of(
+        Arrays.asList(
             generateFileObj("111.deltacommit.requested"),
             generateFileObj("111.deltacommit.inflight"),
             generateFileObj("222.clean"),
@@ -131,13 +134,13 @@ class ActiveTimelineInstantBatcherTest {
 
     // instants with timestamp 333 need to be ignored as the commit is incomplete
     List<List<File>> expectedBatches =
-        List.of(
-            List.of(
+        Arrays.asList(
+            Arrays.asList(
                 generateFileObj("hoodie.properties"),
                 generateFileObj("111.deltacommit"),
                 generateFileObj("111.deltacommit.inflight"),
                 generateFileObj("111.deltacommit.requested")),
-            List.of(
+            Arrays.asList(
                 generateFileObj("222.clean"),
                 generateFileObj("222.clean.inflight"),
                 generateFileObj("222.clean.requested")));
@@ -149,7 +152,7 @@ class ActiveTimelineInstantBatcherTest {
   @Test
   void testCreateBatchMultiplePartialBatches() {
     List<File> files =
-        List.of(
+        Arrays.asList(
             generateFileObj("111.deltacommit.requested"),
             generateFileObj("333.rollback.requested"),
             generateFileObj("111.deltacommit.inflight"),
@@ -164,13 +167,13 @@ class ActiveTimelineInstantBatcherTest {
 
     // instants with timestamp 333 and 444 need to be ignored as the commit is incomplete
     List<List<File>> expectedBatches =
-        List.of(
-            List.of(
+        Arrays.asList(
+            Arrays.asList(
                 generateFileObj("hoodie.properties"),
                 generateFileObj("111.deltacommit"),
                 generateFileObj("111.deltacommit.inflight"),
                 generateFileObj("111.deltacommit.requested")),
-            List.of(
+            Arrays.asList(
                 generateFileObj("222.clean"),
                 generateFileObj("222.clean.inflight"),
                 generateFileObj("222.clean.requested")));
@@ -183,12 +186,14 @@ class ActiveTimelineInstantBatcherTest {
     return Stream.of(
         // just hoodie.properties present
         Arguments.of(
-            List.of(generateFileObj("hoodie.properties")),
-            List.of(List.of(generateFileObj("hoodie.properties")))),
+            Collections.singleton(generateFileObj("hoodie.properties")),
+            Collections.singletonList(
+                Collections.singletonList(generateFileObj("hoodie.properties")))),
         // no instants to batch
-        Arguments.of(List.of(), List.of()),
+        Arguments.of(Collections.emptyList(), Collections.emptyList()),
         // incomplete instant
-        Arguments.of(List.of(generateFileObj("222.clean")), List.of()));
+        Arguments.of(
+            Collections.singletonList(generateFileObj("222.clean")), Collections.emptyList()));
   }
 
   @ParameterizedTest
@@ -202,7 +207,7 @@ class ActiveTimelineInstantBatcherTest {
   void testWithInvalidBatchSize() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> activeTimelineInstantBatcher.createBatches(List.of(), 2));
+        () -> activeTimelineInstantBatcher.createBatches(Collections.emptyList(), 2));
   }
 
   private static File generateFileObj(String fileName) {

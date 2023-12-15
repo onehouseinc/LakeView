@@ -12,6 +12,7 @@ import com.onehouse.storage.models.File;
 import com.onehouse.storage.providers.GcsClientProvider;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
@@ -77,7 +78,7 @@ class GCSAsyncStorageClientTest {
     List<File> result = gcsAsyncStorageClient.listAllFilesInDir(GCS_URI).get();
 
     List<File> expectedFiles =
-        List.of(
+        Arrays.asList(
             File.builder()
                 .isDirectory(false)
                 .filename(fileName)

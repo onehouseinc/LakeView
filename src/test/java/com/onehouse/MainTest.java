@@ -11,7 +11,7 @@ import com.onehouse.config.ConfigLoader;
 import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
-import java.util.List;
+import java.util.Collections;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +53,7 @@ class MainTest {
         .thenReturn(
             MetadataExtractorConfig.builder()
                 .jobRunMode(MetadataExtractorConfig.JobRunMode.ONCE)
-                .parserConfig(List.of())
+                .parserConfig(Collections.emptyList())
                 .build());
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
@@ -77,7 +77,7 @@ class MainTest {
         .thenReturn(
             MetadataExtractorConfig.builder()
                 .jobRunMode(MetadataExtractorConfig.JobRunMode.ONCE)
-                .parserConfig(List.of())
+                .parserConfig(Collections.emptyList())
                 .build());
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
@@ -103,7 +103,7 @@ class MainTest {
         .thenReturn(
             MetadataExtractorConfig.builder()
                 .jobRunMode(MetadataExtractorConfig.JobRunMode.CONTINUOUS)
-                .parserConfig(List.of())
+                .parserConfig(Collections.emptyList())
                 .build());
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
