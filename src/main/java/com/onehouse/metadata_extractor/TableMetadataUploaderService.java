@@ -20,6 +20,7 @@ import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -174,7 +175,8 @@ public class TableMetadataUploaderService {
     List<CompletableFuture<Boolean>> processTablesFuture = new ArrayList<>();
     CompletableFuture<List<CompletableFuture<Boolean>>>
         initialiseAndProcessNewlyDiscoveredTablesFuture =
-            CompletableFuture.completedFuture(List.of(CompletableFuture.completedFuture(true)));
+            CompletableFuture.completedFuture(
+                Collections.singletonList(CompletableFuture.completedFuture(true)));
     if (!tablesToInitialise.isEmpty()) {
       log.info("Initializing following tables {}", tablesToInitialise);
       List<

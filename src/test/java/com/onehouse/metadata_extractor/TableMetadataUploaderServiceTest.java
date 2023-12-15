@@ -17,6 +17,9 @@ import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
 import com.onehouse.metadata_extractor.models.Table;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -79,7 +82,7 @@ class TableMetadataUploaderServiceTest {
     InitializeTableMetricsCheckpointResponse initializeTableMetricsCheckpointResponse =
         InitializeTableMetricsCheckpointResponse.builder()
             .response(
-                List.of(
+                Collections.singletonList(
                     InitializeTableMetricsCheckpointResponse
                         .InitializeSingleTableMetricsCheckpointResponse.builder()
                         .tableId(TABLE_ID.toString())
@@ -89,7 +92,7 @@ class TableMetadataUploaderServiceTest {
     InitializeTableMetricsCheckpointRequest expectedRequest =
         InitializeTableMetricsCheckpointRequest.builder()
             .tables(
-                List.of(
+                Collections.singletonList(
                     InitializeTableMetricsCheckpointRequest
                         .InitializeSingleTableMetricsCheckpointRequest.builder()
                         .tableId(TABLE_ID.toString())
@@ -99,10 +102,13 @@ class TableMetadataUploaderServiceTest {
                         .lakeName(TABLE.getLakeName())
                         .build()))
             .build();
-    when(onehouseApiClient.getTableMetricsCheckpoints(List.of(TABLE_ID.toString())))
+    when(onehouseApiClient.getTableMetricsCheckpoints(
+            Collections.singletonList(TABLE_ID.toString())))
         .thenReturn(
             CompletableFuture.completedFuture(
-                GetTableMetricsCheckpointResponse.builder().checkpoints(List.of()).build()));
+                GetTableMetricsCheckpointResponse.builder()
+                    .checkpoints(Collections.emptyList())
+                    .build()));
     when(hoodiePropertiesReader.readHoodieProperties(
             String.format("%s%s/%s", S3_TABLE_URI, HOODIE_FOLDER_NAME, HOODIE_PROPERTIES_FILE)))
         .thenReturn(CompletableFuture.completedFuture(PARSED_HUDI_PROPERTIES));
@@ -121,7 +127,7 @@ class TableMetadataUploaderServiceTest {
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
         .thenReturn(CompletableFuture.completedFuture(FINAL_ACTIVE_TIMELINE_CHECKPOINT));
 
-    tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join();
+    tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join();
 
     verify(onehouseApiClient, times(1)).initializeTableMetricsCheckpoint(expectedRequest);
     verify(timelineCommitInstantsUploader, times(1))
@@ -146,12 +152,13 @@ class TableMetadataUploaderServiceTest {
         generateCheckpointObj(1, Instant.EPOCH, false, "archived_instant1");
     String currentCheckpointJson = mapper.writeValueAsString(currentCheckpoint);
 
-    when(onehouseApiClient.getTableMetricsCheckpoints(List.of(TABLE_ID.toString())))
+    when(onehouseApiClient.getTableMetricsCheckpoints(
+            Collections.singletonList(TABLE_ID.toString())))
         .thenReturn(
             CompletableFuture.completedFuture(
                 GetTableMetricsCheckpointResponse.builder()
                     .checkpoints(
-                        List.of(
+                        Collections.singletonList(
                             GetTableMetricsCheckpointResponse.TableMetadataCheckpoint.builder()
                                 .tableId(TABLE_ID.toString())
                                 .checkpoint(currentCheckpointJson)
@@ -170,7 +177,7 @@ class TableMetadataUploaderServiceTest {
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
         .thenReturn(CompletableFuture.completedFuture(FINAL_ACTIVE_TIMELINE_CHECKPOINT));
 
-    tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join();
+    tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join();
 
     verify(timelineCommitInstantsUploader, times(1))
         .batchUploadWithCheckpoint(
@@ -203,14 +210,14 @@ class TableMetadataUploaderServiceTest {
         generateCheckpointObj(1, Instant.EPOCH, false, "archived_instant1");
     String currentCheckpointJson = mapper.writeValueAsString(currentCheckpoint);
 
-    Set<Table> discoveredTables = Set.of(TABLE, table2);
+    Set<Table> discoveredTables = new HashSet<>(Arrays.asList(TABLE, table2));
     List<String> getCheckpointsRequest =
         discoveredTables.stream().map(Table::getTableId).collect(Collectors.toList());
     // TABLE (table 1) needs to be initialised
     InitializeTableMetricsCheckpointResponse initializeTableMetricsCheckpointResponse =
         InitializeTableMetricsCheckpointResponse.builder()
             .response(
-                List.of(
+                Collections.singletonList(
                     InitializeTableMetricsCheckpointResponse
                         .InitializeSingleTableMetricsCheckpointResponse.builder()
                         .tableId(TABLE_ID.toString())
@@ -220,7 +227,7 @@ class TableMetadataUploaderServiceTest {
     InitializeTableMetricsCheckpointRequest expectedRequest =
         InitializeTableMetricsCheckpointRequest.builder()
             .tables(
-                List.of(
+                Collections.singletonList(
                     InitializeTableMetricsCheckpointRequest
                         .InitializeSingleTableMetricsCheckpointRequest.builder()
                         .tableId(TABLE_ID.toString())
@@ -235,7 +242,7 @@ class TableMetadataUploaderServiceTest {
             CompletableFuture.completedFuture(
                 GetTableMetricsCheckpointResponse.builder()
                     .checkpoints(
-                        List.of(
+                        Collections.singletonList(
                             GetTableMetricsCheckpointResponse.TableMetadataCheckpoint.builder()
                                 .tableId(tableId2.toString())
                                 .checkpoint(currentCheckpointJson)
@@ -327,12 +334,13 @@ class TableMetadataUploaderServiceTest {
             .build();
     String currentCheckpointJson = mapper.writeValueAsString(currentCheckpoint);
 
-    when(onehouseApiClient.getTableMetricsCheckpoints(List.of(TABLE_ID.toString())))
+    when(onehouseApiClient.getTableMetricsCheckpoints(
+            Collections.singletonList(TABLE_ID.toString())))
         .thenReturn(
             CompletableFuture.completedFuture(
                 GetTableMetricsCheckpointResponse.builder()
                     .checkpoints(
-                        List.of(
+                        Collections.singletonList(
                             GetTableMetricsCheckpointResponse.TableMetadataCheckpoint.builder()
                                 .tableId(TABLE_ID.toString())
                                 .checkpoint(currentCheckpointJson)
@@ -347,7 +355,7 @@ class TableMetadataUploaderServiceTest {
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
         .thenReturn(CompletableFuture.completedFuture(FINAL_ACTIVE_TIMELINE_CHECKPOINT));
 
-    tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join();
+    tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join();
 
     // should skip processing archived timeline and directly move to active
     verify(timelineCommitInstantsUploader, times(1))
@@ -364,14 +372,15 @@ class TableMetadataUploaderServiceTest {
         GetTableMetricsCheckpointResponse.builder().build();
     mockedResponse.setError(500, ""); // any non 404 error
 
-    when(onehouseApiClient.getTableMetricsCheckpoints(List.of(TABLE_ID.toString())))
+    when(onehouseApiClient.getTableMetricsCheckpoints(
+            Collections.singletonList(TABLE_ID.toString())))
         .thenReturn(CompletableFuture.completedFuture(mockedResponse));
 
-    tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join();
+    tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join();
 
     verify(onehouseApiClient, times(1))
         .getTableMetricsCheckpoints(
-            List.of(
+            Collections.singletonList(
                 TABLE_ID.toString())); // placeholder to ensure that onehouseApiClient is interacted
     // with just once
   }

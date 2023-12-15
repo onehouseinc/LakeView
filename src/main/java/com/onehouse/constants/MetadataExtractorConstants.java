@@ -3,6 +3,7 @@ package com.onehouse.constants;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.storage.models.File;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -43,7 +44,7 @@ public class MetadataExtractorConstants {
           .build();
 
   public static final List<String> WHITELISTED_ACTION_TYPES =
-      List.of(
+      Arrays.asList(
           "commit",
           "deltacommit",
           "rollback",

@@ -2,9 +2,9 @@ plugins {
     id 'java'
     id 'application'
     id "io.freefair.lombok" version "8.4"
-    id 'com.diffplug.spotless' version '6.22.0'
+    id 'com.diffplug.spotless' version '6.13.0'
     id 'com.github.johnrengelman.shadow' version '7.1.0'
-    id 'org.sonarqube' version '4.4.1.3373'
+    id 'org.sonarqube' version '4.0.0.2929'
 }
 
 spotless {
@@ -117,6 +117,11 @@ dependencies {
     testImplementation(platform('org.junit:junit-bom:5.10.0'))
     testImplementation('org.junit.jupiter:junit-jupiter')
 
+    implementation("org.apache.spark:spark-core_2.12:3.2.2") {
+        transitive = false
+    }
+    implementation("org.apache.spark:spark-sql_2.12:3.2.2")
+    //implementation group: 'org.apache.spark', name: 'spark-avro_2.12', version: "3.2.2"
 }
 
 application {
@@ -133,6 +138,13 @@ test {
 task sourceJar(type: Jar) {
     archiveClassifier.set('sources')
     from sourceSets.main.allSource
+}
+
+// Configure Shadow plugin
+tasks.shadowJar {
+    setProperty("zip64", true)
+
+    // other shadow jar config
 }
 
 build.dependsOn sourceJar

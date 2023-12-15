@@ -61,7 +61,7 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         .thenComposeAsync(
             listObjectsV2Response -> {
               // process response
-              List<File> files = new ArrayList<>(List.of());
+              List<File> files = new ArrayList<>();
               files.addAll(processListObjectsV2Response(listObjectsV2Response, prefix));
               String newContinuationToken =
                   Boolean.TRUE.equals(listObjectsV2Response.isTruncated())

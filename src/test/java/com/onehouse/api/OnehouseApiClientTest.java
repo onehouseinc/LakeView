@@ -25,7 +25,8 @@ import com.onehouse.api.models.response.UpsertTableMetricsCheckpointResponse;
 import com.onehouse.config.models.common.OnehouseClientConfig;
 import com.onehouse.config.models.configv1.ConfigV1;
 import java.text.MessageFormat;
-import java.util.List;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
@@ -132,7 +133,7 @@ class OnehouseApiClientTest {
     InitializeTableMetricsCheckpointRequest request =
         InitializeTableMetricsCheckpointRequest.builder()
             .tables(
-                List.of(
+                Collections.singletonList(
                     InitializeTableMetricsCheckpointRequest
                         .InitializeSingleTableMetricsCheckpointRequest.builder()
                         .tableId(tableId.toString())
@@ -166,7 +167,7 @@ class OnehouseApiClientTest {
             CompletableFuture.completedFuture(
                 GetTableMetricsCheckpointResponse.builder()
                     .checkpoints(
-                        List.of(
+                        Arrays.asList(
                             buildTableMetadataCheckpoint(tableId1.toString(), "checkpoint1"),
                             buildTableMetadataCheckpoint(tableId2.toString(), "checkpoint2")))
                     .build()))
@@ -181,7 +182,7 @@ class OnehouseApiClientTest {
             GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse response =
         onehouseApiClientSpy
-            .getTableMetricsCheckpoints(List.of(tableId1.toString(), tableId2.toString()))
+            .getTableMetricsCheckpoints(Arrays.asList(tableId1.toString(), tableId2.toString()))
             .get();
     assertNotNull(response);
   }
@@ -195,7 +196,7 @@ class OnehouseApiClientTest {
     UpsertTableMetricsCheckpointRequest request =
         UpsertTableMetricsCheckpointRequest.builder()
             .tableId(tableId.toString())
-            .filesUploaded(List.of())
+            .filesUploaded(Collections.emptyList())
             .commitTimelineType(commitTimelineType)
             .checkpoint("")
             .build();
@@ -222,11 +223,13 @@ class OnehouseApiClientTest {
         GenerateCommitMetadataUploadUrlRequest.builder()
             .tableId(tableId.toString())
             .commitTimelineType(commitTimelineType)
-            .commitInstants(List.of())
+            .commitInstants(Collections.emptyList())
             .build();
     doReturn(
             CompletableFuture.completedFuture(
-                GenerateCommitMetadataUploadUrlResponse.builder().uploadUrls(List.of()).build()))
+                GenerateCommitMetadataUploadUrlResponse.builder()
+                    .uploadUrls(Collections.emptyList())
+                    .build()))
         .when(onehouseApiClientSpy)
         .asyncPost(
             (MessageFormat.format(GENERATE_COMMIT_METADATA_UPLOAD_URL, tableId)),

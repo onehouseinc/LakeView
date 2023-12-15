@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -45,7 +46,7 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
         () -> {
           List<Storage.BlobListOption> optionList =
               new ArrayList<>(
-                  List.of(
+                  Arrays.asList(
                       Storage.BlobListOption.prefix(prefix),
                       Storage.BlobListOption.delimiter("/")));
           if (StringUtils.isNotBlank(continuationToken)) {
@@ -57,8 +58,8 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
           Page<Blob> blobs =
               gcsClientProvider
                   .getGcsClient()
-                  .list(bucketName, optionList.toArray(Storage.BlobListOption[]::new));
-          List<File> files = new ArrayList<>(List.of());
+                  .list(bucketName, optionList.stream().toArray(Storage.BlobListOption[]::new));
+          List<File> files = new ArrayList<>();
           for (Blob blob : blobs.getValues()) {
             files.add(
                 File.builder()

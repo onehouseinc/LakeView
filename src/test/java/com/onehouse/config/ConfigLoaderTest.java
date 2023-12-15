@@ -12,7 +12,7 @@ import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.Database;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.config.models.configv1.ParserConfig;
-import java.util.List;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -122,14 +122,17 @@ class ConfigLoaderTest {
     String basePath = fileSystemPrefix + "lake_bucket/tables";
 
     return MetadataExtractorConfig.builder()
-        .pathExclusionPatterns(Optional.of(List.of(pathToExclude)))
+        .pathExclusionPatterns(Optional.of(Collections.singletonList(pathToExclude)))
         .parserConfig(
-            List.of(
+            Collections.singletonList(
                 ParserConfig.builder()
                     .lake(lake)
                     .databases(
-                        List.of(
-                            Database.builder().name(database).basePaths(List.of(basePath)).build()))
+                        Collections.singletonList(
+                            Database.builder()
+                                .name(database)
+                                .basePaths(Collections.singletonList(basePath))
+                                .build()))
                     .build()))
         .build();
   }

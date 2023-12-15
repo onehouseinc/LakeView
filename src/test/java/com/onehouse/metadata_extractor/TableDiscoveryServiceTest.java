@@ -12,6 +12,8 @@ import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -72,24 +74,27 @@ class TableDiscoveryServiceTest {
     when(asyncStorageClient.listAllFilesInDir(BASE_PATH))
         .thenReturn(
             CompletableFuture.completedFuture(
-                List.of(
+                Arrays.asList(
                     generateFileObj("file1", false),
                     generateFileObj("table1/", true),
                     generateFileObj("excluded/", true),
                     generateFileObj("nested-folder/", true))));
     when(asyncStorageClient.listAllFilesInDir(BASE_PATH + "table1/"))
-        .thenReturn(CompletableFuture.completedFuture(List.of(generateFileObj(".hoodie", true))));
+        .thenReturn(
+            CompletableFuture.completedFuture(Arrays.asList(generateFileObj(".hoodie", true))));
     when(asyncStorageClient.listAllFilesInDir(BASE_PATH + "nested-folder/"))
         .thenReturn(
             CompletableFuture.completedFuture(
-                List.of(
+                Arrays.asList(
                     generateFileObj("table2/", true),
                     generateFileObj("excluded-table-3/", true),
                     generateFileObj("unrelated-folder1/", true))));
     when(asyncStorageClient.listAllFilesInDir(BASE_PATH + "nested-folder/table2/"))
-        .thenReturn(CompletableFuture.completedFuture(List.of(generateFileObj(".hoodie", true))));
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                Collections.singletonList(generateFileObj(".hoodie", true))));
     when(asyncStorageClient.listAllFilesInDir(BASE_PATH + "nested-folder/unrelated-folder1/"))
-        .thenReturn(CompletableFuture.completedFuture(List.of()));
+        .thenReturn(CompletableFuture.completedFuture(Collections.emptyList()));
 
     // paths to exclude
     String dirToExclude = BASE_PATH + "excluded/"; // excluding using an absolute path
@@ -98,17 +103,18 @@ class TableDiscoveryServiceTest {
     when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
     when(metadataExtractorConfig.getPathExclusionPatterns())
         .thenReturn(
-            Optional.of(List.of(dirToExclude, ".*excluded-table.*"))); // also providing a regex exp
+            Optional.of(
+                Arrays.asList(dirToExclude, ".*excluded-table.*"))); // also providing a regex exp
     when(metadataExtractorConfig.getParserConfig())
         .thenReturn(
-            List.of(
+            Collections.singletonList(
                 ParserConfig.builder()
                     .lake(LAKE)
                     .databases(
-                        List.of(
+                        Collections.singletonList(
                             Database.builder()
                                 .name(DATABASE)
-                                .basePaths(List.of(BASE_PATH))
+                                .basePaths(Collections.singletonList(BASE_PATH))
                                 .build()))
                     .build()));
 
@@ -155,17 +161,17 @@ class TableDiscoveryServiceTest {
     // parser config
     when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
     when(metadataExtractorConfig.getPathExclusionPatterns())
-        .thenReturn(Optional.of(List.of(dirToExclude)));
+        .thenReturn(Optional.of(Collections.singletonList(dirToExclude)));
     when(metadataExtractorConfig.getParserConfig())
         .thenReturn(
-            List.of(
+            Collections.singletonList(
                 ParserConfig.builder()
                     .lake(LAKE)
                     .databases(
-                        List.of(
+                        Collections.singletonList(
                             Database.builder()
                                 .name(DATABASE)
-                                .basePaths(List.of(dirToExclude))
+                                .basePaths(Collections.singletonList(dirToExclude))
                                 .build()))
                     .build()));
 

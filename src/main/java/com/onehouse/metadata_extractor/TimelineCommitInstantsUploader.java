@@ -401,8 +401,9 @@ public class TimelineCommitInstantsUploader {
                 return updatedCheckpoint;
               });
     } catch (JsonProcessingException e) {
-      return CompletableFuture.failedFuture(
-          new RuntimeException("failed to serialise checkpoint", e));
+      CompletableFuture<Checkpoint> f = new CompletableFuture<>();
+      f.completeExceptionally(new RuntimeException("failed to serialise checkpoint", e));
+      return f;
     }
   }
 
