@@ -10,7 +10,7 @@ public class GlueWrapperMain implements UDF1<String, String> {
   public String call(String argJson) throws Exception {
     String[] argList = MAPPER.readValue(argJson, String[].class);
     Main.main(argList);
-    return "";
+    return "SUCCESS";
   }
 
   /**
@@ -21,7 +21,6 @@ public class GlueWrapperMain implements UDF1<String, String> {
    */
   public static void main(String[] args) throws Exception {
     GlueWrapperMain wrapperMain = new GlueWrapperMain();
-    String argsJson = "[\"-h\"]";
-    wrapperMain.call(argsJson);
+    wrapperMain.call(args[0]);
   }
 }
