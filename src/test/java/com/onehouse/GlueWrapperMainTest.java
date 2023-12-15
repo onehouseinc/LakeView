@@ -11,7 +11,7 @@ class GlueWrapperMainTest {
   @SneakyThrows
   public void testMain() {
     try {
-      GlueWrapperMain.main(new String[] {});
+      GlueWrapperMain.main(new String[] {"[\"-h\"]"});
     } catch (Exception e) {
       fail(e);
     }
