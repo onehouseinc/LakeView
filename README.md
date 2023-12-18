@@ -126,7 +126,7 @@ docker run <image_name> -p '<path_to_config_file>'
 
 # Deployment in Glue using jar file
 1. Upload the jar file to a S3 location, this has to be accessible via an IAM role used by the Glue job.
-1. Create a glue job with a script. Please find a sample script to be used in Glue below. Here, the config.yaml is embedded as part of the script itself. Please update the parameters like `PROJECT_ID`, `API_KEY`, `API_SECRET`, `USER_ID`, `REGION`, `LAKE_NAME`, `DATABASE_NAME`, `BASE_PATH_1` etc. in the config.
+1. Create a glue job with a script. Please find a sample script to be used in Glue below. Here, the config.yaml is embedded as part of the script itself. Please update the parameters like `PROJECT_ID`, `API_KEY`, `API_SECRET`, `USER_ID`, `REGION`, `LAKE_NAME`, `DATABASE_NAME`, `BASE_PATH_1`, `BASE_PATH_2` etc. in the config.
 ```python
 import pyspark
 import pyspark.sql.types as T
