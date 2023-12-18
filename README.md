@@ -143,7 +143,7 @@ spark_session.udf.registerJavaFunction(name="glue_wrapper", javaClassName="com.o
 spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientConfig: {projectId: ${PROJECT_ID}, apiKey: ${API_KEY}, apiSecret: ${API_SECRET}, userId: ${USER_ID}}, fileSystemConfiguration: {s3Config: {region: ${REGION}}}, metadataExtractorConfig: {jobRunMode: ONCE, parserConfig: [{lake: ${LAKE_NAME}, databases: [{name: ${DATABASE_NAME}, basePaths: [${BASE_PATH_1}, ${BASE_PATH_2}]}]}]}}\"]') as answer").show()
 ```
 3. Configure the Glue Job details.
-   1. Set up the IAM role to be used by glue. **Note**: This role should be able to access the JAR file from S3.
+   1. Set up the IAM role to be used by glue. **Note**: This role should be able to access the JAR file from S3 and also to the base paths mentioned in the config.
    1. Under `Advanced properties > Libraries`, specify the JAR's S3 location in `Python library path` & `Dependent JARs path` fields.
 
 # Known Limitations of the Onehouse Community Edition Metadata Extractor
