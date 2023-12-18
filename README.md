@@ -123,6 +123,29 @@ docker run <image_name> -p '<path_to_config_file>'
 3. create the values.yaml file, refer to the fields in [supported_values](helm-chart/values.yaml)
 4. install using helm\
    `helm install hudi-metadata-extractor . -f <path to values.yaml>`
+
+# Deployment in Glue using jar file
+1. Upload the jar file to a S3 location, this has to be accessible via an IAM role used by the Glue job.
+1. Create a glue job with a script. Please find a sample script to be used in Glue below. Here, the config.yaml is embedded as part of the script itself. This is a minified version of the same config.yaml file. Please update the parameters like `PROJECT_ID`, `API_KEY`, `API_SECRET`, `USER_ID`, `REGION`, `LAKE_NAME`, `DATABASE_NAME`, `BASE_PATH_1`, `BASE_PATH_2` etc. in the config.
+```python
+import pyspark
+import pyspark.sql.types as T
+from awsglue.transforms import *
+from awsglue.context import GlueContext
+from pyspark.context import SparkContext
+
+conf = pyspark.SparkConf()
+
+glueContext = GlueContext(SparkContext.getOrCreate(conf=conf))
+
+spark_session = glueContext.spark_session
+spark_session.udf.registerJavaFunction(name="glue_wrapper", javaClassName="com.onehouse.GlueWrapperMain", returnType=T.StringType())
+spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientConfig: {projectId: ${PROJECT_ID}, apiKey: ${API_KEY}, apiSecret: ${API_SECRET}, userId: ${USER_ID}}, fileSystemConfiguration: {s3Config: {region: ${REGION}}}, metadataExtractorConfig: {jobRunMode: ONCE, parserConfig: [{lake: ${LAKE_NAME}, databases: [{name: ${DATABASE_NAME}, basePaths: [${BASE_PATH_1}, ${BASE_PATH_2}]}]}]}}\"]') as answer").show()
+```
+3. Configure the Glue Job details.
+   1. Set up the IAM role to be used by glue. **Note**: This role should be able to access the JAR file from S3 and also to the base paths mentioned in the config.
+   1. Under `Advanced properties > Libraries`, specify the JAR's S3 location in `Python library path` & `Dependent JARs path` fields.
+
 # Known Limitations of the Onehouse Community Edition Metadata Extractor
 When using the Onehouse Community Edition Metadata Extractor,
 it's important to be aware of certain limitations
