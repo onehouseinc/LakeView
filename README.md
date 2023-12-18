@@ -126,7 +126,7 @@ docker run <image_name> -p '<path_to_config_file>'
 
 # Deployment in Glue using jar file
 1. Upload the jar file to a S3 location, this has to be accessible via an IAM role used by the Glue job.
-1. Create a glue job with a script. Please find a sample script to be used in Glue below. Here, the config.yaml is embedded as part of the script itself. Please update the parameters like `PROJECT_ID`, `API_KEY`, `API_SECRET`, `USER_ID`, `REGION`, `LAKE_NAME`, `DATABASE_NAME`, `BASE_PATH_1` etc. in the config.
+1. Create a glue job with a script. Please find a sample script to be used in Glue below. Here, the config.yaml is embedded as part of the script itself. Please update the parameters like `PROJECT_ID`, `API_KEY`, `API_SECRET`, `USER_ID`, `REGION`, `LAKE_NAME`, `DATABASE_NAME`, `BASE_PATH_1`, `BASE_PATH_2` etc. in the config.
 ```python
 import pyspark
 import pyspark.sql.types as T
@@ -142,7 +142,7 @@ spark_session = glueContext.spark_session
 spark_session.udf.registerJavaFunction(name="glue_wrapper", javaClassName="com.onehouse.GlueWrapperMain", returnType=T.StringType())
 spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientConfig: {projectId: ${PROJECT_ID}, apiKey: ${API_KEY}, apiSecret: ${API_SECRET}, userId: ${USER_ID}}, fileSystemConfiguration: {s3Config: {region: ${REGION}}}, metadataExtractorConfig: {jobRunMode: ONCE, parserConfig: [{lake: ${LAKE_NAME}, databases: [{name: ${DATABASE_NAME}, basePaths: [${BASE_PATH_1}, ${BASE_PATH_2}]}]}]}}\"]') as answer").show()
 ```
-1. Configure the Glue Job details.
+3. Configure the Glue Job details.
    1. Set up the IAM role to be used by glue. **Note**: This role should be able to access the JAR file from S3.
    1. Under `Advanced properties > Libraries`, specify the JAR's S3 location in `Python library path` & `Dependent JARs path` fields.
 
