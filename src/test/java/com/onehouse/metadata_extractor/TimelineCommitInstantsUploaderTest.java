@@ -86,7 +86,8 @@ class TimelineCommitInstantsUploaderTest {
 
     doReturn(1)
         .when(timelineCommitInstantsUploaderSpy)
-        .getUploadBatchSize(); // 1 file will be processed at a time
+        .getUploadBatchSize(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED); // 1 file will be processed at a time
 
     mockListAllFilesInDir(
         TABLE.getAbsoluteTableUri() + ".hoodie/" + ARCHIVED_FOLDER_PREFIX,
@@ -164,7 +165,8 @@ class TimelineCommitInstantsUploaderTest {
 
     doReturn(4)
         .when(timelineCommitInstantsUploaderSpy)
-        .getUploadBatchSize(); // 1 file will be processed at a time
+        .getUploadBatchSize(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE); // 1 file will be processed at a time
     // Page 1: returns 2 files
     mockListPage(
         TABLE_PREFIX + "/.hoodie/",
@@ -262,7 +264,8 @@ class TimelineCommitInstantsUploaderTest {
 
     doReturn(4)
         .when(timelineCommitInstantsUploaderSpy)
-        .getUploadBatchSize(); // 1 file will be processed at a time
+        .getUploadBatchSize(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE); // 1 file will be processed at a time
     // Page 1: returns 2 files (SKIPPED)
     // page 2: returns 2 files (last page)
 
@@ -349,7 +352,8 @@ class TimelineCommitInstantsUploaderTest {
 
     doReturn(1)
         .when(timelineCommitInstantsUploaderSpy)
-        .getUploadBatchSize(); // 1 file will be processed at a time
+        .getUploadBatchSize(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED); // 1 file will be processed at a time
 
     mockListAllFilesInDir(
         TABLE.getAbsoluteTableUri() + ".hoodie/" + ARCHIVED_FOLDER_PREFIX,
@@ -393,7 +397,8 @@ class TimelineCommitInstantsUploaderTest {
 
     doReturn(1)
         .when(timelineCommitInstantsUploaderSpy)
-        .getUploadBatchSize(); // 1 file will be processed at a time
+        .getUploadBatchSize(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED); // 1 file will be processed at a time
     mockListAllFilesInDir(
         TABLE.getAbsoluteTableUri() + ".hoodie/" + ARCHIVED_FOLDER_PREFIX,
         Arrays.asList(

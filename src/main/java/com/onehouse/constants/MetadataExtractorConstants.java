@@ -15,7 +15,11 @@ public class MetadataExtractorConstants {
   public static final String HOODIE_PROPERTIES_FILE = "hoodie.properties";
   public static final String HOODIE_TABLE_NAME_KEY = "hoodie.table.name";
   public static final String HOODIE_TABLE_TYPE_KEY = "hoodie.table.type";
-  public static final int PRESIGNED_URL_REQUEST_BATCH_SIZE = 100;
+
+  // The default number of instants in one archived commit metadata file is 10
+  // so we want to ingest 10x active instants than archived instants in one batch
+  public static final int PRESIGNED_URL_REQUEST_BATCH_SIZE_ACTIVE_TIMELINE = 20;
+  public static final int PRESIGNED_URL_REQUEST_BATCH_SIZE_ARCHIVED_TIMELINE = 2;
   public static final int TABLE_PROCESSING_BATCH_SIZE =
       Math.min(
           50,
