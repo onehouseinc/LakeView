@@ -453,6 +453,18 @@ class TimelineCommitInstantsUploaderTest {
     verify(onehouseApiClient, times(1)).upsertTableMetricsCheckpoint(any());
   }
 
+  @Test
+  void testGetUploadBatchSize() {
+    assertEquals(
+        20,
+        timelineCommitInstantsUploader.getUploadBatchSize(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE));
+    assertEquals(
+        2,
+        timelineCommitInstantsUploader.getUploadBatchSize(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED));
+  }
+
   private void mockListPage(
       String prefix, String nextContinuationToken, String startAfter, List<File> files) {
     when(asyncStorageClient.fetchObjectsByPage("bucket", prefix, null, startAfter))
