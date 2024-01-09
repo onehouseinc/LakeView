@@ -65,7 +65,8 @@ public class TableMetadataUploaderService {
         tablesToProcess.stream()
             .map(
                 table ->
-                    table.toBuilder()
+                    table
+                        .toBuilder()
                         .tableId(
                             getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUri()).toString())
                         .build())
