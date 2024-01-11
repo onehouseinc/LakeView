@@ -6,7 +6,8 @@ import static com.onehouse.constants.MetadataExtractorConstants.ARCHIVED_FOLDER_
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE_OBJ;
-import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE;
+import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ACTIVE_TIMELINE;
+import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ARCHIVED_TIMELINE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -241,9 +242,13 @@ public class TimelineCommitInstantsUploader {
       boolean isLastPage) {
     List<List<File>> batches;
     if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)) {
-      batches = Lists.partition(filesToUpload, getUploadBatchSize());
+      batches =
+          Lists.partition(
+              filesToUpload, getUploadBatchSize(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED));
     } else {
-      batches = activeTimelineInstantBatcher.createBatches(filesToUpload, getUploadBatchSize());
+      batches =
+          activeTimelineInstantBatcher.createBatches(
+              filesToUpload, getUploadBatchSize(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE));
     }
     int numBatches = batches.size();
 
@@ -531,7 +536,11 @@ public class TimelineCommitInstantsUploader {
   }
 
   @VisibleForTesting
-  int getUploadBatchSize() {
-    return PRESIGNED_URL_REQUEST_BATCH_SIZE;
+  int getUploadBatchSize(CommitTimelineType commitTimelineType) {
+    if (commitTimelineType == CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED) {
+      return PRESIGNED_URL_REQUEST_BATCH_SIZE_ARCHIVED_TIMELINE;
+    } else {
+      return PRESIGNED_URL_REQUEST_BATCH_SIZE_ACTIVE_TIMELINE;
+    }
   }
 }
