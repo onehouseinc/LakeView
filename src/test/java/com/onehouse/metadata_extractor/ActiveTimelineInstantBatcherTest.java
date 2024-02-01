@@ -36,6 +36,23 @@ class ActiveTimelineInstantBatcherTest {
   }
 
   @Test
+  void testIncompleteInitialCommit() {
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("111.deltacommit.requested"),
+            generateFileObj("111.deltacommit.inflight"),
+            generateFileObj("hoodie.properties"));
+
+    // instants with timestamp 222 need to be ignored as the actionType is unknown and
+    // instants with timestamp 333 are skipped as the commit is not yet complete
+    List<List<File>> expectedBatches =
+        Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
+
+    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
   void testCreateBatchWithExclusion() {
     List<File> files =
         Arrays.asList(
