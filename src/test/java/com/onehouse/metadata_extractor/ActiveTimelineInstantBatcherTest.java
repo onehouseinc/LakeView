@@ -1,7 +1,7 @@
 package com.onehouse.metadata_extractor;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import com.onehouse.storage.models.File;
 import java.time.Instant;
@@ -22,6 +22,17 @@ class ActiveTimelineInstantBatcherTest {
   @BeforeEach
   void setup() {
     activeTimelineInstantBatcher = new ActiveTimelineInstantBatcher();
+  }
+
+  @Test
+  void testCreateBatchForTableWithNoCommit() {
+    List<File> files = Collections.singletonList(generateFileObj("hoodie.properties"));
+
+    List<List<File>> expectedBatches =
+        Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
+
+    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    assertEquals(expectedBatches, actualBatches);
   }
 
   @Test
