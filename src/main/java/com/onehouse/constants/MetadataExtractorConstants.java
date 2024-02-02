@@ -47,6 +47,7 @@ public class MetadataExtractorConstants {
           .lastModifiedAt(Instant.EPOCH)
           .build();
 
+  public static final String SAVEPOINT_ACTION = "savepoint";
   public static final List<String> WHITELISTED_ACTION_TYPES =
       Arrays.asList(
           "commit",
