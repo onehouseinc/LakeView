@@ -25,6 +25,34 @@ class ActiveTimelineInstantBatcherTest {
   }
 
   @Test
+  void testCreateBatchForTableWithNoCommit() {
+    List<File> files = Collections.singletonList(generateFileObj("hoodie.properties"));
+
+    List<List<File>> expectedBatches =
+        Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
+
+    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
+  void testIncompleteInitialCommit() {
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("111.deltacommit.requested"),
+            generateFileObj("111.deltacommit.inflight"),
+            generateFileObj("hoodie.properties"));
+
+    // instants with timestamp 222 need to be ignored as the actionType is unknown and
+    // instants with timestamp 333 are skipped as the commit is not yet complete
+    List<List<File>> expectedBatches =
+        Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
+
+    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
   void testCreateBatchWithExclusion() {
     List<File> files =
         Arrays.asList(
@@ -177,6 +205,138 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.clean"),
                 generateFileObj("222.clean.inflight"),
                 generateFileObj("222.clean.requested")));
+
+    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
+  void testCreateBatchWithCommitActions() {
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("111.commit.requested"),
+            generateFileObj("333.rollback.requested"),
+            generateFileObj("111.inflight"),
+            generateFileObj("222.clean"),
+            generateFileObj("111.commit"),
+            generateFileObj("444.action4.inflight"),
+            generateFileObj("444.action4.requested"),
+            generateFileObj("222.clean.requested"),
+            generateFileObj("222.clean.inflight"),
+            generateFileObj("333.rollback.inflight"),
+            generateFileObj("hoodie.properties"));
+
+    // instants with timestamp 333 and 444 need to be ignored as the commit is incomplete
+    List<List<File>> expectedBatches =
+        Arrays.asList(
+            Arrays.asList(
+                generateFileObj("hoodie.properties"),
+                generateFileObj("111.commit"),
+                generateFileObj("111.commit.requested"),
+                generateFileObj("111.inflight")),
+            Arrays.asList(
+                generateFileObj("222.clean"),
+                generateFileObj("222.clean.inflight"),
+                generateFileObj("222.clean.requested")));
+
+    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
+  void testCreateBatchWithCommitAndSavepointAsMiddletBatchActions() {
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("111.commit.requested"),
+            generateFileObj("555.rollback.requested"),
+            generateFileObj("111.inflight"),
+            generateFileObj("111.commit"),
+            generateFileObj("555.rollback"),
+            generateFileObj("444.savepoint.inflight"),
+            generateFileObj("444.savepoint"),
+            generateFileObj("555.rollback.inflight"),
+            generateFileObj("hoodie.properties"));
+
+    // instants with timestamp 333 and 444 need to be ignored as the commit is incomplete
+    List<List<File>> expectedBatches =
+        Arrays.asList(
+            Arrays.asList(
+                generateFileObj("hoodie.properties"),
+                generateFileObj("111.commit"),
+                generateFileObj("111.commit.requested"),
+                generateFileObj("111.inflight")),
+            Arrays.asList(
+                generateFileObj("444.savepoint"), generateFileObj("444.savepoint.inflight")),
+            Arrays.asList(
+                generateFileObj("555.rollback"),
+                generateFileObj("555.rollback.inflight"),
+                generateFileObj("555.rollback.requested")));
+
+    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
+  void testCreateBatchWithCommitAndSavepointAsLastBatchActions() {
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("111.commit.requested"),
+            generateFileObj("333.rollback.requested"),
+            generateFileObj("111.inflight"),
+            generateFileObj("111.commit"),
+            generateFileObj("333.rollback"),
+            generateFileObj("444.savepoint.inflight"),
+            generateFileObj("444.savepoint"),
+            generateFileObj("333.rollback.inflight"),
+            generateFileObj("hoodie.properties"));
+
+    // instants with timestamp 333 and 444 need to be ignored as the commit is incomplete
+    List<List<File>> expectedBatches =
+        Arrays.asList(
+            Arrays.asList(
+                generateFileObj("hoodie.properties"),
+                generateFileObj("111.commit"),
+                generateFileObj("111.commit.requested"),
+                generateFileObj("111.inflight")),
+            Arrays.asList(
+                generateFileObj("333.rollback"),
+                generateFileObj("333.rollback.inflight"),
+                generateFileObj("333.rollback.requested")),
+            Arrays.asList(
+                generateFileObj("444.savepoint"), generateFileObj("444.savepoint.inflight")));
+
+    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
+  void testIncompleteLastAction() {
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("555.commit.requested"),
+            generateFileObj("333.rollback.requested"),
+            generateFileObj("555.inflight"),
+            generateFileObj("555.commit"),
+            generateFileObj("666.replacecommit.inflight"),
+            generateFileObj("444.savepoint"),
+            generateFileObj("333.rollback"),
+            generateFileObj("333.rollback.inflight"),
+            generateFileObj("444.savepoint.inflight"),
+            generateFileObj("666.replacecommit.requested"));
+
+    // instants with timestamp 333 and 444 need to be ignored as the commit is incomplete
+    List<List<File>> expectedBatches =
+        Arrays.asList(
+            Arrays.asList(
+                generateFileObj("333.rollback"),
+                generateFileObj("333.rollback.inflight"),
+                generateFileObj("333.rollback.requested")),
+            Arrays.asList(
+                generateFileObj("444.savepoint"), generateFileObj("444.savepoint.inflight")),
+            Arrays.asList(
+                generateFileObj("555.commit"),
+                generateFileObj("555.commit.requested"),
+                generateFileObj("555.inflight")));
 
     List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
     assertEquals(expectedBatches, actualBatches);

@@ -40,7 +40,9 @@ public class ActiveTimelineInstantBatcher {
       currentBatch.add(sortedInstants.get(0));
     }
 
-    for (int index = startIndex; index <= sortedInstants.size() - 3; index += 3) {
+    // Stop threshold is set to sortedInstants.size() - 2 to ensure we don't miss the case
+    // when timeline ends with a completed savepoint action
+    for (int index = startIndex; index <= sortedInstants.size() - 2; index += 3) {
       ActiveTimelineInstant instant1 =
           getActiveTimeLineInstant(sortedInstants.get(index).getFilename());
       ActiveTimelineInstant instant2 =
@@ -48,13 +50,20 @@ public class ActiveTimelineInstantBatcher {
 
       int groupSize = 3;
       boolean areInstantsInGrpRelated;
+      boolean shouldStopIteration = false;
       if (instant1.action.equals(SAVEPOINT_ACTION)) {
         areInstantsInGrpRelated = areRelatedSavepointInstants(instant1, instant2);
         groupSize = 2;
       } else {
-        ActiveTimelineInstant instant3 =
-            getActiveTimeLineInstant(sortedInstants.get(index + 2).getFilename());
-        areInstantsInGrpRelated = areRelatedInstants(instant1, instant2, instant3);
+        if (index + 2 >= sortedInstants.size()) {
+          // If the latest commit is not complete
+          areInstantsInGrpRelated = false;
+          shouldStopIteration = true;
+        } else {
+          ActiveTimelineInstant instant3 =
+              getActiveTimeLineInstant(sortedInstants.get(index + 2).getFilename());
+          areInstantsInGrpRelated = areRelatedInstants(instant1, instant2, instant3);
+        }
       }
 
       if (areInstantsInGrpRelated) {
@@ -69,6 +78,10 @@ public class ActiveTimelineInstantBatcher {
         }
       } else {
         // Instants are not related; add what we have and stop processing
+        shouldStopIteration = true;
+      }
+
+      if (shouldStopIteration) {
         if (!currentBatch.isEmpty()) {
           batches.add(new ArrayList<>(currentBatch));
           currentBatch.clear();
@@ -138,12 +151,18 @@ public class ActiveTimelineInstantBatcher {
 
   private static ActiveTimelineInstant getActiveTimeLineInstant(String instant) {
     String[] parts = instant.split("\\.", 3);
-    String state = parts.length == 3 ? parts[2] : "completed";
-    return ActiveTimelineInstant.builder()
-        .timestamp(parts[0])
-        .action(parts[1])
-        .state(state)
-        .build();
+
+    String action;
+    String state;
+    // For commit action, metadata file in inflight state is in the format of XYZ.inflight
+    if (parts.length == 2 && parts[1].equals("inflight")) {
+      action = "commit";
+      state = "inflight";
+    } else {
+      action = parts[1];
+      state = parts.length == 3 ? parts[2] : "completed";
+    }
+    return ActiveTimelineInstant.builder().timestamp(parts[0]).action(action).state(state).build();
   }
 
   @Builder
