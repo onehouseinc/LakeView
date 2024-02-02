@@ -1,6 +1,7 @@
 package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
+import static com.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
 import static com.onehouse.constants.MetadataExtractorConstants.WHITELISTED_ACTION_TYPES;
 
 import com.onehouse.storage.models.File;
@@ -15,8 +16,6 @@ import lombok.Builder;
 import lombok.Getter;
 
 public class ActiveTimelineInstantBatcher {
-  private static final String SAVEPOINT_ACTION = "savepoint";
-
   /**
    * Creates batches of Hudi instants, ensuring related instants are grouped together.
    *

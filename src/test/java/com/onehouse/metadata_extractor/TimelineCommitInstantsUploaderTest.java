@@ -1,6 +1,7 @@
 package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
+import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE_OBJ;
 import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -254,6 +255,107 @@ class TimelineCommitInstantsUploaderTest {
         checkpoint2,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     assertEquals(checkpoint2, response);
+  }
+
+  @Test
+  void testUploadInstantsInEmptyActiveTimelineWhenArchivedTimelineNotPresent() {
+    TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
+        spy(timelineCommitInstantsUploader);
+
+    doReturn(4)
+        .when(timelineCommitInstantsUploaderSpy)
+        .getUploadBatchSize(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE); // 1 file will be processed at a time
+    mockListPage(
+        TABLE_PREFIX + "/.hoodie/",
+        null,
+        null,
+        Collections.singletonList(HOODIE_PROPERTIES_FILE_OBJ));
+
+    List<File> batch1 = Collections.singletonList(generateFileObj(HOODIE_PROPERTIES_FILE, false));
+
+    stubCreateBatches(
+        Collections.singletonList(generateFileObj(HOODIE_PROPERTIES_FILE, false)),
+        Collections.singletonList(batch1));
+
+    Checkpoint checkpoint1 = generateCheckpointObj(1, Instant.EPOCH, true, HOODIE_PROPERTIES_FILE);
+
+    stubUploadInstantsCalls(
+        batch1.stream().map(File::getFilename).collect(Collectors.toList()),
+        checkpoint1,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+
+    Checkpoint response =
+        timelineCommitInstantsUploaderSpy
+            .paginatedBatchUploadWithCheckpoint(
+                TABLE_ID.toString(),
+                TABLE,
+                INITIAL_CHECKPOINT,
+                CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+            .join();
+
+    verify(asyncStorageClient, times(1)).fetchObjectsByPage(anyString(), anyString(), any(), any());
+    verifyFilesUploaded(
+        batch1.stream().map(File::getFilename).collect(Collectors.toList()),
+        checkpoint1,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    assertEquals(checkpoint1, response);
+  }
+
+  @Test
+  void testUploadInstantsInActiveTimelineWithOnlySavepoint() {
+    TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
+        spy(timelineCommitInstantsUploader);
+    Instant currentTime = Instant.now();
+
+    doReturn(4)
+        .when(timelineCommitInstantsUploaderSpy)
+        .getUploadBatchSize(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE); // 1 file will be processed at a time
+    mockListPage(
+        TABLE_PREFIX + "/.hoodie/",
+        null,
+        null,
+        Arrays.asList(
+            generateFileObj("222.savepoint.inflight", false),
+            generateFileObj("222.savepoint", false, currentTime),
+            generateFileObj(HOODIE_PROPERTIES_FILE, false)));
+
+    List<File> batch1 =
+        Arrays.asList(
+            generateFileObj(HOODIE_PROPERTIES_FILE, false),
+            generateFileObj("222.savepoint", false, currentTime),
+            generateFileObj("222.savepoint.inflight", false));
+
+    stubCreateBatches(
+        Arrays.asList(
+            generateFileObj(HOODIE_PROPERTIES_FILE, false),
+            generateFileObj("222.savepoint", false, currentTime),
+            generateFileObj("222.savepoint.inflight", false)),
+        Collections.singletonList(batch1));
+
+    Checkpoint checkpoint1 = generateCheckpointObj(1, currentTime, true, "222.savepoint");
+
+    stubUploadInstantsCalls(
+        batch1.stream().map(File::getFilename).collect(Collectors.toList()),
+        checkpoint1,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+
+    Checkpoint response =
+        timelineCommitInstantsUploaderSpy
+            .paginatedBatchUploadWithCheckpoint(
+                TABLE_ID.toString(),
+                TABLE,
+                INITIAL_CHECKPOINT,
+                CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+            .join();
+
+    verify(asyncStorageClient, times(1)).fetchObjectsByPage(anyString(), anyString(), any(), any());
+    verifyFilesUploaded(
+        batch1.stream().map(File::getFilename).collect(Collectors.toList()),
+        checkpoint1,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    assertEquals(checkpoint1, response);
   }
 
   @Test

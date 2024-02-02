@@ -8,7 +8,7 @@ import lombok.Value;
 @Builder
 @Value
 public class File {
-  @NonNull String filename;
+  @NonNull String filename; // filename does not include the path prefix
   @NonNull Instant lastModifiedAt;
   boolean isDirectory;
 }

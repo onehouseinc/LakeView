@@ -8,6 +8,7 @@ import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIE
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE_OBJ;
 import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ACTIVE_TIMELINE;
 import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ARCHIVED_TIMELINE;
+import static com.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -275,12 +276,7 @@ public class TimelineCommitInstantsUploader {
                   return CompletableFuture.completedFuture(null);
                 }
 
-                File lastUploadedFile =
-                    CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
-                        ? batch.get(batch.size() - 1)
-                        : batch.get(
-                            batch.size()
-                                - 3); // third last item in the batch will be the completed instant
+                File lastUploadedFile = getLastUploadedFileFromBatch(commitTimelineType, batch);
                 log.info(
                     "uploading batch {} for table {} timeline: {}",
                     updatedCheckpoint.getBatchId() + 1,
@@ -533,6 +529,36 @@ public class TimelineCommitInstantsUploader {
             || StringUtils.isBlank(lastProcessedFile)
         ? null
         : storageUtils.constructFileUri(prefix, checkpoint.getLastUploadedFile());
+  }
+
+  /**
+   * Extracts the last uploaded file from batch. If the commit timeline type is ARCHIVED, we return
+   * the last file in the batch. If the batch only contains hoodie.properties file, we return
+   * hoodie.properties. If the batch ends with savepoint commit, we return the second to last item.
+   * If the batch ends with other commit types, we return third to last item.
+   */
+  private File getLastUploadedFileFromBatch(
+      CommitTimelineType commitTimelineType, List<File> batch) {
+    if (commitTimelineType == CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED) {
+      return batch.get(batch.size() - 1);
+    }
+    if (batch.size() == 1 && batch.get(0).getFilename().equals(HOODIE_PROPERTIES_FILE)) {
+      return batch.get(0);
+    }
+
+    if (isSavepointCommit(batch.get(batch.size() - 1))) {
+      return batch.get(batch.size() - 2);
+    }
+
+    return batch.get(batch.size() - 3);
+  }
+
+  private boolean isSavepointCommit(File file) {
+    String[] parts = file.getFilename().split("\\.", 3);
+    if (parts.length < 2) {
+      return false;
+    }
+    return SAVEPOINT_ACTION.equals(parts[1]);
   }
 
   @VisibleForTesting
