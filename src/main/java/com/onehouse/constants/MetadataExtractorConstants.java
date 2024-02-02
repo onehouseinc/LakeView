@@ -53,7 +53,7 @@ public class MetadataExtractorConstants {
           "commit",
           "deltacommit",
           "rollback",
-          "savepoint",
+          SAVEPOINT_ACTION,
           "restore",
           "clean",
           "compaction",
