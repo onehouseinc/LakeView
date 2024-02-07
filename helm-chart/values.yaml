@@ -1,8 +1,8 @@
 image:
   repository: onehouse/hudi-metadata-extractor
   pullPolicy: Always
-#  TODO: Replace with correct tag
-  tag: beta
+  # Release version to use
+  tag: release-v0.4.1
 
 # Config yaml to be provided to the extractor. Refer to readme for the format of the config file
 # not required if config path is being provided
