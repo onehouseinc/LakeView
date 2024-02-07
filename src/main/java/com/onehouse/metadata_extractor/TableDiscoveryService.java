@@ -3,7 +3,7 @@ package com.onehouse.metadata_extractor;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 
 import com.google.inject.Inject;
-import com.onehouse.config.Config;
+import com.onehouse.config.ConfigProvider;
 import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.Database;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
@@ -39,11 +39,12 @@ public class TableDiscoveryService {
   public TableDiscoveryService(
       @Nonnull AsyncStorageClient asyncStorageClient,
       @Nonnull StorageUtils storageUtils,
-      @Nonnull Config config,
+      @Nonnull ConfigProvider configProvider,
       @Nonnull ExecutorService executorService) {
     this.asyncStorageClient = asyncStorageClient;
     this.storageUtils = storageUtils;
-    this.metadataExtractorConfig = ((ConfigV1) config).getMetadataExtractorConfig();
+    this.metadataExtractorConfig =
+        ((ConfigV1) configProvider.getConfig()).getMetadataExtractorConfig();
     this.executorService = executorService;
     this.excludedPathPatterns =
         metadataExtractorConfig.getPathExclusionPatterns().orElse(new ArrayList<>());

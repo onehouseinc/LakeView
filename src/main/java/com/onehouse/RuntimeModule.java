@@ -5,6 +5,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.config.Config;
+import com.onehouse.config.ConfigProvider;
 import com.onehouse.config.models.common.FileSystemConfiguration;
 import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.GCSAsyncStorageClient;
@@ -74,6 +75,12 @@ public class RuntimeModule extends AbstractModule {
       gcsClientProvider.getGcsClient();
       return new GCSAsyncStorageClient(gcsClientProvider, storageUtils, executorService);
     }
+  }
+
+  @Provides
+  @Singleton
+  static ConfigProvider configProvider(Config config) {
+    return new ConfigProvider(config);
   }
 
   @Provides
