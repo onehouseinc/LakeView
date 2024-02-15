@@ -18,7 +18,11 @@ public class ConfigV1 implements Config {
   @NonNull private String version;
   @NonNull private OnehouseClientConfig onehouseClientConfig;
   @NonNull private FileSystemConfiguration fileSystemConfiguration;
-  @NonNull private MetadataExtractorConfig metadataExtractorConfig;
+
+  // If metadataExtractorConfigPath is provided, it overrides metadataExtractorConfig. If not
+  // provided, it is mandatory to pass metadataExtractorConfig.
+  private String metadataExtractorConfigPath;
+  private MetadataExtractorConfig metadataExtractorConfig;
 
   @Override
   public ConfigVersion getVersion() {

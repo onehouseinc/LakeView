@@ -7,11 +7,15 @@ import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.cli_parser.CliParser;
 import com.onehouse.config.Config;
 import com.onehouse.config.ConfigLoader;
+import com.onehouse.config.ConfigProvider;
+import com.onehouse.config.ConfigRefresher;
 import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
+import com.onehouse.storage.AsyncStorageClient;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class Main {
@@ -55,8 +59,28 @@ public class Main {
     Injector injector = Guice.createInjector(new RuntimeModule(config));
     job = injector.getInstance(TableDiscoveryAndUploadJob.class);
     asyncHttpClientWithRetry = injector.getInstance(AsyncHttpClientWithRetry.class);
+    ConfigProvider configProvider = injector.getInstance(ConfigProvider.class);
 
-    runJob(config);
+    // If metadata extractor config is provided externally, then override and refresh config
+    // periodically.
+    if (StringUtils.isNotBlank(config.getMetadataExtractorConfigPath())) {
+      AsyncStorageClient storageClient = injector.getInstance(AsyncStorageClient.class);
+      try {
+        String baseConfigYaml = configLoader.convertConfigToString(config);
+        ConfigRefresher configRefresher =
+            new ConfigRefresher(
+                baseConfigYaml,
+                config.getMetadataExtractorConfigPath(),
+                storageClient,
+                configLoader,
+                configProvider);
+        configRefresher.start();
+      } catch (Exception ex) {
+        log.error("Failed to override metadata extractor config", ex);
+      }
+    }
+
+    runJob(configProvider.getConfig());
   }
 
   private Config loadConfig(String configFilePath, String configYamlString) {

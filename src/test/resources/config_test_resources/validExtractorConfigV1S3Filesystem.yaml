@@ -1,0 +1,10 @@
+metadataExtractorConfig:
+  pathExclusionPatterns:
+    - s3://lake_bucket/tables/excluded1
+  parserConfig:
+    - lake: lakeOverride1
+      databases:
+        - name: databaseOverride
+          basePaths:
+          -
+            s3://lake_bucket/tablesOveride34

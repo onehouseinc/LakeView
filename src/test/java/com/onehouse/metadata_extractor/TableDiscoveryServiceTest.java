@@ -3,6 +3,7 @@ package com.onehouse.metadata_extractor;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.onehouse.config.ConfigProvider;
 import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.Database;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
@@ -121,7 +122,10 @@ class TableDiscoveryServiceTest {
     // directly using StorageUtils as it is already tested and has basic helper functions
     tableDiscoveryService =
         new TableDiscoveryService(
-            asyncStorageClient, new StorageUtils(), config, ForkJoinPool.commonPool());
+            asyncStorageClient,
+            new StorageUtils(),
+            new ConfigProvider(config),
+            ForkJoinPool.commonPool());
 
     Set<Table> tableSet = tableDiscoveryService.discoverTables().get();
     List<Table> expectedResponseSet =
@@ -177,7 +181,10 @@ class TableDiscoveryServiceTest {
 
     tableDiscoveryService =
         new TableDiscoveryService(
-            asyncStorageClient, new StorageUtils(), config, ForkJoinPool.commonPool());
+            asyncStorageClient,
+            new StorageUtils(),
+            new ConfigProvider(config),
+            ForkJoinPool.commonPool());
     IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class, () -> tableDiscoveryService.discoverTables().join());

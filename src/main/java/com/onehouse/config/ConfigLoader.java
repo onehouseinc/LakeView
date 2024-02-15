@@ -43,4 +43,15 @@ public class ConfigLoader {
         throw new UnsupportedOperationException("Unsupported config version: " + version);
     }
   }
+
+  public String convertConfigToString(Config config) throws JsonProcessingException {
+    switch (config.getVersion()) {
+      case V1:
+        ConfigV1 configV1 = (ConfigV1) config;
+        return MAPPER.writeValueAsString(configV1);
+      default:
+        throw new UnsupportedOperationException(
+            "Unsupported config version: " + config.getVersion());
+    }
+  }
 }
