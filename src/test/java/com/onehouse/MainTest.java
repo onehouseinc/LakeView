@@ -8,6 +8,7 @@ import com.google.inject.Injector;
 import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.cli_parser.CliParser;
 import com.onehouse.config.ConfigLoader;
+import com.onehouse.config.ConfigProvider;
 import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
@@ -25,6 +26,7 @@ class MainTest {
 
   @Mock private CliParser mockParser;
   @Mock private ConfigLoader mockConfigLoader;
+  @Mock private ConfigProvider mockConfigProvider;
   @Mock private Injector mockInjector;
   @Mock private TableDiscoveryAndUploadJob mockJob;
   @Mock private AsyncHttpClientWithRetry mockAsyncHttpClientWithRetry;
@@ -49,6 +51,7 @@ class MainTest {
     String[] args = {"-p", "configFilePath"};
     when(mockParser.getConfigFilePath()).thenReturn("configFilePath");
     when(mockConfigLoader.loadConfigFromConfigFile(anyString())).thenReturn(mockConfig);
+    when(mockConfigProvider.getConfig()).thenReturn(mockConfig);
     when(mockConfig.getMetadataExtractorConfig())
         .thenReturn(
             MetadataExtractorConfig.builder()
@@ -58,6 +61,7 @@ class MainTest {
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
         .thenReturn(mockAsyncHttpClientWithRetry);
+    when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(mockConfigProvider);
     guiceMockedStatic
         .when(() -> Guice.createInjector(any(RuntimeModule.class)))
         .thenReturn(mockInjector);
@@ -73,6 +77,7 @@ class MainTest {
     String[] args = {"-p", "configFilePath"};
     when(mockParser.getConfigFilePath()).thenReturn("configFilePath");
     when(mockConfigLoader.loadConfigFromConfigFile(anyString())).thenReturn(mockConfig);
+    when(mockConfigProvider.getConfig()).thenReturn(mockConfig);
     when(mockConfig.getMetadataExtractorConfig())
         .thenReturn(
             MetadataExtractorConfig.builder()
@@ -82,6 +87,7 @@ class MainTest {
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
         .thenReturn(mockAsyncHttpClientWithRetry);
+    when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(mockConfigProvider);
     doThrow(new RuntimeException()).when(mockJob).runOnce();
     guiceMockedStatic
         .when(() -> Guice.createInjector(any(RuntimeModule.class)))
@@ -99,6 +105,8 @@ class MainTest {
 
     when(mockParser.getConfigYamlString()).thenReturn("configYamlString");
     when(mockConfigLoader.loadConfigFromString(anyString())).thenReturn(mockConfig);
+    when(mockConfigProvider.getConfig()).thenReturn(mockConfig);
+
     when(mockConfig.getMetadataExtractorConfig())
         .thenReturn(
             MetadataExtractorConfig.builder()
@@ -108,6 +116,7 @@ class MainTest {
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
         .thenReturn(mockAsyncHttpClientWithRetry);
+    when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(mockConfigProvider);
     guiceMockedStatic
         .when(() -> Guice.createInjector(any(RuntimeModule.class)))
         .thenReturn(mockInjector);
