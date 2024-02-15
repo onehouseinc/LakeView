@@ -52,12 +52,6 @@ public class ConfigRefresherTest {
     Assertions.assertEquals("lakeOverride1", parserConfig.getLake());
     Assertions.assertEquals(1, parserConfig.getDatabases().size());
     Assertions.assertEquals("databaseOverride", parserConfig.getDatabases().get(0).getName());
-
-    try {
-      Thread.sleep(300000);
-    } catch (Exception e) {
-
-    }
   }
 
   private static String getFileAsString(String filePath) throws IOException {

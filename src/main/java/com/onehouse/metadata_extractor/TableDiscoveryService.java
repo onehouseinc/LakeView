@@ -4,7 +4,6 @@ import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NA
 
 import com.google.inject.Inject;
 import com.onehouse.config.ConfigProvider;
-import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.Database;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.config.models.configv1.ParserConfig;
@@ -31,9 +30,8 @@ import org.apache.commons.lang3.tuple.Pair;
 public class TableDiscoveryService {
   private final AsyncStorageClient asyncStorageClient;
   private final StorageUtils storageUtils;
-  private final MetadataExtractorConfig metadataExtractorConfig;
   private final ExecutorService executorService;
-  private final List<String> excludedPathPatterns;
+  private final ConfigProvider configProvider;
 
   @Inject
   public TableDiscoveryService(
@@ -43,14 +41,15 @@ public class TableDiscoveryService {
       @Nonnull ExecutorService executorService) {
     this.asyncStorageClient = asyncStorageClient;
     this.storageUtils = storageUtils;
-    this.metadataExtractorConfig =
-        ((ConfigV1) configProvider.getConfig()).getMetadataExtractorConfig();
     this.executorService = executorService;
-    this.excludedPathPatterns =
-        metadataExtractorConfig.getPathExclusionPatterns().orElse(new ArrayList<>());
+    this.configProvider = configProvider;
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
+    MetadataExtractorConfig metadataExtractorConfig =
+        configProvider.getConfig().getMetadataExtractorConfig();
+    List<String> excludedPathPatterns =
+        metadataExtractorConfig.getPathExclusionPatterns().orElse(new ArrayList<>());
     log.info("Starting table discover service, excluding {}", excludedPathPatterns);
     List<Pair<String, CompletableFuture<Set<Table>>>> pathToDiscoveredTablesFuturePairList =
         new ArrayList<>();
@@ -59,7 +58,7 @@ public class TableDiscoveryService {
       for (Database database : parserConfig.getDatabases()) {
         for (String basePath : database.getBasePaths()) {
 
-          if (isExcluded(basePath)) {
+          if (isExcluded(basePath, excludedPathPatterns)) {
             throw new IllegalArgumentException(
                 "Provided base path cannot be part of paths to excluded");
           }
@@ -67,7 +66,8 @@ public class TableDiscoveryService {
           pathToDiscoveredTablesFuturePairList.add(
               Pair.of(
                   basePath,
-                  discoverTablesInPath(basePath, parserConfig.getLake(), database.getName())));
+                  discoverTablesInPath(
+                      basePath, parserConfig.getLake(), database.getName(), excludedPathPatterns)));
         }
       }
     }
@@ -88,7 +88,7 @@ public class TableDiscoveryService {
   }
 
   private CompletableFuture<Set<Table>> discoverTablesInPath(
-      String path, String lakeName, String databaseName) {
+      String path, String lakeName, String databaseName, List<String> excludedPathPatterns) {
     log.info(String.format("Discovering tables in %s", path));
     return asyncStorageClient
         .listAllFilesInDir(path)
@@ -104,7 +104,7 @@ public class TableDiscoveryService {
                         .databaseName(databaseName)
                         .lakeName(lakeName)
                         .build();
-                if (!isExcluded(table.getAbsoluteTableUri())) {
+                if (!isExcluded(table.getAbsoluteTableUri(), excludedPathPatterns)) {
                   tablePaths.add(table);
                 }
                 return CompletableFuture.completedFuture(tablePaths);
@@ -115,9 +115,9 @@ public class TableDiscoveryService {
 
               for (File file : directories) {
                 String filePath = storageUtils.constructFileUri(path, file.getFilename());
-                if (!isExcluded(filePath)) {
+                if (!isExcluded(filePath, excludedPathPatterns)) {
                   CompletableFuture<Void> recursiveFuture =
-                      discoverTablesInPath(filePath, lakeName, databaseName)
+                      discoverTablesInPath(filePath, lakeName, databaseName, excludedPathPatterns)
                           .thenAccept(tablePaths::addAll);
                   recursiveFutures.add(recursiveFuture);
                 }
@@ -137,7 +137,7 @@ public class TableDiscoveryService {
     return listedFiles.stream().anyMatch(file -> file.getFilename().startsWith(HOODIE_FOLDER_NAME));
   }
 
-  private boolean isExcluded(String filePath) {
+  private boolean isExcluded(String filePath, List<String> excludedPathPatterns) {
     return excludedPathPatterns.stream().anyMatch(filePath::matches);
   }
 }
