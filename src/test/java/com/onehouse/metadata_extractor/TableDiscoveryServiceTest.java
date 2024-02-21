@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
@@ -39,6 +40,8 @@ class TableDiscoveryServiceTest {
   @Mock private MetadataExtractorConfig metadataExtractorConfig;
 
   private static final String BASE_PATH = "s3://bucket/base_path/";
+  private static final String BASE_PATH_2 = "s3://bucket/base_path_2/";
+
   private static final String LAKE = "lake";
   private static final String DATABASE = "database";
 
@@ -67,6 +70,11 @@ class TableDiscoveryServiceTest {
      *     ├─ /excluded-table-3 (nested Hudi table, but should be excluded)
      *     │   └─ /.hoodie
      *     └─ /unrelated-folder1 (a regular folder, not a table)
+     *
+     * s3://bucket/base_path_2
+     * │
+     * ├─ /tableWithId (Hudi table directory)
+     * │   └─ /.hoodie (presence of this folder indicates a Hudi table)
      *
      * This mock setup will be used to validate the table discovery process, ensuring that only valid tables
      * are discovered and that excluded paths are properly ignored.
@@ -100,6 +108,16 @@ class TableDiscoveryServiceTest {
     // paths to exclude
     String dirToExclude = BASE_PATH + "excluded/"; // excluding using an absolute path
 
+    when(asyncStorageClient.listAllFilesInDir(BASE_PATH_2))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                Arrays.asList(generateFileObj("tableWithId/", true))));
+    when(asyncStorageClient.listAllFilesInDir(BASE_PATH_2 + "tableWithId/"))
+        .thenReturn(
+            CompletableFuture.completedFuture(Arrays.asList(generateFileObj(".hoodie", true))));
+    String tableId = "11111";
+    String basePath2ConfigWithTableId = BASE_PATH_2 + "#" + tableId;
+
     // parser config
     when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
     when(metadataExtractorConfig.getPathExclusionPatterns())
@@ -115,7 +133,7 @@ class TableDiscoveryServiceTest {
                         Collections.singletonList(
                             Database.builder()
                                 .name(DATABASE)
-                                .basePaths(Collections.singletonList(BASE_PATH))
+                                .basePaths(Arrays.asList(BASE_PATH, basePath2ConfigWithTableId))
                                 .build()))
                     .build()));
 
@@ -139,6 +157,12 @@ class TableDiscoveryServiceTest {
                     .absoluteTableUri(BASE_PATH + "nested-folder/table2/")
                     .databaseName(DATABASE)
                     .lakeName(LAKE)
+                    .build(),
+                Table.builder()
+                    .absoluteTableUri(BASE_PATH_2 + "tableWithId/")
+                    .tableId(tableId)
+                    .databaseName(DATABASE)
+                    .lakeName(LAKE)
                     .build())
             .sorted(Comparator.comparing(Table::getAbsoluteTableUri))
             .collect(Collectors.toList());
@@ -154,7 +178,71 @@ class TableDiscoveryServiceTest {
     // s3://bucket/base_path/nested-folder
     // s3://bucket/base_path/nested-folder/table2
     // s3://bucket/base_path/nested-folder/unrelated-folder1
-    verify(asyncStorageClient, times(5)).listAllFilesInDir(anyString());
+    // s3://bucket/base_path_2/
+    // s3://bucket/base_path_2/tableWithId/
+    verify(asyncStorageClient, times(7)).listAllFilesInDir(anyString());
+  }
+
+  @Test
+  void testCaseWhereMoreThanOneDiscoveredTablesForTableId() {
+    /*
+     * Mock the asyncStorageClient to simulate the file system structure for testing the discovery of tables.
+     * The simulated folder structure is as follows:
+     *
+     * s3://bucket/base_path
+     * │
+     * ├─ /table1 (Hudi table directory)
+     * │   └─ /.hoodie (presence of this folder indicates a Hudi table)
+     * │
+     * ├─ /table2 (Hudi table directory)
+     * │   └─ /.hoodie (presence of this folder indicates a Hudi table)
+     *
+     */
+    when(asyncStorageClient.listAllFilesInDir(BASE_PATH))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                Arrays.asList(generateFileObj("table1/", true), generateFileObj("table2/", true))));
+    when(asyncStorageClient.listAllFilesInDir(BASE_PATH + "table1/"))
+        .thenReturn(
+            CompletableFuture.completedFuture(Arrays.asList(generateFileObj(".hoodie", true))));
+    when(asyncStorageClient.listAllFilesInDir(BASE_PATH + "table2/"))
+        .thenReturn(
+            CompletableFuture.completedFuture(Arrays.asList(generateFileObj(".hoodie", true))));
+
+    String tableId = "11111";
+    String basePathConfigWithTableId = BASE_PATH + "#" + tableId;
+
+    // parser config
+    when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
+    when(metadataExtractorConfig.getParserConfig())
+        .thenReturn(
+            Collections.singletonList(
+                ParserConfig.builder()
+                    .lake(LAKE)
+                    .databases(
+                        Collections.singletonList(
+                            Database.builder()
+                                .name(DATABASE)
+                                .basePaths(Collections.singletonList(basePathConfigWithTableId))
+                                .build()))
+                    .build()));
+
+    // directly using StorageUtils as it is already tested and has basic helper functions
+    tableDiscoveryService =
+        new TableDiscoveryService(
+            asyncStorageClient,
+            new StorageUtils(),
+            new ConfigProvider(config),
+            ForkJoinPool.commonPool());
+
+    CompletionException exception =
+        assertThrows(
+            CompletionException.class, () -> tableDiscoveryService.discoverTables().join());
+    assertTrue(exception.getCause() instanceof IllegalArgumentException);
+    assertEquals(
+        String.format(
+            "For tableId %s, there must be exactly one table in path %s", tableId, BASE_PATH),
+        exception.getCause().getMessage());
   }
 
   @Test
