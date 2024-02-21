@@ -12,6 +12,7 @@ import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -20,6 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 /*
@@ -28,6 +30,7 @@ import org.apache.commons.lang3.tuple.Pair;
  */
 @Slf4j
 public class TableDiscoveryService {
+  private static final String TABLE_ID_SEPARATOR = "#";
   private final AsyncStorageClient asyncStorageClient;
   private final StorageUtils storageUtils;
   private final ExecutorService executorService;
@@ -56,7 +59,8 @@ public class TableDiscoveryService {
 
     for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
       for (Database database : parserConfig.getDatabases()) {
-        for (String basePath : database.getBasePaths()) {
+        for (String basePathConfig : database.getBasePaths()) {
+          String basePath = extractBasePath(basePathConfig);
 
           if (isExcluded(basePath, excludedPathPatterns)) {
             throw new IllegalArgumentException(
@@ -65,7 +69,7 @@ public class TableDiscoveryService {
 
           pathToDiscoveredTablesFuturePairList.add(
               Pair.of(
-                  basePath,
+                  basePathConfig,
                   discoverTablesInPath(
                       basePath, parserConfig.getLake(), database.getName(), excludedPathPatterns)));
         }
@@ -81,10 +85,37 @@ public class TableDiscoveryService {
               Set<Table> allTablePaths = ConcurrentHashMap.newKeySet();
               for (Pair<String, CompletableFuture<Set<Table>>> pathToDiscoveredTablesPair :
                   pathToDiscoveredTablesFuturePairList) {
-                allTablePaths.addAll(pathToDiscoveredTablesPair.getRight().join());
+
+                Set<Table> discoveredTables = pathToDiscoveredTablesPair.getRight().join();
+
+                String basePathConfig = pathToDiscoveredTablesPair.getLeft();
+                String tableId = extractTableId(basePathConfig);
+                if (StringUtils.isNotBlank(tableId)) {
+                  if (discoveredTables.size() != 1) {
+                    throw new IllegalArgumentException(
+                        String.format(
+                            "For tableId %s, there must be exactly one table in path %s",
+                            tableId, extractBasePath(basePathConfig)));
+                  }
+                  Table table = discoveredTables.iterator().next();
+                  table = table.toBuilder().tableId(tableId).build();
+                  discoveredTables = Collections.singleton(table);
+                }
+
+                allTablePaths.addAll(discoveredTables);
               }
               return allTablePaths;
             });
+  }
+
+  private String extractBasePath(String basePathConfig) {
+    String[] basePathConfigParts = basePathConfig.split(TABLE_ID_SEPARATOR);
+    return basePathConfigParts[0];
+  }
+
+  private String extractTableId(String basePathConfig) {
+    String[] basePathConfigParts = basePathConfig.split(TABLE_ID_SEPARATOR);
+    return basePathConfigParts.length > 1 ? basePathConfigParts[1] : "";
   }
 
   private CompletableFuture<Set<Table>> discoverTablesInPath(

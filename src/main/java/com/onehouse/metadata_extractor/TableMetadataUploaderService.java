@@ -62,15 +62,7 @@ public class TableMetadataUploaderService {
   public CompletableFuture<Boolean> uploadInstantsInTables(Set<Table> tablesToProcess) {
     log.info("Uploading metadata of following tables: " + tablesToProcess);
     List<Table> tableWithIds =
-        tablesToProcess.stream()
-            .map(
-                table ->
-                    table
-                        .toBuilder()
-                        .tableId(
-                            getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUri()).toString())
-                        .build())
-            .collect(Collectors.toList());
+        tablesToProcess.stream().map(this::updateTableIdIfNotPresent).collect(Collectors.toList());
     List<List<Table>> tableBatches =
         Lists.partition(new ArrayList<>(tableWithIds), TABLE_PROCESSING_BATCH_SIZE);
 
@@ -87,6 +79,16 @@ public class TableMetadataUploaderService {
     }
 
     return processTableBatchFuture;
+  }
+
+  private Table updateTableIdIfNotPresent(Table table) {
+    if (StringUtils.isNotBlank(table.getTableId())) {
+      return table;
+    }
+    return table
+        .toBuilder()
+        .tableId(getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUri()).toString())
+        .build();
   }
 
   private CompletableFuture<Boolean> uploadInstantsInTableBatch(List<Table> tables) {
