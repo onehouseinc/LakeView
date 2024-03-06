@@ -48,11 +48,12 @@ public class MetadataExtractorConstants {
           .build();
 
   public static final String SAVEPOINT_ACTION = "savepoint";
+  public static final String ROLLBACK_ACTION = "rollback";
   public static final List<String> WHITELISTED_ACTION_TYPES =
       Arrays.asList(
           "commit",
           "deltacommit",
-          "rollback",
+          ROLLBACK_ACTION,
           SAVEPOINT_ACTION,
           "restore",
           "clean",
