@@ -342,6 +342,112 @@ class ActiveTimelineInstantBatcherTest {
     assertEquals(expectedBatches, actualBatches);
   }
 
+  @Test
+  void testRollbackWithoutInflightAndRequestedInTheMiddle() {
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("111.commit.requested"),
+            generateFileObj("222.rollback"),
+            generateFileObj("111.inflight"),
+            generateFileObj("333.clean"),
+            generateFileObj("111.commit"),
+            generateFileObj("444.action4.inflight"),
+            generateFileObj("444.action4.requested"),
+            generateFileObj("333.clean.requested"),
+            generateFileObj("333.clean.inflight"),
+            generateFileObj("hoodie.properties"));
+
+    List<List<File>> expectedBatches =
+        Arrays.asList(
+            Arrays.asList(
+                generateFileObj("hoodie.properties"),
+                generateFileObj("111.commit"),
+                generateFileObj("111.commit.requested"),
+                generateFileObj("111.inflight")),
+            Arrays.asList(
+                generateFileObj("222.rollback"),
+                generateFileObj("333.clean"),
+                generateFileObj("333.clean.inflight"),
+                generateFileObj("333.clean.requested")));
+
+    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
+  void testRollbackWithoutInflightAndRequestedAtEnd() {
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("111.commit.requested"),
+            generateFileObj("555.rollback"),
+            generateFileObj("111.inflight"),
+            generateFileObj("333.clean"),
+            generateFileObj("111.commit"),
+            generateFileObj("333.clean.requested"),
+            generateFileObj("333.clean.inflight"),
+            generateFileObj("hoodie.properties"));
+
+    List<List<File>> expectedBatches =
+        Arrays.asList(
+            Arrays.asList(
+                generateFileObj("hoodie.properties"),
+                generateFileObj("111.commit"),
+                generateFileObj("111.commit.requested"),
+                generateFileObj("111.inflight")),
+            Arrays.asList(
+                generateFileObj("333.clean"),
+                generateFileObj("333.clean.inflight"),
+                generateFileObj("333.clean.requested")));
+
+    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
+  void testRollbackIncompleteAction1() {
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("111.commit.requested"),
+            generateFileObj("111.inflight"),
+            generateFileObj("111.commit"),
+            generateFileObj("555.rollback.inflight"),
+            generateFileObj("555.rollback.requested"),
+            generateFileObj("hoodie.properties"));
+
+    List<List<File>> expectedBatches =
+        Collections.singletonList(
+            Arrays.asList(
+                generateFileObj("hoodie.properties"),
+                generateFileObj("111.commit"),
+                generateFileObj("111.commit.requested"),
+                generateFileObj("111.inflight")));
+
+    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
+  void testRollbackIncompleteAction2() {
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("111.commit.requested"),
+            generateFileObj("111.inflight"),
+            generateFileObj("111.commit"),
+            generateFileObj("555.rollback.requested"),
+            generateFileObj("hoodie.properties"));
+
+    List<List<File>> expectedBatches =
+        Collections.singletonList(
+            Arrays.asList(
+                generateFileObj("hoodie.properties"),
+                generateFileObj("111.commit"),
+                generateFileObj("111.commit.requested"),
+                generateFileObj("111.inflight")));
+
+    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    assertEquals(expectedBatches, actualBatches);
+  }
+
   static Stream<Arguments> createBatchTestCases() {
     return Stream.of(
         // just hoodie.properties present

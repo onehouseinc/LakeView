@@ -1,6 +1,7 @@
 package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
+import static com.onehouse.constants.MetadataExtractorConstants.ROLLBACK_ACTION;
 import static com.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
 import static com.onehouse.constants.MetadataExtractorConstants.WHITELISTED_ACTION_TYPES;
 
@@ -41,24 +42,55 @@ public class ActiveTimelineInstantBatcher {
 
     // Stop threshold is set to sortedInstants.size() - 2 to ensure we don't miss the case
     // when timeline ends with a completed savepoint action
-    for (int index = startIndex; index <= sortedInstants.size() - 2; index += 3) {
+    int index = startIndex;
+    while (index <= sortedInstants.size() - 2) {
       ActiveTimelineInstant instant1 =
           getActiveTimeLineInstant(sortedInstants.get(index).getFilename());
-      ActiveTimelineInstant instant2 =
-          getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
 
       int groupSize = 3;
       boolean areInstantsInGrpRelated;
       boolean shouldStopIteration = false;
-      if (instant1.action.equals(SAVEPOINT_ACTION)) {
-        areInstantsInGrpRelated = areRelatedSavepointInstants(instant1, instant2);
-        groupSize = 2;
+      if (instant1.action.equals(ROLLBACK_ACTION)) {
+        // For rollback action, requested or inflight commits will be present unless there is
+        // some error while restoring. Since rollback is not used when calculating metrics,
+        // we don't want to be blocked by unusual rollback status.
+        if (index + 2 >= sortedInstants.size()) {
+          // If the latest rollback is not complete or there is a single completed rollback at the
+          // end.
+          // For the second case, we can upload in the following batch as rollback doesn't affect
+          // metrics.
+          areInstantsInGrpRelated = false;
+          shouldStopIteration = true;
+        } else {
+          ActiveTimelineInstant instant2 =
+              getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
+          ActiveTimelineInstant instant3 =
+              getActiveTimeLineInstant(sortedInstants.get(index + 2).getFilename());
+          areInstantsInGrpRelated = areRelatedInstants(instant1, instant2, instant3);
+          if (!areInstantsInGrpRelated && instant1.getState().equals("completed")) {
+            groupSize = 1;
+            areInstantsInGrpRelated = true;
+          }
+        }
+      } else if (instant1.action.equals(SAVEPOINT_ACTION)) {
+        if (index + 1 >= sortedInstants.size()) {
+          // If the latest commit is not complete
+          areInstantsInGrpRelated = false;
+          shouldStopIteration = true;
+        } else {
+          ActiveTimelineInstant instant2 =
+              getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
+          areInstantsInGrpRelated = areRelatedSavepointInstants(instant1, instant2);
+          groupSize = 2;
+        }
       } else {
         if (index + 2 >= sortedInstants.size()) {
           // If the latest commit is not complete
           areInstantsInGrpRelated = false;
           shouldStopIteration = true;
         } else {
+          ActiveTimelineInstant instant2 =
+              getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
           ActiveTimelineInstant instant3 =
               getActiveTimeLineInstant(sortedInstants.get(index + 2).getFilename());
           areInstantsInGrpRelated = areRelatedInstants(instant1, instant2, instant3);
@@ -88,9 +120,7 @@ public class ActiveTimelineInstantBatcher {
         break;
       }
 
-      if (groupSize != 3) {
-        index = index - 1;
-      }
+      index += groupSize;
     }
 
     // Add any remaining instants in the current batch
