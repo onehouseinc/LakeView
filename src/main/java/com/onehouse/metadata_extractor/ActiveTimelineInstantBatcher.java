@@ -52,7 +52,7 @@ public class ActiveTimelineInstantBatcher {
       boolean shouldStopIteration = false;
       if (instant1.action.equals(ROLLBACK_ACTION)) {
         // For rollback action, requested or inflight commits will be present unless there is
-        // some error while restoring. Since we rollback is not used when calculating metrics,
+        // some error while restoring. Since rollback is not used when calculating metrics,
         // we don't want to be blocked by unusual rollback status.
         if (index + 2 >= sortedInstants.size()) {
           // If the latest rollback is not complete or there is a single completed rollback at the

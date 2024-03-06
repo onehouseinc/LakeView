@@ -387,7 +387,6 @@ class ActiveTimelineInstantBatcherTest {
             generateFileObj("333.clean.inflight"),
             generateFileObj("hoodie.properties"));
 
-    // instants with timestamp 333 and 444 need to be ignored as the commit is incomplete
     List<List<File>> expectedBatches =
         Arrays.asList(
             Arrays.asList(
@@ -415,7 +414,6 @@ class ActiveTimelineInstantBatcherTest {
             generateFileObj("555.rollback.requested"),
             generateFileObj("hoodie.properties"));
 
-    // instants with timestamp 333 and 444 need to be ignored as the commit is incomplete
     List<List<File>> expectedBatches =
         Collections.singletonList(
             Arrays.asList(
@@ -438,7 +436,6 @@ class ActiveTimelineInstantBatcherTest {
             generateFileObj("555.rollback.requested"),
             generateFileObj("hoodie.properties"));
 
-    // instants with timestamp 333 and 444 need to be ignored as the commit is incomplete
     List<List<File>> expectedBatches =
         Collections.singletonList(
             Arrays.asList(
