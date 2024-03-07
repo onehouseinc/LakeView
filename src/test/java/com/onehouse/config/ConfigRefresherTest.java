@@ -1,5 +1,7 @@
 package com.onehouse.config;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.when;
 
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
@@ -35,6 +37,7 @@ public class ConfigRefresherTest {
 
   public static Stream<Arguments> getExceptionsForNoConfigFile() {
     return Stream.of(
+        Arguments.of(new IllegalAccessException()),
         Arguments.of(NoSuchKeyException.builder().build()),
         Arguments.of(new NoSuchElementException("Blob not found")));
   }
@@ -84,15 +87,20 @@ public class ConfigRefresherTest {
             storageClient,
             configLoader,
             configProvider);
-    configRefresher.start();
-    Config config = configProvider.getConfig();
-    MetadataExtractorConfig metadataExtractorConfig = config.getMetadataExtractorConfig();
-    Assertions.assertEquals(1, metadataExtractorConfig.getParserConfig().size());
-    ParserConfig parserConfig = metadataExtractorConfig.getParserConfig().get(0);
-    Assertions.assertNull(parserConfig.getLake());
-    Assertions.assertEquals(1, parserConfig.getDatabases().size());
-    Assertions.assertEquals(
-        "s3://lake_bucket/tables", parserConfig.getDatabases().get(0).getBasePaths().get(0));
+    try {
+      configRefresher.start();
+      Config config = configProvider.getConfig();
+      MetadataExtractorConfig metadataExtractorConfig = config.getMetadataExtractorConfig();
+      Assertions.assertEquals(1, metadataExtractorConfig.getParserConfig().size());
+      ParserConfig parserConfig = metadataExtractorConfig.getParserConfig().get(0);
+      Assertions.assertNull(parserConfig.getLake());
+      Assertions.assertEquals(1, parserConfig.getDatabases().size());
+      Assertions.assertEquals(
+          "s3://lake_bucket/tables", parserConfig.getDatabases().get(0).getBasePaths().get(0));
+    } catch (Exception e) {
+      assertInstanceOf(IllegalAccessException.class, e.getCause());
+      assertEquals(exception, e.getCause());
+    }
   }
 
   private static String getFileAsString(String filePath) throws IOException {
