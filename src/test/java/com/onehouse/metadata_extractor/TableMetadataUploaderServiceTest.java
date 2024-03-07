@@ -99,6 +99,7 @@ class TableMetadataUploaderServiceTest {
                         .tableType(PARSED_HUDI_PROPERTIES.getTableType())
                         .databaseName(TABLE.getDatabaseName())
                         .lakeName(TABLE.getLakeName())
+                        .tableBasePath(S3_TABLE_URI)
                         .build()))
             .build();
     when(onehouseApiClient.getTableMetricsCheckpoints(
@@ -234,6 +235,7 @@ class TableMetadataUploaderServiceTest {
                         .tableType(PARSED_HUDI_PROPERTIES.getTableType())
                         .databaseName(TABLE.getDatabaseName())
                         .lakeName(TABLE.getLakeName())
+                        .tableBasePath(S3_TABLE_URI)
                         .build()))
             .build();
     when(onehouseApiClient.getTableMetricsCheckpoints(getCheckpointsRequest))

@@ -141,6 +141,7 @@ class OnehouseApiClientTest {
                         .tableName("table")
                         .databaseName("database")
                         .lakeName("lake")
+                        .tableBasePath("tableBasePath")
                         .build()))
             .build();
     doReturn(

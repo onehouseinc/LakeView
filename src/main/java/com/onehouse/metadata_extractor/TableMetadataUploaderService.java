@@ -200,6 +200,7 @@ public class TableMetadataUploaderService {
                             .tableType(properties.getTableType())
                             .databaseName(table.getDatabaseName())
                             .lakeName(table.getLakeName())
+                            .tableBasePath(table.getAbsoluteTableUri())
                             .build()));
       }
       initialiseAndProcessNewlyDiscoveredTablesFuture =
