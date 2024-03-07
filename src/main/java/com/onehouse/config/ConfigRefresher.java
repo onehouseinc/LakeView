@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.onehouse.storage.AsyncStorageClient;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -11,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.config.YamlMapFactoryBean;
 import org.springframework.beans.factory.config.YamlProcessor;
 import org.springframework.core.io.ByteArrayResource;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 @Slf4j
 public class ConfigRefresher {
@@ -52,7 +55,18 @@ public class ConfigRefresher {
   }
 
   private void fetchAndOverrideConfig() throws JsonProcessingException {
-    byte[] extractorConfigBytes = storageClient.readFileAsBytes(extractorConfigPath).join();
+    byte[] extractorConfigBytes;
+    try {
+      extractorConfigBytes = storageClient.readFileAsBytes(extractorConfigPath).join();
+    } catch (CompletionException e) {
+      if (e.getCause() instanceof NoSuchKeyException
+          || e.getCause() instanceof NoSuchElementException) {
+        log.warn("Config file not found in path: {}", extractorConfigPath);
+        extractorConfigBytes = new byte[0];
+      } else {
+        throw new RuntimeException(e.getCause());
+      }
+    }
     Config newConfigWithOverride =
         mergeOverrideConfig(
             new ByteArrayResource(baseConfig.getBytes()),

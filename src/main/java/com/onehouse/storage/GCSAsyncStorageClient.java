@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
@@ -90,7 +91,7 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
           if (blob != null) {
             return blob;
           } else {
-            throw new RuntimeException("Blob not found");
+            throw new NoSuchElementException("Blob not found");
           }
         },
         executorService);
