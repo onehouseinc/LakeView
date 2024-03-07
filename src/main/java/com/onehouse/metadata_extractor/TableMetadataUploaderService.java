@@ -85,8 +85,7 @@ public class TableMetadataUploaderService {
     if (StringUtils.isNotBlank(table.getTableId())) {
       return table;
     }
-    return table
-        .toBuilder()
+    return table.toBuilder()
         .tableId(getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUri()).toString())
         .build();
   }
@@ -200,6 +199,7 @@ public class TableMetadataUploaderService {
                             .tableType(properties.getTableType())
                             .databaseName(table.getDatabaseName())
                             .lakeName(table.getLakeName())
+                            .tableBasePath(table.getAbsoluteTableUri())
                             .build()));
       }
       initialiseAndProcessNewlyDiscoveredTablesFuture =

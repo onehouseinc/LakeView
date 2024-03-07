@@ -19,6 +19,7 @@ public class InitializeTableMetricsCheckpointRequest {
     @NonNull TableType tableType;
     String lakeName;
     String databaseName;
+    String tableBasePath;
   }
 
   List<InitializeSingleTableMetricsCheckpointRequest> tables;
