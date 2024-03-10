@@ -32,15 +32,19 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -107,7 +111,7 @@ class TimelineCommitInstantsUploaderTest {
         generateCheckpointObj(
             4,
             currentTime,
-            true,
+            false,
             ".commits_.archive.3_1-0-1"); // testing to makesure checkpoint timestamp has updated
 
     stubUploadInstantsCalls(
@@ -158,8 +162,9 @@ class TimelineCommitInstantsUploaderTest {
     assertEquals(checkpoint3, response);
   }
 
-  @Test
-  void testUploadInstantsInActiveTimelineArchivedTimelineNotPresent() {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testUploadInstantsInActiveTimeline(boolean archivedTimeLinePresent) {
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
         spy(timelineCommitInstantsUploader);
     Instant currentTime = Instant.now();
@@ -168,7 +173,15 @@ class TimelineCommitInstantsUploaderTest {
         .when(timelineCommitInstantsUploaderSpy)
         .getUploadBatchSize(
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE); // 1 file will be processed at a time
-    // Page 1: returns 2 files
+
+    Checkpoint previousCheckpoint = INITIAL_CHECKPOINT;
+    if (archivedTimeLinePresent) {
+      // timestamp and lastUploaded file name is reset as we are moving from archived to active
+      // timeline processing
+      previousCheckpoint = generateCheckpointObj(3, Instant.EPOCH, false, "");
+    }
+
+    // Page 1
     mockListPage(
         TABLE_PREFIX + "/.hoodie/",
         CONTINUATION_TOKEN_PREFIX + "1",
@@ -179,7 +192,7 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj("111.action.inflight", false),
             generateFileObj("111.action.requested", false),
             generateFileObj("222.action", false, currentTime)));
-    // page 2: returns 2 files (last page)
+    // page 2 (last page)
     mockListPage(
         TABLE_PREFIX + "/.hoodie/",
         null,
@@ -196,11 +209,13 @@ class TimelineCommitInstantsUploaderTest {
             ));
 
     List<File> batch1 =
-        Arrays.asList(
-            generateFileObj(HOODIE_PROPERTIES_FILE, false),
-            generateFileObj("111.action", false),
-            generateFileObj("111.action.inflight", false),
-            generateFileObj("111.action.requested", false));
+        Stream.of(
+                archivedTimeLinePresent ? null : generateFileObj(HOODIE_PROPERTIES_FILE, false),
+                generateFileObj("111.action", false),
+                generateFileObj("111.action.inflight", false),
+                generateFileObj("111.action.requested", false))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
 
     List<File> batch2 =
         Arrays.asList(
@@ -209,12 +224,14 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj("222.action.requested", false));
 
     stubCreateBatches(
-        Arrays.asList(
-            generateFileObj(HOODIE_PROPERTIES_FILE, false),
-            generateFileObj("111.action", false),
-            generateFileObj("111.action.inflight", false),
-            generateFileObj("111.action.requested", false),
-            generateFileObj("222.action", false, currentTime)),
+        Stream.of(
+                archivedTimeLinePresent ? null : generateFileObj(HOODIE_PROPERTIES_FILE, false),
+                generateFileObj("111.action", false),
+                generateFileObj("111.action.inflight", false),
+                generateFileObj("111.action.requested", false),
+                generateFileObj("222.action", false, currentTime))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList()),
         Collections.singletonList(batch1));
 
     stubCreateBatches(
@@ -224,8 +241,11 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj("222.action.requested", false)),
         Collections.singletonList(batch2));
 
-    Checkpoint checkpoint1 = generateCheckpointObj(1, Instant.EPOCH, true, "111.action");
-    Checkpoint checkpoint2 = generateCheckpointObj(2, currentTime, true, "222.action");
+    Checkpoint checkpoint1 =
+        generateCheckpointObj(
+            previousCheckpoint.getBatchId() + 1, Instant.EPOCH, true, "111.action");
+    Checkpoint checkpoint2 =
+        generateCheckpointObj(previousCheckpoint.getBatchId() + 2, currentTime, true, "222.action");
 
     stubUploadInstantsCalls(
         batch1.stream().map(File::getFilename).collect(Collectors.toList()),
@@ -241,7 +261,7 @@ class TimelineCommitInstantsUploaderTest {
             .paginatedBatchUploadWithCheckpoint(
                 TABLE_ID.toString(),
                 TABLE,
-                INITIAL_CHECKPOINT,
+                previousCheckpoint,
                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
             .join();
 

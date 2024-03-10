@@ -278,7 +278,7 @@ public class TableMetadataUploaderService {
     if (!checkpoint.isArchivedCommitsProcessed()) {
       /*
        * if archived commits are not uploaded, we upload those first before moving to active timeline
-       * commits in archived timeline are uploaded only once, when the table is registered for the first time.
+       * commits in archived timeline are uploaded only once.
        */
       return timelineCommitInstantsUploader
           .batchUploadWithCheckpoint(
