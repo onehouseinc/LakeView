@@ -36,6 +36,8 @@ jobs:
           cache: gradle
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.3.0
       - name: Build with Gradle
         run: ./gradlew shadowJar
       - name: Login to DockerHub
@@ -46,13 +48,18 @@ jobs:
       - name: Build images
         run: docker build -t hudi-metadata-extractor .
       - name: Tag and push image
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
         run: |
           for input_tag in ${{ inputs.tags }}; do
             docker tag hudi-metadata-extractor:latest ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:$input_tag
             docker push ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:$input_tag
+            cosign sign --key env://COSIGN_PRIVATE_KEY ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:$input_tag -y
           
             if [[ $input_tag == release-* ]]; then
               docker tag hudi-metadata-extractor:latest ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:latest
               docker push ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:latest
+              cosign sign --key env://COSIGN_PRIVATE_KEY ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:latest -y
             fi
           done
