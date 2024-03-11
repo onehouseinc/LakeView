@@ -140,7 +140,7 @@ public class TimelineCommitInstantsUploader {
               return filesToUpload.isEmpty()
                   ? CompletableFuture.completedFuture(checkpoint)
                   : uploadInstantsInSequentialBatches(
-                      tableId, table, filesToUpload, checkpoint, commitTimelineType, true);
+                      tableId, table, filesToUpload, checkpoint, commitTimelineType);
             },
             executorService)
         .exceptionally(
@@ -172,12 +172,7 @@ public class TimelineCommitInstantsUploader {
 
               if (!filesToUpload.isEmpty()) {
                 return uploadInstantsInSequentialBatches(
-                        tableId,
-                        table,
-                        filesToUpload,
-                        checkpoint,
-                        commitTimelineType,
-                        nextContinuationToken == null)
+                        tableId, table, filesToUpload, checkpoint, commitTimelineType)
                     .thenComposeAsync(
                         updatedCheckpoint -> {
                           if (updatedCheckpoint == null) {
@@ -230,7 +225,6 @@ public class TimelineCommitInstantsUploader {
    * @param filesToUpload List of files to be uploaded.
    * @param checkpoint Checkpoint object used to track already processed instants.
    * @param commitTimelineType Type of the commit timeline.
-   * @param isLastPage whether we are in the last page
    * @return CompletableFuture<Checkpoint> A future that completes with a new checkpoint after each
    *     paginated upload.
    */
@@ -239,8 +233,7 @@ public class TimelineCommitInstantsUploader {
       Table table,
       List<File> filesToUpload,
       Checkpoint checkpoint,
-      CommitTimelineType commitTimelineType,
-      boolean isLastPage) {
+      CommitTimelineType commitTimelineType) {
     List<List<File>> batches;
     if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)) {
       batches =
@@ -266,9 +259,7 @@ public class TimelineCommitInstantsUploader {
 
     CompletableFuture<Checkpoint> sequentialBatchProcessingFuture =
         CompletableFuture.completedFuture(checkpoint);
-    int batchIndex = 0;
     for (List<File> batch : batches) {
-      boolean processedAllBatchesInCurrentPage = (batchIndex >= numBatches - 1);
       sequentialBatchProcessingFuture =
           sequentialBatchProcessingFuture.thenComposeAsync(
               updatedCheckpoint -> {
@@ -294,13 +285,11 @@ public class TimelineCommitInstantsUploader {
                             updateCheckpointAfterProcessingBatch(
                                 tableId,
                                 updatedCheckpoint,
-                                processedAllBatchesInCurrentPage,
                                 lastUploadedFile,
                                 batch.stream()
                                     .map(file -> getFileNameWithPrefix(file, commitTimelineType))
                                     .collect(Collectors.toList()),
-                                commitTimelineType,
-                                isLastPage),
+                                commitTimelineType),
                         executorService)
                     .exceptionally(
                         throwable -> {
@@ -312,7 +301,6 @@ public class TimelineCommitInstantsUploader {
                         });
               },
               executorService);
-      batchIndex += 1;
     }
     return sequentialBatchProcessingFuture;
   }
@@ -359,19 +347,19 @@ public class TimelineCommitInstantsUploader {
   private CompletableFuture<Checkpoint> updateCheckpointAfterProcessingBatch(
       String tableId,
       Checkpoint previousCheckpoint,
-      boolean processedAllBatchesInCurrentPage,
       File lastUploadedFile,
       List<String> filesUploaded,
-      CommitTimelineType commitTimelineType,
-      boolean isLastPage) {
+      CommitTimelineType commitTimelineType) {
 
-    // archived instants would already be processed if we are currently processing active timeline
-    boolean archivedCommitsProcessed = true;
+    // archived instants would be processed if we are currently processing the first batch of active
+    // timeline
+    boolean archivedCommitsProcessed = false;
     int batchId = previousCheckpoint.getBatchId() + 1;
 
-    if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)) {
-      // we have processed the last batch and no more pages available
-      archivedCommitsProcessed = processedAllBatchesInCurrentPage && isLastPage;
+    if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE.equals(commitTimelineType)) {
+      // we have processed atleast 1 batch of active timeline, (hence archived timeline must be
+      // fully processed)
+      archivedCommitsProcessed = true;
     }
 
     Checkpoint updatedCheckpoint =
