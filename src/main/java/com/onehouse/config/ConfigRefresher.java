@@ -43,7 +43,7 @@ public class ConfigRefresher {
           try {
             fetchAndOverrideConfig();
           } catch (Exception ex) {
-            log.error("failed to fetch override config");
+            log.error("failed to fetch override config", ex);
           }
         },
         POLL_PERIOD_MINUTES,
