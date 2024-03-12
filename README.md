@@ -34,6 +34,7 @@ onehouseClientConfig:
     apiKey: <api key>
     apiSecret: <api secret>
     userId: <user id>
+    file: <absolute path of json/yaml file containing onehouse client configuration>
 
 fileSystemConfiguration:
     # Provide either s3Config or gcsConfig
@@ -70,6 +71,7 @@ metadataExtractorConfig:
 - **userUuid:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse UI.
 - **apiKey:** The API key for authentication. Get this by opening Settings > API Settings in the Onehouse UI and creating an API key.
 - **apiSecret:** The corresponding secret for the API key. Get this by opening Settings > API Settings in the Onehouse UI and creating an API key.
+- **file:** Absolute path of json/yaml file containing onehouseClientConfig details - projectId, userId, apiKey, apiSecret.
 
 ### 3) fileSystemConfiguration
 - **Description:** Authentication configuration to access file system, only one of AWS S3 or Google Cloud Storage (GCS) credentials should be passed.
