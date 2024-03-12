@@ -1,18 +1,21 @@
 package com.onehouse.config.models.common;
 
+import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NonNull;
+import lombok.Setter;
 import lombok.extern.jackson.Jacksonized;
 
 @Builder
 @Getter
+@Setter
 @Jacksonized
 @EqualsAndHashCode
 public class OnehouseClientConfig {
-  @NonNull private String projectId;
-  @NonNull private String apiKey;
-  @NonNull private String apiSecret;
-  @NonNull private String userId;
+  @Nullable private String projectId;
+  @Nullable private String apiKey;
+  @Nullable private String apiSecret;
+  @Nullable private String userId;
+  @Nullable private String file;
 }
