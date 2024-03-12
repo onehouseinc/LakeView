@@ -12,9 +12,13 @@ import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.Database;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.config.models.configv1.ParserConfig;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Stream;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -76,6 +80,49 @@ class ConfigLoaderTest {
         "{version: V1, onehouseClientConfig: {projectId: 0c043996-9e42-4904-95b9-f98918ebeda4, apiKey: WJ3wiaZLsX0mDrrcw234akQ==, apiSecret: /v+WFnHYscwgwerPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=, userId: KypBAFHYqAevFFeweB5UP2}, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {pathExclusionPatterns: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
     Config config = configLoader.loadConfigFromString(yamlString);
     assertEquals(getValidConfigV1Obj(Filesystem.S3, "lake1", "database1"), config);
+  }
+
+  public static Stream<Arguments> getCredentialsFileParameters() {
+    return Stream.of(
+        Arguments.of(true, ".yaml"), Arguments.of(false, ".yaml"), Arguments.of(true, ".json"));
+  }
+
+  @SneakyThrows
+  @ParameterizedTest
+  @MethodSource("getCredentialsFileParameters")
+  void testLoadingClientCredentialsFromFile(boolean createTempFile, String configFileExtension) {
+    // minifying using https://onlineyamltools.com/minify-yaml
+    String yamlString =
+        "{version: V1, onehouseClientConfig: {file: \"%s\"}, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {pathExclusionPatterns: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+    String absolutePath = new File("src/test/resources").getAbsolutePath();
+    yamlString =
+        String.format(
+            yamlString,
+            absolutePath
+                + "/config_test_resources/onehouse-client-credentials"
+                + configFileExtension);
+    Config config;
+    if (createTempFile) {
+      Path tempFile = Files.createTempFile("temp", ".yaml");
+      Files.write(tempFile, yamlString.getBytes());
+      config = configLoader.loadConfigFromConfigFile(tempFile.toAbsolutePath().toString());
+      Files.deleteIfExists(tempFile);
+    } else {
+      config = configLoader.loadConfigFromString(yamlString);
+    }
+    ConfigV1 expectedConfig = getValidConfigV1Obj(Filesystem.S3, "lake1", "database1");
+    assertEquals(
+        expectedConfig.getOnehouseClientConfig().getProjectId(),
+        config.getOnehouseClientConfig().getProjectId());
+    assertEquals(
+        expectedConfig.getOnehouseClientConfig().getApiKey(),
+        config.getOnehouseClientConfig().getApiKey());
+    assertEquals(
+        expectedConfig.getOnehouseClientConfig().getApiSecret(),
+        config.getOnehouseClientConfig().getApiSecret());
+    assertEquals(
+        expectedConfig.getOnehouseClientConfig().getUserId(),
+        config.getOnehouseClientConfig().getUserId());
   }
 
   @Test
