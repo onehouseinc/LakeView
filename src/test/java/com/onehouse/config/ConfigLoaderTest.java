@@ -1,6 +1,7 @@
 package com.onehouse.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -123,6 +124,20 @@ class ConfigLoaderTest {
     assertEquals(
         expectedConfig.getOnehouseClientConfig().getUserId(),
         config.getOnehouseClientConfig().getUserId());
+  }
+
+  @Test
+  void testMissingFieldsInOnehouseClientConfig() {
+    // minifying using https://onlineyamltools.com/minify-yaml
+    String yamlString =
+        "{version: V1, onehouseClientConfig: {}, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {pathExclusionPatterns: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+
+    RuntimeException exception =
+        assertThrows(RuntimeException.class, () -> configLoader.loadConfigFromString(yamlString));
+    assertInstanceOf(IllegalArgumentException.class, exception.getCause());
+    assertEquals(
+        "Missing config params: projectId, apiKey, apiSecret, userId",
+        exception.getCause().getMessage());
   }
 
   @Test

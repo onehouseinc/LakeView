@@ -11,6 +11,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.NonNull;
 import org.apache.commons.lang3.StringUtils;
 
 public class ConfigLoader {
@@ -42,7 +45,7 @@ public class ConfigLoader {
     switch (version) {
       case V1:
         ConfigV1 configV1 = MAPPER.treeToValue(jsonNode, ConfigV1.class);
-        if (StringUtils.isNotEmpty(configV1.getOnehouseClientConfig().getFile())) {
+        if (StringUtils.isNotBlank(configV1.getOnehouseClientConfig().getFile())) {
           String onehouseClientConfigFileContent =
               new String(
                   Files.readAllBytes(Paths.get(configV1.getOnehouseClientConfig().getFile())));
@@ -57,9 +60,33 @@ public class ConfigLoader {
               .setApiSecret(onehouseClientConfigFromFile.getApiSecret());
           configV1.getOnehouseClientConfig().setUserId(onehouseClientConfigFromFile.getUserId());
         }
+        validateOnehouseClientConfig(configV1);
         return configV1;
       default:
         throw new UnsupportedOperationException("Unsupported config version: " + version);
+    }
+  }
+
+  private void validateOnehouseClientConfig(ConfigV1 configV1) {
+    @NonNull OnehouseClientConfig onehouseClientConfig = configV1.getOnehouseClientConfig();
+    List<String> missingFields = new ArrayList<>();
+    if (StringUtils.isBlank(onehouseClientConfig.getProjectId())) {
+      missingFields.add("projectId");
+    }
+    if (StringUtils.isBlank(onehouseClientConfig.getApiKey())) {
+      missingFields.add("apiKey");
+    }
+    if (StringUtils.isBlank(onehouseClientConfig.getApiSecret())) {
+      missingFields.add("apiSecret");
+    }
+    if (StringUtils.isBlank(onehouseClientConfig.getUserId())) {
+      missingFields.add("userId");
+    }
+    if (!missingFields.isEmpty()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Missing config params: %s",
+              missingFields.stream().reduce((a, b) -> a + ", " + b).orElse("")));
     }
   }
 
