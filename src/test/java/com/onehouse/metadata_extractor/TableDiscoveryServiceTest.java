@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
@@ -240,14 +239,8 @@ class TableDiscoveryServiceTest {
             new ConfigProvider(config),
             ForkJoinPool.commonPool());
 
-    CompletionException exception =
-        assertThrows(
-            CompletionException.class, () -> tableDiscoveryService.discoverTables().join());
-    assertTrue(exception.getCause() instanceof IllegalArgumentException);
-    assertEquals(
-        String.format(
-            "For tableId %s, there must be exactly one table in path %s", tableId, BASE_PATH),
-        exception.getCause().getMessage());
+    Set<Table> discoveredTables = tableDiscoveryService.discoverTables().join();
+    assertEquals(emptySet(), discoveredTables);
   }
 
   @Test

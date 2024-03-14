@@ -93,10 +93,11 @@ public class TableDiscoveryService {
                 String tableId = extractTableId(basePathConfig);
                 if (StringUtils.isNotBlank(tableId)) {
                   if (discoveredTables.size() != 1) {
-                    throw new IllegalArgumentException(
+                    log.error(
                         String.format(
                             "For tableId %s, there must be exactly one table in path %s",
                             tableId, extractBasePath(basePathConfig)));
+                    continue;
                   }
                   Table table = discoveredTables.iterator().next();
                   table = table.toBuilder().tableId(tableId).build();
