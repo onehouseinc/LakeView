@@ -2,7 +2,7 @@ image:
   repository: onehouse/hudi-metadata-extractor
   pullPolicy: Always
   # Release version to use
-  tag: release-v0.5.0
+  tag: release-v0.5.1
 
 # Config yaml to be provided to the extractor. Refer to readme for the format of the config file
 # not required if config path is being provided
