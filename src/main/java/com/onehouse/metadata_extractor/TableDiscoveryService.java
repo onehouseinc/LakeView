@@ -1,6 +1,7 @@
 package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
+import static java.util.Collections.emptySet;
 
 import com.google.inject.Inject;
 import com.onehouse.config.ConfigProvider;
@@ -92,10 +93,11 @@ public class TableDiscoveryService {
                 String tableId = extractTableId(basePathConfig);
                 if (StringUtils.isNotBlank(tableId)) {
                   if (discoveredTables.size() != 1) {
-                    throw new IllegalArgumentException(
+                    log.error(
                         String.format(
                             "For tableId %s, there must be exactly one table in path %s",
                             tableId, extractBasePath(basePathConfig)));
+                    continue;
                   }
                   Table table = discoveredTables.iterator().next();
                   table = table.toBuilder().tableId(tableId).build();
@@ -120,44 +122,56 @@ public class TableDiscoveryService {
 
   private CompletableFuture<Set<Table>> discoverTablesInPath(
       String path, String lakeName, String databaseName, List<String> excludedPathPatterns) {
-    log.info(String.format("Discovering tables in %s", path));
-    return asyncStorageClient
-        .listAllFilesInDir(path)
-        .thenComposeAsync(
-            listedFiles -> {
-              Set<Table> tablePaths = ConcurrentHashMap.newKeySet();
-              List<CompletableFuture<Void>> recursiveFutures = new ArrayList<>();
+    try {
+      log.info(String.format("Discovering tables in %s", path));
+      return asyncStorageClient
+          .listAllFilesInDir(path)
+          .thenComposeAsync(
+              listedFiles -> {
+                Set<Table> tablePaths = ConcurrentHashMap.newKeySet();
+                List<CompletableFuture<Void>> recursiveFutures = new ArrayList<>();
 
-              if (isHudiTableFolder(listedFiles)) {
-                Table table =
-                    Table.builder()
-                        .absoluteTableUri(path)
-                        .databaseName(databaseName)
-                        .lakeName(lakeName)
-                        .build();
-                if (!isExcluded(table.getAbsoluteTableUri(), excludedPathPatterns)) {
-                  tablePaths.add(table);
+                if (isHudiTableFolder(listedFiles)) {
+                  Table table =
+                      Table.builder()
+                          .absoluteTableUri(path)
+                          .databaseName(databaseName)
+                          .lakeName(lakeName)
+                          .build();
+                  if (!isExcluded(table.getAbsoluteTableUri(), excludedPathPatterns)) {
+                    tablePaths.add(table);
+                  }
+                  return CompletableFuture.completedFuture(tablePaths);
                 }
-                return CompletableFuture.completedFuture(tablePaths);
-              }
 
-              List<File> directories =
-                  listedFiles.stream().filter(File::isDirectory).collect(Collectors.toList());
+                List<File> directories =
+                    listedFiles.stream().filter(File::isDirectory).collect(Collectors.toList());
 
-              for (File file : directories) {
-                String filePath = storageUtils.constructFileUri(path, file.getFilename());
-                if (!isExcluded(filePath, excludedPathPatterns)) {
-                  CompletableFuture<Void> recursiveFuture =
-                      discoverTablesInPath(filePath, lakeName, databaseName, excludedPathPatterns)
-                          .thenAccept(tablePaths::addAll);
-                  recursiveFutures.add(recursiveFuture);
+                for (File file : directories) {
+                  String filePath = storageUtils.constructFileUri(path, file.getFilename());
+                  if (!isExcluded(filePath, excludedPathPatterns)) {
+                    CompletableFuture<Void> recursiveFuture =
+                        discoverTablesInPath(filePath, lakeName, databaseName, excludedPathPatterns)
+                            .thenAccept(tablePaths::addAll);
+                    recursiveFutures.add(recursiveFuture);
+                  }
                 }
-              }
 
-              return CompletableFuture.allOf(recursiveFutures.toArray(new CompletableFuture[0]))
-                  .thenApplyAsync(ignored -> tablePaths, executorService);
-            },
-            executorService);
+                return CompletableFuture.allOf(recursiveFutures.toArray(new CompletableFuture[0]))
+                    .thenApplyAsync(ignored -> tablePaths, executorService);
+              },
+              executorService)
+          .exceptionally(
+              e -> {
+                log.error("Failed to discover tables in path: {}", path);
+                log.error(e.getMessage(), e);
+                return emptySet();
+              });
+    } catch (Exception e) {
+      log.error("Failed to discover tables in path: {}", path);
+      log.error(e.getMessage(), e);
+      return CompletableFuture.completedFuture(emptySet());
+    }
   }
 
   /*
