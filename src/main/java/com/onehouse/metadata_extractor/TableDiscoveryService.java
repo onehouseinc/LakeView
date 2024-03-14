@@ -159,7 +159,13 @@ public class TableDiscoveryService {
                 return CompletableFuture.allOf(recursiveFutures.toArray(new CompletableFuture[0]))
                     .thenApplyAsync(ignored -> tablePaths, executorService);
               },
-              executorService);
+              executorService)
+          .exceptionally(
+              e -> {
+                log.error("Failed to discover tables in path: {}", path);
+                log.error(e.getMessage(), e);
+                return emptySet();
+              });
     } catch (Exception e) {
       log.error("Failed to discover tables in path: {}", path);
       log.error(e.getMessage(), e);

@@ -319,6 +319,37 @@ class TableDiscoveryServiceTest {
     assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
   }
 
+  @Test
+  void testTableDiscoveryWithAsyncExceptions() {
+    String basePath = "s3://some-bucket/some-path";
+    // parser config
+    when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
+    when(metadataExtractorConfig.getPathExclusionPatterns()).thenReturn(Optional.of(emptyList()));
+    when(metadataExtractorConfig.getParserConfig())
+        .thenReturn(
+            Collections.singletonList(
+                ParserConfig.builder()
+                    .lake(LAKE)
+                    .databases(
+                        Collections.singletonList(
+                            Database.builder()
+                                .name(DATABASE)
+                                .basePaths(Collections.singletonList(basePath))
+                                .build()))
+                    .build()));
+    CompletableFuture<List<File>> failedFuture = new CompletableFuture<>();
+    when(asyncStorageClient.listAllFilesInDir(basePath)).thenReturn(failedFuture);
+    failedFuture.completeExceptionally(new RuntimeException("some-error"));
+
+    tableDiscoveryService =
+        new TableDiscoveryService(
+            asyncStorageClient,
+            new StorageUtils(),
+            new ConfigProvider(config),
+            ForkJoinPool.commonPool());
+    assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
+  }
+
   private File generateFileObj(String fileName, boolean isDirectory) {
     return File.builder()
         .filename(fileName)
