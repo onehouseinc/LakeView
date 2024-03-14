@@ -1,5 +1,7 @@
 package com.onehouse.metadata_extractor;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -10,8 +12,10 @@ import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.config.models.configv1.ParserConfig;
 import com.onehouse.metadata_extractor.models.Table;
 import com.onehouse.storage.AsyncStorageClient;
+import com.onehouse.storage.S3AsyncStorageClient;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
+import com.onehouse.storage.providers.S3AsyncClientProvider;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,8 +24,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -103,7 +107,7 @@ class TableDiscoveryServiceTest {
             CompletableFuture.completedFuture(
                 Collections.singletonList(generateFileObj(".hoodie", true))));
     when(asyncStorageClient.listAllFilesInDir(BASE_PATH + "nested-folder/unrelated-folder1/"))
-        .thenReturn(CompletableFuture.completedFuture(Collections.emptyList()));
+        .thenReturn(CompletableFuture.completedFuture(emptyList()));
 
     // paths to exclude
     String dirToExclude = BASE_PATH + "excluded/"; // excluding using an absolute path
@@ -235,14 +239,8 @@ class TableDiscoveryServiceTest {
             new ConfigProvider(config),
             ForkJoinPool.commonPool());
 
-    CompletionException exception =
-        assertThrows(
-            CompletionException.class, () -> tableDiscoveryService.discoverTables().join());
-    assertTrue(exception.getCause() instanceof IllegalArgumentException);
-    assertEquals(
-        String.format(
-            "For tableId %s, there must be exactly one table in path %s", tableId, BASE_PATH),
-        exception.getCause().getMessage());
+    Set<Table> discoveredTables = tableDiscoveryService.discoverTables().join();
+    assertEquals(emptySet(), discoveredTables);
   }
 
   @Test
@@ -277,6 +275,72 @@ class TableDiscoveryServiceTest {
         assertThrows(
             IllegalArgumentException.class, () -> tableDiscoveryService.discoverTables().join());
     assertEquals("Provided base path cannot be part of paths to excluded", exception.getMessage());
+  }
+
+  @Test
+  void testWithInvalidBasePath() {
+    String invalidBasePath = "/this-is-some-invalid-path";
+    // parser config
+    when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
+    when(metadataExtractorConfig.getPathExclusionPatterns()).thenReturn(Optional.of(emptyList()));
+    when(metadataExtractorConfig.getParserConfig())
+        .thenReturn(
+            Collections.singletonList(
+                ParserConfig.builder()
+                    .lake(LAKE)
+                    .databases(
+                        Collections.singletonList(
+                            Database.builder()
+                                .name(DATABASE)
+                                .basePaths(Collections.singletonList(invalidBasePath))
+                                .build()))
+                    .build()));
+
+    // calling the real method would throw the exception
+    S3AsyncStorageClient s3AsyncStorageClient =
+        new S3AsyncStorageClient(
+            mock(S3AsyncClientProvider.class),
+            new StorageUtils(),
+            Executors.newSingleThreadExecutor());
+
+    tableDiscoveryService =
+        new TableDiscoveryService(
+            s3AsyncStorageClient,
+            new StorageUtils(),
+            new ConfigProvider(config),
+            ForkJoinPool.commonPool());
+    assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
+  }
+
+  @Test
+  void testTableDiscoveryWithAsyncExceptions() {
+    String basePath = "s3://some-bucket/some-path";
+    // parser config
+    when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
+    when(metadataExtractorConfig.getPathExclusionPatterns()).thenReturn(Optional.of(emptyList()));
+    when(metadataExtractorConfig.getParserConfig())
+        .thenReturn(
+            Collections.singletonList(
+                ParserConfig.builder()
+                    .lake(LAKE)
+                    .databases(
+                        Collections.singletonList(
+                            Database.builder()
+                                .name(DATABASE)
+                                .basePaths(Collections.singletonList(basePath))
+                                .build()))
+                    .build()));
+    CompletableFuture<List<File>> failedFuture = new CompletableFuture<>();
+    when(asyncStorageClient.listAllFilesInDir(basePath)).thenReturn(failedFuture);
+    failedFuture.completeExceptionally(new RuntimeException("some-error"));
+
+    tableDiscoveryService =
+        new TableDiscoveryService(
+            asyncStorageClient,
+            new StorageUtils(),
+            new ConfigProvider(config),
+            ForkJoinPool.commonPool());
+    assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
   }
 
   private File generateFileObj(String fileName, boolean isDirectory) {
