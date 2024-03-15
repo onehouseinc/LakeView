@@ -3,7 +3,13 @@ package com.onehouse.api;
 import static com.onehouse.constants.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD_URL;
 import static com.onehouse.constants.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
 import static com.onehouse.constants.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
+import static com.onehouse.constants.ApiConstants.LINK_UID_KEY;
 import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_ENDPOINT;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_KEY;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_SECRET_KEY;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_REGION_KEY;
+import static com.onehouse.constants.ApiConstants.ONEHOUSE_USER_UUID_KEY;
+import static com.onehouse.constants.ApiConstants.PROJECT_UID_KEY;
 import static com.onehouse.constants.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,6 +37,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
+import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.Protocol;
 import okhttp3.Request;
@@ -57,15 +64,56 @@ class OnehouseApiClientTest {
   private static final String SAMPLE_HOST = "http://example.com";
   private static final String FAILURE_ERROR = "call failed";
   private static final ObjectMapper MAPPER = new ObjectMapper();
+  public static final String PROJECT_ID = "projectId";
+  public static final String REQUEST_ID = "requestId";
+  public static final String REGION = "region";
+  public static final String API_KEY = "apiKey";
+  public static final String API_SECRET = "apiSecret";
+  public static final String USER_ID = "userId";
 
   @BeforeEach
   void setup() {
     when(config.getOnehouseClientConfig()).thenReturn(onehouseClientConfig);
-    when(onehouseClientConfig.getProjectId()).thenReturn("projectId");
-    when(onehouseClientConfig.getApiKey()).thenReturn("apiKey");
-    when(onehouseClientConfig.getApiSecret()).thenReturn("apiSecret");
-    when(onehouseClientConfig.getUserId()).thenReturn("userUuid");
+    when(onehouseClientConfig.getProjectId()).thenReturn(PROJECT_ID);
+    when(onehouseClientConfig.getApiKey()).thenReturn(API_KEY);
+    when(onehouseClientConfig.getApiSecret()).thenReturn(API_SECRET);
+    when(onehouseClientConfig.getUserId()).thenReturn(USER_ID);
     onehouseApiClient = new OnehouseApiClient(client, config);
+  }
+
+  @Test
+  void testLinkIdRegionHeaders() {
+    Headers headers = onehouseApiClient.getHeaders(onehouseClientConfig);
+    assertEquals(
+        Headers.of(
+            PROJECT_UID_KEY,
+            PROJECT_ID,
+            ONEHOUSE_API_KEY,
+            API_KEY,
+            ONEHOUSE_API_SECRET_KEY,
+            API_SECRET,
+            ONEHOUSE_USER_UUID_KEY,
+            USER_ID),
+        headers);
+    when(onehouseClientConfig.getRequestId()).thenReturn(REQUEST_ID);
+    when(onehouseClientConfig.getRegion()).thenReturn(REGION);
+    onehouseApiClient = new OnehouseApiClient(client, config);
+    headers = onehouseApiClient.getHeaders(onehouseClientConfig);
+    assertEquals(
+        Headers.of(
+            PROJECT_UID_KEY,
+            PROJECT_ID,
+            ONEHOUSE_API_KEY,
+            API_KEY,
+            ONEHOUSE_API_SECRET_KEY,
+            API_SECRET,
+            ONEHOUSE_USER_UUID_KEY,
+            USER_ID,
+            LINK_UID_KEY,
+            REQUEST_ID,
+            ONEHOUSE_REGION_KEY,
+            REGION),
+        headers);
   }
 
   @Test

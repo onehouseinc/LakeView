@@ -18,6 +18,7 @@ public class ApiConstants {
   public static final String PROJECT_UID_KEY = "x-onehouse-project-uid";
   public static final String ONEHOUSE_API_KEY = "x-onehouse-api-key";
   public static final String ONEHOUSE_API_SECRET_KEY = "x-onehouse-api-secret";
+  public static final String LINK_UID_KEY = "x-onehouse-link-uid";
   public static final String ONEHOUSE_REGION_KEY = "x-onehouse-region";
   public static final String ONEHOUSE_USER_UUID_KEY = "x-onehouse-uuid";
 }
