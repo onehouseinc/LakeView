@@ -246,6 +246,7 @@ class OnehouseApiClientTest {
         UpsertTableMetricsCheckpointRequest.builder()
             .tableId(tableId.toString())
             .filesUploaded(Collections.emptyList())
+            .uploadedFiles(Collections.emptyList())
             .commitTimelineType(commitTimelineType)
             .checkpoint("")
             .build();

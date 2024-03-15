@@ -18,6 +18,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.onehouse.api.OnehouseApiClient;
 import com.onehouse.api.models.request.CommitTimelineType;
 import com.onehouse.api.models.request.GenerateCommitMetadataUploadUrlRequest;
+import com.onehouse.api.models.request.UploadedFile;
 import com.onehouse.api.models.request.UpsertTableMetricsCheckpointRequest;
 import com.onehouse.api.models.response.GenerateCommitMetadataUploadUrlResponse;
 import com.onehouse.api.models.response.UpsertTableMetricsCheckpointResponse;
@@ -70,6 +71,8 @@ class TimelineCommitInstantsUploaderTest {
 
   private static final String CONTINUATION_TOKEN_PREFIX = "page_";
 
+  private Instant currentTime = Instant.now();
+
   @BeforeEach
   void setup() {
     mapper.registerModule(new JavaTimeModule());
@@ -87,7 +90,6 @@ class TimelineCommitInstantsUploaderTest {
   void testUploadInstantsInArchivedTimeline() {
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
         spy(timelineCommitInstantsUploader);
-    Instant currentTime = Instant.now();
 
     doReturn(1)
         .when(timelineCommitInstantsUploaderSpy)
@@ -115,20 +117,24 @@ class TimelineCommitInstantsUploaderTest {
             ".commits_.archive.3_1-0-1"); // testing to makesure checkpoint timestamp has updated
 
     stubUploadInstantsCalls(
-        Collections.singletonList(HOODIE_PROPERTIES_FILE),
+        Collections.singletonList(UploadedFile.builder().name(HOODIE_PROPERTIES_FILE).build()),
         checkpoint0,
         CommitTimelineType
             .COMMIT_TIMELINE_TYPE_ARCHIVED); // will be sent as part of archived timeline batch 1
     stubUploadInstantsCalls(
-        Collections.singletonList(".commits_.archive.1_1-0-1"),
+        Collections.singletonList(UploadedFile.builder().name(".commits_.archive.1_1-0-1").build()),
         checkpoint1,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     stubUploadInstantsCalls(
-        Collections.singletonList(".commits_.archive.2_1-0-1"),
+        Collections.singletonList(UploadedFile.builder().name(".commits_.archive.2_1-0-1").build()),
         checkpoint2,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     stubUploadInstantsCalls(
-        Collections.singletonList(".commits_.archive.3_1-0-1"),
+        Collections.singletonList(
+            UploadedFile.builder()
+                .name(".commits_.archive.3_1-0-1")
+                .lastModifiedAt(currentTime.toEpochMilli())
+                .build()),
         checkpoint3,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
 
@@ -144,19 +150,23 @@ class TimelineCommitInstantsUploaderTest {
 
     verify(asyncStorageClient, times(1)).listAllFilesInDir(anyString());
     verifyFilesUploaded(
-        Collections.singletonList(HOODIE_PROPERTIES_FILE),
+        Collections.singletonList(UploadedFile.builder().name(HOODIE_PROPERTIES_FILE).build()),
         checkpoint0,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     verifyFilesUploaded(
-        Collections.singletonList(".commits_.archive.1_1-0-1"),
+        Collections.singletonList(UploadedFile.builder().name(".commits_.archive.1_1-0-1").build()),
         checkpoint1,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     verifyFilesUploaded(
-        Collections.singletonList(".commits_.archive.2_1-0-1"),
+        Collections.singletonList(UploadedFile.builder().name(".commits_.archive.2_1-0-1").build()),
         checkpoint2,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     verifyFilesUploaded(
-        Collections.singletonList(".commits_.archive.3_1-0-1"),
+        Collections.singletonList(
+            UploadedFile.builder()
+                .name(".commits_.archive.3_1-0-1")
+                .lastModifiedAt(currentTime.toEpochMilli())
+                .build()),
         checkpoint3,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
     assertEquals(checkpoint3, response);
@@ -248,11 +258,25 @@ class TimelineCommitInstantsUploaderTest {
         generateCheckpointObj(previousCheckpoint.getBatchId() + 2, currentTime, true, "222.action");
 
     stubUploadInstantsCalls(
-        batch1.stream().map(File::getFilename).collect(Collectors.toList()),
+        batch1.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
         checkpoint1,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     stubUploadInstantsCalls(
-        batch2.stream().map(File::getFilename).collect(Collectors.toList()),
+        batch2.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
         checkpoint2,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
 
@@ -267,11 +291,25 @@ class TimelineCommitInstantsUploaderTest {
 
     verify(asyncStorageClient, times(2)).fetchObjectsByPage(anyString(), anyString(), any(), any());
     verifyFilesUploaded(
-        batch1.stream().map(File::getFilename).collect(Collectors.toList()),
+        batch1.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
         checkpoint1,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     verifyFilesUploaded(
-        batch2.stream().map(File::getFilename).collect(Collectors.toList()),
+        batch2.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
         checkpoint2,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     assertEquals(checkpoint2, response);
@@ -301,7 +339,14 @@ class TimelineCommitInstantsUploaderTest {
     Checkpoint checkpoint1 = generateCheckpointObj(1, Instant.EPOCH, true, HOODIE_PROPERTIES_FILE);
 
     stubUploadInstantsCalls(
-        batch1.stream().map(File::getFilename).collect(Collectors.toList()),
+        batch1.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
         checkpoint1,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
 
@@ -316,7 +361,14 @@ class TimelineCommitInstantsUploaderTest {
 
     verify(asyncStorageClient, times(1)).fetchObjectsByPage(anyString(), anyString(), any(), any());
     verifyFilesUploaded(
-        batch1.stream().map(File::getFilename).collect(Collectors.toList()),
+        batch1.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
         checkpoint1,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     assertEquals(checkpoint1, response);
@@ -357,7 +409,14 @@ class TimelineCommitInstantsUploaderTest {
     Checkpoint checkpoint1 = generateCheckpointObj(1, currentTime, true, "222.savepoint");
 
     stubUploadInstantsCalls(
-        batch1.stream().map(File::getFilename).collect(Collectors.toList()),
+        batch1.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
         checkpoint1,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
 
@@ -372,7 +431,14 @@ class TimelineCommitInstantsUploaderTest {
 
     verify(asyncStorageClient, times(1)).fetchObjectsByPage(anyString(), anyString(), any(), any());
     verifyFilesUploaded(
-        batch1.stream().map(File::getFilename).collect(Collectors.toList()),
+        batch1.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
         checkpoint1,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     assertEquals(checkpoint1, response);
@@ -428,7 +494,14 @@ class TimelineCommitInstantsUploaderTest {
         Collections.singletonList(batch3));
 
     stubUploadInstantsCalls(
-        batch3.stream().map(File::getFilename).collect(Collectors.toList()),
+        batch3.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
         checkpoint3,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
 
@@ -442,7 +515,14 @@ class TimelineCommitInstantsUploaderTest {
 
     verify(asyncStorageClient, times(1)).fetchObjectsByPage(anyString(), anyString(), any(), any());
     verifyFilesUploaded(
-        batch3.stream().map(File::getFilename).collect(Collectors.toList()),
+        batch3.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
         checkpoint3,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
@@ -557,6 +637,10 @@ class TimelineCommitInstantsUploaderTest {
                 .tableId(TABLE_ID.toString())
                 .checkpoint(mapper.writeValueAsString(checkpoint0))
                 .filesUploaded(filesUploadedWithUpdatedName)
+                .uploadedFiles(
+                    filesUploadedWithUpdatedName.stream()
+                        .map(file -> UploadedFile.builder().name(file).build())
+                        .collect(Collectors.toList()))
                 .build()))
         .thenReturn(CompletableFuture.completedFuture(failureResponse));
     // uploading instants in archived timeline for the first time
@@ -612,11 +696,7 @@ class TimelineCommitInstantsUploaderTest {
   }
 
   private File generateFileObj(String fileName, boolean isDirectory) {
-    return File.builder()
-        .filename(fileName)
-        .isDirectory(isDirectory)
-        .lastModifiedAt(Instant.EPOCH)
-        .build();
+    return generateFileObj(fileName, isDirectory, Instant.EPOCH);
   }
 
   private File generateFileObj(String fileName, boolean isDirectory, Instant lastModifiedAt) {
@@ -629,13 +709,20 @@ class TimelineCommitInstantsUploaderTest {
 
   @SneakyThrows
   private void stubUploadInstantsCalls(
-      List<String> filesUploaded,
+      List<UploadedFile> filesUploaded,
       Checkpoint updatedCheckpoint,
       CommitTimelineType commitTimelineType) {
-    List<String> filesUploadedWithUpdatedName =
+    filesUploaded =
         filesUploaded.stream()
-            .map(fileName -> addPrefixToFileName(fileName, commitTimelineType))
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(addPrefixToFileName(file.getName(), commitTimelineType))
+                        .lastModifiedAt(file.getLastModifiedAt())
+                        .build())
             .collect(Collectors.toList());
+    List<String> filesUploadedWithUpdatedName =
+        filesUploaded.stream().map(UploadedFile::getName).collect(Collectors.toList());
     List<String> presignedUrls =
         filesUploadedWithUpdatedName.stream()
             .map(fileName -> PRESIGNED_URL_PREFIX + fileName)
@@ -663,6 +750,7 @@ class TimelineCommitInstantsUploaderTest {
                 .tableId(TABLE_ID.toString())
                 .checkpoint(mapper.writeValueAsString(updatedCheckpoint))
                 .filesUploaded(filesUploadedWithUpdatedName)
+                .uploadedFiles(filesUploaded)
                 .build()))
         .thenReturn(
             CompletableFuture.completedFuture(
@@ -671,13 +759,20 @@ class TimelineCommitInstantsUploaderTest {
 
   @SneakyThrows
   private void verifyFilesUploaded(
-      List<String> filesUploaded,
+      List<UploadedFile> filesUploaded,
       Checkpoint updatedCheckpoint,
       CommitTimelineType commitTimelineType) {
-    List<String> filesUploadedWithUpdatedName =
+    filesUploaded =
         filesUploaded.stream()
-            .map(fileName -> addPrefixToFileName(fileName, commitTimelineType))
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(addPrefixToFileName(file.getName(), commitTimelineType))
+                        .lastModifiedAt(file.getLastModifiedAt())
+                        .build())
             .collect(Collectors.toList());
+    List<String> filesUploadedWithUpdatedName =
+        filesUploaded.stream().map(UploadedFile::getName).collect(Collectors.toList());
     List<String> presignedUrls =
         filesUploadedWithUpdatedName.stream()
             .map(fileName -> PRESIGNED_URL_PREFIX + fileName)
@@ -702,6 +797,7 @@ class TimelineCommitInstantsUploaderTest {
                 .tableId(TABLE_ID.toString())
                 .checkpoint(mapper.writeValueAsString(updatedCheckpoint))
                 .filesUploaded(filesUploadedWithUpdatedName)
+                .uploadedFiles(filesUploaded)
                 .build());
   }
 
