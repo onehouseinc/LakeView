@@ -59,6 +59,10 @@ public class ConfigLoader {
               .getOnehouseClientConfig()
               .setApiSecret(onehouseClientConfigFromFile.getApiSecret());
           configV1.getOnehouseClientConfig().setUserId(onehouseClientConfigFromFile.getUserId());
+          configV1
+              .getOnehouseClientConfig()
+              .setRequestId(onehouseClientConfigFromFile.getRequestId());
+          configV1.getOnehouseClientConfig().setRegion(onehouseClientConfigFromFile.getRegion());
         }
         validateOnehouseClientConfig(configV1);
         return configV1;

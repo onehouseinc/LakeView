@@ -14,6 +14,8 @@ import lombok.extern.jackson.Jacksonized;
 @EqualsAndHashCode
 public class OnehouseClientConfig {
   @Nullable private String projectId;
+  @Nullable private String requestId;
+  @Nullable private String region;
   @Nullable private String apiKey;
   @Nullable private String apiSecret;
   @Nullable private String userId;

@@ -124,6 +124,8 @@ class ConfigLoaderTest {
     assertEquals(
         expectedConfig.getOnehouseClientConfig().getUserId(),
         config.getOnehouseClientConfig().getUserId());
+    assertEquals("some-request-id", config.getOnehouseClientConfig().getRequestId());
+    assertEquals("us-west-2", config.getOnehouseClientConfig().getRegion());
   }
 
   @Test
