@@ -13,5 +13,6 @@ public class UpsertTableMetricsCheckpointRequest {
   @NonNull private final String tableId;
   @NonNull private final String checkpoint;
   @NonNull private final List<String> filesUploaded;
+  @NonNull private final List<UploadedFile> uploadedFiles;
   @NonNull private final CommitTimelineType commitTimelineType;
 }

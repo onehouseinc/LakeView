@@ -19,6 +19,7 @@ import com.google.inject.Inject;
 import com.onehouse.api.OnehouseApiClient;
 import com.onehouse.api.models.request.CommitTimelineType;
 import com.onehouse.api.models.request.GenerateCommitMetadataUploadUrlRequest;
+import com.onehouse.api.models.request.UploadedFile;
 import com.onehouse.api.models.request.UpsertTableMetricsCheckpointRequest;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
@@ -287,7 +288,14 @@ public class TimelineCommitInstantsUploader {
                                 updatedCheckpoint,
                                 lastUploadedFile,
                                 batch.stream()
-                                    .map(file -> getFileNameWithPrefix(file, commitTimelineType))
+                                    .map(
+                                        file ->
+                                            UploadedFile.builder()
+                                                .name(
+                                                    getFileNameWithPrefix(file, commitTimelineType))
+                                                .lastModifiedAt(
+                                                    file.getLastModifiedAt().toEpochMilli())
+                                                .build())
                                     .collect(Collectors.toList()),
                                 commitTimelineType),
                         executorService)
@@ -317,7 +325,7 @@ public class TimelineCommitInstantsUploader {
     return onehouseApiClient
         .generateCommitMetadataUploadUrl(
             GenerateCommitMetadataUploadUrlRequest.builder()
-                .tableId(tableId.toString())
+                .tableId(tableId)
                 .commitInstants(commitInstants)
                 .commitTimelineType(commitTimelineType)
                 .build())
@@ -348,7 +356,7 @@ public class TimelineCommitInstantsUploader {
       String tableId,
       Checkpoint previousCheckpoint,
       File lastUploadedFile,
-      List<String> filesUploaded,
+      List<UploadedFile> uploadedFiles,
       CommitTimelineType commitTimelineType) {
 
     // archived instants would be processed if we are currently processing the first batch of active
@@ -374,9 +382,13 @@ public class TimelineCommitInstantsUploader {
           .upsertTableMetricsCheckpoint(
               UpsertTableMetricsCheckpointRequest.builder()
                   .commitTimelineType(commitTimelineType)
-                  .tableId(tableId.toString())
+                  .tableId(tableId)
                   .checkpoint(mapper.writeValueAsString(updatedCheckpoint))
-                  .filesUploaded(filesUploaded)
+                  .filesUploaded(
+                      uploadedFiles.stream()
+                          .map(UploadedFile::getName)
+                          .collect(Collectors.toList()))
+                  .uploadedFiles(uploadedFiles)
                   .build())
           .thenApply(
               upsertTableMetricsCheckpointResponse -> {
