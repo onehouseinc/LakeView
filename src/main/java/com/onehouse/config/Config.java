@@ -16,4 +16,6 @@ public interface Config {
   MetadataExtractorConfig getMetadataExtractorConfig();
 
   int getTableDiscoveryIntervalMinutes();
+
+  int getTableMetadataUploadIntervalMinutes();
 }

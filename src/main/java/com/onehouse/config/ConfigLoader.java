@@ -96,6 +96,10 @@ public class ConfigLoader {
       throw new IllegalArgumentException(
           "tableDiscoveryIntervalMinutes should be a positive integer");
     }
+    if (configV1.getTableMetadataUploadIntervalMinutes() < 1) {
+      throw new IllegalArgumentException(
+          "tableMetadataUploadIntervalMinutes should be a positive integer");
+    }
   }
 
   public String convertConfigToString(Config config) throws JsonProcessingException {

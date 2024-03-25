@@ -1,7 +1,5 @@
 package com.onehouse.metadata_extractor;
 
-import static com.onehouse.constants.MetadataExtractorConstants.TABLE_METADATA_UPLOAD_INTERVAL_MINUTES;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.config.Config;
@@ -49,7 +47,10 @@ public class TableDiscoveryAndUploadJob {
 
     // Schedule table processing
     scheduler.scheduleAtFixedRate(
-        this::processTables, 0, PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS, TimeUnit.SECONDS);
+        () -> processTables(config),
+        0,
+        PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS,
+        TimeUnit.SECONDS);
   }
 
   /*
@@ -87,12 +88,12 @@ public class TableDiscoveryAndUploadJob {
         .join();
   }
 
-  private void processTables() {
+  private void processTables(Config config) {
     log.debug("Polling to see if metadata needs to be uploaded");
     Instant tableMetadataUploadRunStartTime = Instant.now();
     if (Duration.between(previousTableMetadataUploadRunStartTime, tableMetadataUploadRunStartTime)
             .toMinutes()
-        >= TABLE_METADATA_UPLOAD_INTERVAL_MINUTES) {
+        >= config.getTableMetadataUploadIntervalMinutes()) {
       Set<Table> tables = null;
       synchronized (lock) {
         if (tablesToProcess != null) {
