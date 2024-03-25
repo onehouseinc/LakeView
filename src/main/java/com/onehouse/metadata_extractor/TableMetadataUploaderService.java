@@ -85,7 +85,8 @@ public class TableMetadataUploaderService {
     if (StringUtils.isNotBlank(table.getTableId())) {
       return table;
     }
-    return table.toBuilder()
+    return table
+        .toBuilder()
         .tableId(getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUri()).toString())
         .build();
   }
