@@ -1,6 +1,7 @@
 package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_INTERVAL_MINUTES;
+import static com.onehouse.metadata_extractor.TableDiscoveryAndUploadJob.PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS;
 import static org.mockito.Mockito.*;
 
 import com.onehouse.config.Config;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -28,6 +30,9 @@ class TableDiscoveryAndUploadJobTest {
 
   @Mock private ScheduledExecutorService mockScheduler;
 
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  private Config config;
+
   @Captor private ArgumentCaptor<Runnable> runnableCaptor;
 
   private TableDiscoveryAndUploadJob job;
@@ -36,7 +41,7 @@ class TableDiscoveryAndUploadJobTest {
   void setUp() {
     job =
         new TableDiscoveryAndUploadJob(
-            mockTableDiscoveryService, mockTableMetadataUploaderService) {
+            mockTableDiscoveryService, config, mockTableMetadataUploaderService) {
           @Override
           ScheduledExecutorService getScheduler() {
             return mockScheduler;
@@ -58,8 +63,9 @@ class TableDiscoveryAndUploadJobTest {
             Collections.singleton(discoveredTable)))
         .thenReturn(CompletableFuture.completedFuture(null));
 
-    Config config = mock(Config.class);
     when(config.getTableDiscoveryIntervalMinutes()).thenReturn(TABLE_DISCOVERY_INTERVAL_MINUTES);
+    when(config.getMetadataExtractorConfig().getProcessTableMetadataSyncDurationSeconds())
+        .thenReturn(PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS);
     job.runInContinuousMode(config);
 
     verify(mockScheduler)
@@ -72,7 +78,7 @@ class TableDiscoveryAndUploadJobTest {
         .scheduleAtFixedRate(
             runnableCaptor.capture(),
             eq(0L),
-            eq((long) job.getProcessTableMetadataSyncDurationSeconds()),
+            eq((long) PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS),
             eq(TimeUnit.SECONDS));
 
     Runnable discoveryTask = runnableCaptor.getAllValues().get(0);

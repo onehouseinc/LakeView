@@ -23,13 +23,14 @@ public class TableDiscoveryAndUploadJob {
   // process table metadata will be called every 30 seconds,
   // but metadata will be uploaded only if TABLE_METADATA_UPLOAD_INTERVAL_MINUTES amount of time has
   // passed since last run
-  private static final int PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS = 30;
+  public static final int PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS = 30;
   private Set<Table> tablesToProcess;
   private Instant previousTableMetadataUploadRunStartTime = Instant.EPOCH;
 
   @Inject
   public TableDiscoveryAndUploadJob(
       @Nonnull TableDiscoveryService tableDiscoveryService,
+      @Nonnull Config config,
       @Nonnull TableMetadataUploaderService tableMetadataUploaderService) {
     this.scheduler = getScheduler();
     this.tableDiscoveryService = tableDiscoveryService;
@@ -49,7 +50,7 @@ public class TableDiscoveryAndUploadJob {
     scheduler.scheduleAtFixedRate(
         () -> processTables(config),
         0,
-        PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS,
+        config.getMetadataExtractorConfig().getProcessTableMetadataSyncDurationSeconds(),
         TimeUnit.SECONDS);
   }
 
@@ -122,10 +123,5 @@ public class TableDiscoveryAndUploadJob {
   @VisibleForTesting
   ScheduledExecutorService getScheduler() {
     return Executors.newScheduledThreadPool(2);
-  }
-
-  @VisibleForTesting
-  int getProcessTableMetadataSyncDurationSeconds() {
-    return PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS;
   }
 }
