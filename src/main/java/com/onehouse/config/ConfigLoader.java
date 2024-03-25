@@ -100,6 +100,10 @@ public class ConfigLoader {
       throw new IllegalArgumentException(
           "tableMetadataUploadIntervalMinutes should be a positive integer");
     }
+    if (configV1.getMetadataExtractorConfig().getProcessTableMetadataSyncDurationSeconds() < 1) {
+      throw new IllegalArgumentException(
+          "processTableMetadataSyncDurationSeconds should be a positive integer");
+    }
     if (configV1.getMetadataExtractorConfig().getPresignedUrlRequestBatchSizeArchivedTimeline()
         < 1) {
       throw new IllegalArgumentException(
