@@ -92,11 +92,11 @@ public class ConfigLoader {
               "Missing config params: %s",
               missingFields.stream().reduce((a, b) -> a + ", " + b).orElse("")));
     }
-    if (configV1.getTableDiscoveryIntervalMinutes() < 1) {
+    if (configV1.getMetadataExtractorConfig().getTableDiscoveryIntervalMinutes() < 1) {
       throw new IllegalArgumentException(
           "tableDiscoveryIntervalMinutes should be a positive integer");
     }
-    if (configV1.getTableMetadataUploadIntervalMinutes() < 1) {
+    if (configV1.getMetadataExtractorConfig().getTableMetadataUploadIntervalMinutes() < 1) {
       throw new IllegalArgumentException(
           "tableMetadataUploadIntervalMinutes should be a positive integer");
     }

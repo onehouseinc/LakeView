@@ -44,7 +44,10 @@ public class TableDiscoveryAndUploadJob {
     log.debug("Running metadata-extractor in continuous mode");
     // Schedule table discovery
     scheduler.scheduleAtFixedRate(
-        this::discoverTables, 0, config.getTableDiscoveryIntervalMinutes(), TimeUnit.MINUTES);
+        this::discoverTables,
+        0,
+        config.getMetadataExtractorConfig().getTableDiscoveryIntervalMinutes(),
+        TimeUnit.MINUTES);
 
     // Schedule table processing
     scheduler.scheduleAtFixedRate(
@@ -94,7 +97,7 @@ public class TableDiscoveryAndUploadJob {
     Instant tableMetadataUploadRunStartTime = Instant.now();
     if (Duration.between(previousTableMetadataUploadRunStartTime, tableMetadataUploadRunStartTime)
             .toMinutes()
-        >= config.getTableMetadataUploadIntervalMinutes()) {
+        >= config.getMetadataExtractorConfig().getTableMetadataUploadIntervalMinutes()) {
       Set<Table> tables = null;
       synchronized (lock) {
         if (tablesToProcess != null) {

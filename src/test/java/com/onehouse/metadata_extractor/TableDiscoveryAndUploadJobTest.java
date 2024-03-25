@@ -63,7 +63,8 @@ class TableDiscoveryAndUploadJobTest {
             Collections.singleton(discoveredTable)))
         .thenReturn(CompletableFuture.completedFuture(null));
 
-    when(config.getTableDiscoveryIntervalMinutes()).thenReturn(TABLE_DISCOVERY_INTERVAL_MINUTES);
+    when(config.getMetadataExtractorConfig().getTableDiscoveryIntervalMinutes())
+        .thenReturn(TABLE_DISCOVERY_INTERVAL_MINUTES);
     when(config.getMetadataExtractorConfig().getProcessTableMetadataSyncDurationSeconds())
         .thenReturn(PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS);
     job.runInContinuousMode(config);
