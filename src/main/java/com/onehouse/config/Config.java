@@ -14,4 +14,6 @@ public interface Config {
   String getMetadataExtractorConfigPath();
 
   MetadataExtractorConfig getMetadataExtractorConfig();
+
+  int getTableDiscoveryIntervalMinutes();
 }

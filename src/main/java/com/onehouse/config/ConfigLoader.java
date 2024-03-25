@@ -92,6 +92,10 @@ public class ConfigLoader {
               "Missing config params: %s",
               missingFields.stream().reduce((a, b) -> a + ", " + b).orElse("")));
     }
+    if (configV1.getTableDiscoveryIntervalMinutes() < 1) {
+      throw new IllegalArgumentException(
+          "tableDiscoveryIntervalMinutes should be a positive integer");
+    }
   }
 
   public String convertConfigToString(Config config) throws JsonProcessingException {

@@ -3,6 +3,7 @@ package com.onehouse.metadata_extractor;
 import static com.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_INTERVAL_MINUTES;
 import static org.mockito.Mockito.*;
 
+import com.onehouse.config.Config;
 import com.onehouse.metadata_extractor.models.Table;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
@@ -57,7 +58,9 @@ class TableDiscoveryAndUploadJobTest {
             Collections.singleton(discoveredTable)))
         .thenReturn(CompletableFuture.completedFuture(null));
 
-    job.runInContinuousMode();
+    Config config = mock(Config.class);
+    when(config.getTableDiscoveryIntervalMinutes()).thenReturn(TABLE_DISCOVERY_INTERVAL_MINUTES);
+    job.runInContinuousMode(config);
 
     verify(mockScheduler)
         .scheduleAtFixedRate(

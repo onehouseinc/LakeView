@@ -1,10 +1,10 @@
 package com.onehouse.metadata_extractor;
 
-import static com.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_INTERVAL_MINUTES;
 import static com.onehouse.constants.MetadataExtractorConstants.TABLE_METADATA_UPLOAD_INTERVAL_MINUTES;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
+import com.onehouse.config.Config;
 import com.onehouse.metadata_extractor.models.Table;
 import java.time.Duration;
 import java.time.Instant;
@@ -41,11 +41,11 @@ public class TableDiscoveryAndUploadJob {
   /*
    * runs discovery and upload periodically at fixed intervals in a continuous fashion
    */
-  public void runInContinuousMode() {
+  public void runInContinuousMode(Config config) {
     log.debug("Running metadata-extractor in continuous mode");
     // Schedule table discovery
     scheduler.scheduleAtFixedRate(
-        this::discoverTables, 0, TABLE_DISCOVERY_INTERVAL_MINUTES, TimeUnit.MINUTES);
+        this::discoverTables, 0, config.getTableDiscoveryIntervalMinutes(), TimeUnit.MINUTES);
 
     // Schedule table processing
     scheduler.scheduleAtFixedRate(

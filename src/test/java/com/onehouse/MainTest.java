@@ -169,7 +169,7 @@ class MainTest {
     main.shutdown();
 
     verify(mockConfigLoader).loadConfigFromString("configYamlString");
-    verify(mockJob).runInContinuousMode();
+    verify(mockJob).runInContinuousMode(mockConfig);
     verifyShutdown();
   }
 

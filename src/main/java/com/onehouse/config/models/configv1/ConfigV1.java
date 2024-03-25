@@ -1,5 +1,7 @@
 package com.onehouse.config.models.configv1;
 
+import static com.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_INTERVAL_MINUTES;
+
 import com.onehouse.config.Config;
 import com.onehouse.config.ConfigVersion;
 import com.onehouse.config.models.common.FileSystemConfiguration;
@@ -23,6 +25,8 @@ public class ConfigV1 implements Config {
   // provided, it is mandatory to pass metadataExtractorConfig.
   private String metadataExtractorConfigPath;
   private MetadataExtractorConfig metadataExtractorConfig;
+
+  @Builder.Default private int tableDiscoveryIntervalMinutes = TABLE_DISCOVERY_INTERVAL_MINUTES;
 
   @Override
   public ConfigVersion getVersion() {
