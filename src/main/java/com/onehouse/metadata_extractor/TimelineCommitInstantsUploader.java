@@ -19,6 +19,7 @@ import com.onehouse.api.models.request.CommitTimelineType;
 import com.onehouse.api.models.request.GenerateCommitMetadataUploadUrlRequest;
 import com.onehouse.api.models.request.UploadedFile;
 import com.onehouse.api.models.request.UpsertTableMetricsCheckpointRequest;
+import com.onehouse.config.Config;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
@@ -62,14 +63,14 @@ public class TimelineCommitInstantsUploader {
       @Nonnull StorageUtils storageUtils,
       @Nonnull ExecutorService executorService,
       @Nonnull ActiveTimelineInstantBatcher activeTimelineInstantBatcher,
-      MetadataExtractorConfig extractorConfig) {
+      @Nonnull Config config) {
     this.asyncStorageClient = asyncStorageClient;
     this.presignedUrlFileUploader = presignedUrlFileUploader;
     this.onehouseApiClient = onehouseApiClient;
     this.storageUtils = storageUtils;
     this.executorService = executorService;
     this.activeTimelineInstantBatcher = activeTimelineInstantBatcher;
-    this.extractorConfig = extractorConfig;
+    this.extractorConfig = config.getMetadataExtractorConfig();
     this.mapper = new ObjectMapper();
     mapper.registerModule(new JavaTimeModule());
   }
