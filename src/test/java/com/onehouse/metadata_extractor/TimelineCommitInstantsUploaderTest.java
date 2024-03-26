@@ -24,6 +24,7 @@ import com.onehouse.api.models.request.UploadedFile;
 import com.onehouse.api.models.request.UpsertTableMetricsCheckpointRequest;
 import com.onehouse.api.models.response.GenerateCommitMetadataUploadUrlResponse;
 import com.onehouse.api.models.response.UpsertTableMetricsCheckpointResponse;
+import com.onehouse.config.Config;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
@@ -57,6 +58,7 @@ class TimelineCommitInstantsUploaderTest {
   @Mock private AsyncStorageClient asyncStorageClient;
   @Mock private PresignedUrlFileUploader presignedUrlFileUploader;
   @Mock private OnehouseApiClient onehouseApiClient;
+  @Mock private Config config;
   @Mock private MetadataExtractorConfig metadataExtractorConfig;
   @Mock private ActiveTimelineInstantBatcher activeTimelineInstantBatcher;
   private TimelineCommitInstantsUploader timelineCommitInstantsUploader;
@@ -78,6 +80,7 @@ class TimelineCommitInstantsUploaderTest {
   private final Instant currentTime = Instant.now();
 
   private TimelineCommitInstantsUploader getTimelineCommitInstantsUploader() {
+    when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
     return new TimelineCommitInstantsUploader(
         asyncStorageClient,
         presignedUrlFileUploader,
@@ -85,7 +88,7 @@ class TimelineCommitInstantsUploaderTest {
         new StorageUtils(),
         ForkJoinPool.commonPool(),
         activeTimelineInstantBatcher,
-        metadataExtractorConfig);
+        config);
   }
 
   @BeforeEach

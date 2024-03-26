@@ -27,7 +27,6 @@ public class TableDiscoveryAndUploadJob {
   @Inject
   public TableDiscoveryAndUploadJob(
       @Nonnull TableDiscoveryService tableDiscoveryService,
-      @Nonnull Config config,
       @Nonnull TableMetadataUploaderService tableMetadataUploaderService) {
     this.scheduler = getScheduler();
     this.tableDiscoveryService = tableDiscoveryService;

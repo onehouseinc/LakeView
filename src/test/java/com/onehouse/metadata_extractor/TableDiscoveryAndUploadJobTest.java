@@ -41,7 +41,7 @@ class TableDiscoveryAndUploadJobTest {
   void setUp() {
     job =
         new TableDiscoveryAndUploadJob(
-            mockTableDiscoveryService, config, mockTableMetadataUploaderService) {
+            mockTableDiscoveryService, mockTableMetadataUploaderService) {
           @Override
           ScheduledExecutorService getScheduler() {
             return mockScheduler;
