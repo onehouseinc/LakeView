@@ -2,9 +2,9 @@ package com.onehouse.config.models.configv1;
 
 import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ACTIVE_TIMELINE;
 import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ARCHIVED_TIMELINE;
+import static com.onehouse.constants.MetadataExtractorConstants.PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS;
 import static com.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_INTERVAL_MINUTES;
 import static com.onehouse.constants.MetadataExtractorConstants.TABLE_METADATA_UPLOAD_INTERVAL_MINUTES;
-import static com.onehouse.metadata_extractor.TableDiscoveryAndUploadJob.PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS;
 
 import java.util.List;
 import java.util.Optional;

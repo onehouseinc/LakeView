@@ -20,10 +20,7 @@ public class TableDiscoveryAndUploadJob {
   private final TableMetadataUploaderService tableMetadataUploaderService;
   private final ScheduledExecutorService scheduler;
   private final Object lock = new Object();
-  // process table metadata will be called every 30 seconds,
-  // but metadata will be uploaded only if TABLE_METADATA_UPLOAD_INTERVAL_MINUTES amount of time has
-  // passed since last run
-  public static final int PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS = 30;
+
   private Set<Table> tablesToProcess;
   private Instant previousTableMetadataUploadRunStartTime = Instant.EPOCH;
 
