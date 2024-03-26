@@ -1,10 +1,8 @@
 package com.onehouse.metadata_extractor;
 
-import static com.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_INTERVAL_MINUTES;
-import static com.onehouse.constants.MetadataExtractorConstants.TABLE_METADATA_UPLOAD_INTERVAL_MINUTES;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
+import com.onehouse.config.Config;
 import com.onehouse.metadata_extractor.models.Table;
 import java.time.Duration;
 import java.time.Instant;
@@ -22,16 +20,14 @@ public class TableDiscoveryAndUploadJob {
   private final TableMetadataUploaderService tableMetadataUploaderService;
   private final ScheduledExecutorService scheduler;
   private final Object lock = new Object();
-  // process table metadata will be called every 30 seconds,
-  // but metadata will be uploaded only if TABLE_METADATA_UPLOAD_INTERVAL_MINUTES amount of time has
-  // passed since last run
-  private static final int PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS = 30;
+
   private Set<Table> tablesToProcess;
   private Instant previousTableMetadataUploadRunStartTime = Instant.EPOCH;
 
   @Inject
   public TableDiscoveryAndUploadJob(
       @Nonnull TableDiscoveryService tableDiscoveryService,
+      @Nonnull Config config,
       @Nonnull TableMetadataUploaderService tableMetadataUploaderService) {
     this.scheduler = getScheduler();
     this.tableDiscoveryService = tableDiscoveryService;
@@ -41,15 +37,21 @@ public class TableDiscoveryAndUploadJob {
   /*
    * runs discovery and upload periodically at fixed intervals in a continuous fashion
    */
-  public void runInContinuousMode() {
+  public void runInContinuousMode(Config config) {
     log.debug("Running metadata-extractor in continuous mode");
     // Schedule table discovery
     scheduler.scheduleAtFixedRate(
-        this::discoverTables, 0, TABLE_DISCOVERY_INTERVAL_MINUTES, TimeUnit.MINUTES);
+        this::discoverTables,
+        0,
+        config.getMetadataExtractorConfig().getTableDiscoveryIntervalMinutes(),
+        TimeUnit.MINUTES);
 
     // Schedule table processing
     scheduler.scheduleAtFixedRate(
-        this::processTables, 0, PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS, TimeUnit.SECONDS);
+        () -> processTables(config),
+        0,
+        config.getMetadataExtractorConfig().getProcessTableMetadataSyncDurationSeconds(),
+        TimeUnit.SECONDS);
   }
 
   /*
@@ -87,12 +89,12 @@ public class TableDiscoveryAndUploadJob {
         .join();
   }
 
-  private void processTables() {
+  private void processTables(Config config) {
     log.debug("Polling to see if metadata needs to be uploaded");
     Instant tableMetadataUploadRunStartTime = Instant.now();
     if (Duration.between(previousTableMetadataUploadRunStartTime, tableMetadataUploadRunStartTime)
             .toMinutes()
-        >= TABLE_METADATA_UPLOAD_INTERVAL_MINUTES) {
+        >= config.getMetadataExtractorConfig().getTableMetadataUploadIntervalMinutes()) {
       Set<Table> tables = null;
       synchronized (lock) {
         if (tablesToProcess != null) {
@@ -121,10 +123,5 @@ public class TableDiscoveryAndUploadJob {
   @VisibleForTesting
   ScheduledExecutorService getScheduler() {
     return Executors.newScheduledThreadPool(2);
-  }
-
-  @VisibleForTesting
-  int getProcessTableMetadataSyncDurationSeconds() {
-    return PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS;
   }
 }

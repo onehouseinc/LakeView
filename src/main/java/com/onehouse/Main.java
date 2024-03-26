@@ -100,7 +100,7 @@ public class Main {
       MetadataExtractorConfig.JobRunMode jobRunMode =
           ((ConfigV1) config).getMetadataExtractorConfig().getJobRunMode();
       if (MetadataExtractorConfig.JobRunMode.CONTINUOUS.equals(jobRunMode)) {
-        job.runInContinuousMode();
+        job.runInContinuousMode(config);
       } else {
         job.runOnce();
         shutdown();

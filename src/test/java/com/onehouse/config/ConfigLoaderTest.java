@@ -70,7 +70,7 @@ class ConfigLoaderTest {
         "src/test/resources/config_test_resources/invalidConfigV1MissingFileSystemConfiguration.yaml",
         "src/test/resources/config_test_resources/invalidConfigV1MissingOnehouseClientConfig.yaml"
       })
-  void testLoadingInValidConfig(String configPath) {
+  void testLoadingInvalidConfig(String configPath) {
     assertThrows(RuntimeException.class, () -> configLoader.loadConfigFromConfigFile(configPath));
   }
 
@@ -148,6 +148,67 @@ class ConfigLoaderTest {
     String yamlString =
         "{version: V1, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {pathExclusionPatterns: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
     assertThrows(RuntimeException.class, () -> configLoader.loadConfigFromString(yamlString));
+
+    // invalid batch size for active timeline
+    String yamlStringWithInvalidActiveTimelineBatchSize =
+        "{version: V1, onehouseClientConfig: {projectId: 0c043996-9e42-4904-95b9-f98918ebeda4, apiKey: WJ3wiaZLsX0mDrrcw234akQ==, apiSecret: /v+WFnHYscwgwerPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=, userId: KypBAFHYqAevFFeweB5UP2}, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {presignedUrlRequestBatchSizeActiveTimeline: -1, pathExclusionPatterns: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+    RuntimeException exception =
+        assertThrows(
+            RuntimeException.class,
+            () -> configLoader.loadConfigFromString(yamlStringWithInvalidActiveTimelineBatchSize));
+    assertEquals(
+        "presignedUrlRequestBatchSizeActiveTimeline should be a positive integer",
+        exception.getCause().getMessage());
+
+    // invalid batch size for archive timeline
+    String yamlStringWithInvalidArchiveTimelineBatchSize =
+        "{version: V1, onehouseClientConfig: {projectId: 0c043996-9e42-4904-95b9-f98918ebeda4, apiKey: WJ3wiaZLsX0mDrrcw234akQ==, apiSecret: /v+WFnHYscwgwerPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=, userId: KypBAFHYqAevFFeweB5UP2}, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {presignedUrlRequestBatchSizeArchivedTimeline: -1, pathExclusionPatterns: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+    exception =
+        assertThrows(
+            RuntimeException.class,
+            () -> configLoader.loadConfigFromString(yamlStringWithInvalidArchiveTimelineBatchSize));
+    assertEquals(
+        "presignedUrlRequestBatchSizeArchivedTimeline should be a positive integer",
+        exception.getCause().getMessage());
+
+    // invalid sync duration for processing table metadata
+    String yamlStringWithInvalidMetadataSyncDurationSeconds =
+        "{version: V1, onehouseClientConfig: {projectId: 0c043996-9e42-4904-95b9-f98918ebeda4, apiKey: WJ3wiaZLsX0mDrrcw234akQ==, apiSecret: /v+WFnHYscwgwerPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=, userId: KypBAFHYqAevFFeweB5UP2}, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {processTableMetadataSyncDurationSeconds: -1, pathExclusionPatterns: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+    exception =
+        assertThrows(
+            RuntimeException.class,
+            () ->
+                configLoader.loadConfigFromString(
+                    yamlStringWithInvalidMetadataSyncDurationSeconds));
+    assertEquals(
+        "processTableMetadataSyncDurationSeconds should be a positive integer",
+        exception.getCause().getMessage());
+
+    // invalid interval for table discovery
+    String yamlStringWithInvalidTableDiscoveryIntervalMinutes =
+        "{version: V1, onehouseClientConfig: {projectId: 0c043996-9e42-4904-95b9-f98918ebeda4, apiKey: WJ3wiaZLsX0mDrrcw234akQ==, apiSecret: /v+WFnHYscwgwerPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=, userId: KypBAFHYqAevFFeweB5UP2}, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {tableDiscoveryIntervalMinutes: -1, pathExclusionPatterns: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+    exception =
+        assertThrows(
+            RuntimeException.class,
+            () ->
+                configLoader.loadConfigFromString(
+                    yamlStringWithInvalidTableDiscoveryIntervalMinutes));
+    assertEquals(
+        "tableDiscoveryIntervalMinutes should be a positive integer",
+        exception.getCause().getMessage());
+
+    // invalid interval for table metadata upload
+    String yamlStringWithInvalidTableMetadataUploadIntervalMinutes =
+        "{version: V1, onehouseClientConfig: {projectId: 0c043996-9e42-4904-95b9-f98918ebeda4, apiKey: WJ3wiaZLsX0mDrrcw234akQ==, apiSecret: /v+WFnHYscwgwerPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=, userId: KypBAFHYqAevFFeweB5UP2}, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {tableMetadataUploadIntervalMinutes: -1, pathExclusionPatterns: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+    exception =
+        assertThrows(
+            RuntimeException.class,
+            () ->
+                configLoader.loadConfigFromString(
+                    yamlStringWithInvalidTableMetadataUploadIntervalMinutes));
+    assertEquals(
+        "tableMetadataUploadIntervalMinutes should be a positive integer",
+        exception.getCause().getMessage());
   }
 
   enum Filesystem {

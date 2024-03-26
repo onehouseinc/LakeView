@@ -20,6 +20,11 @@ public class MetadataExtractorConstants {
   // so we want to ingest 10x active instants than archived instants in one batch
   public static final int PRESIGNED_URL_REQUEST_BATCH_SIZE_ACTIVE_TIMELINE = 20;
   public static final int PRESIGNED_URL_REQUEST_BATCH_SIZE_ARCHIVED_TIMELINE = 2;
+
+  // process table metadata will be called every 30 seconds,
+  // but metadata will be uploaded only if TABLE_METADATA_UPLOAD_INTERVAL_MINUTES amount of time has
+  // passed since last run
+  public static final int PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS = 30;
   public static final int TABLE_PROCESSING_BATCH_SIZE =
       Math.min(
           50,

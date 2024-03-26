@@ -3,6 +3,8 @@ package com.onehouse.metadata_extractor;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE_OBJ;
 import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
+import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ACTIVE_TIMELINE;
+import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ARCHIVED_TIMELINE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -22,6 +24,7 @@ import com.onehouse.api.models.request.UploadedFile;
 import com.onehouse.api.models.request.UpsertTableMetricsCheckpointRequest;
 import com.onehouse.api.models.response.GenerateCommitMetadataUploadUrlResponse;
 import com.onehouse.api.models.response.UpsertTableMetricsCheckpointResponse;
+import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
 import com.onehouse.storage.AsyncStorageClient;
@@ -54,6 +57,7 @@ class TimelineCommitInstantsUploaderTest {
   @Mock private AsyncStorageClient asyncStorageClient;
   @Mock private PresignedUrlFileUploader presignedUrlFileUploader;
   @Mock private OnehouseApiClient onehouseApiClient;
+  @Mock private MetadataExtractorConfig metadataExtractorConfig;
   @Mock private ActiveTimelineInstantBatcher activeTimelineInstantBatcher;
   private TimelineCommitInstantsUploader timelineCommitInstantsUploader;
   private final ObjectMapper mapper = new ObjectMapper();
@@ -71,19 +75,23 @@ class TimelineCommitInstantsUploaderTest {
 
   private static final String CONTINUATION_TOKEN_PREFIX = "page_";
 
-  private Instant currentTime = Instant.now();
+  private final Instant currentTime = Instant.now();
+
+  private TimelineCommitInstantsUploader getTimelineCommitInstantsUploader() {
+    return new TimelineCommitInstantsUploader(
+        asyncStorageClient,
+        presignedUrlFileUploader,
+        onehouseApiClient,
+        new StorageUtils(),
+        ForkJoinPool.commonPool(),
+        activeTimelineInstantBatcher,
+        metadataExtractorConfig);
+  }
 
   @BeforeEach
   void setup() {
     mapper.registerModule(new JavaTimeModule());
-    timelineCommitInstantsUploader =
-        new TimelineCommitInstantsUploader(
-            asyncStorageClient,
-            presignedUrlFileUploader,
-            onehouseApiClient,
-            new StorageUtils(),
-            ForkJoinPool.commonPool(),
-            activeTimelineInstantBatcher);
+    timelineCommitInstantsUploader = getTimelineCommitInstantsUploader();
   }
 
   @Test
@@ -661,6 +669,12 @@ class TimelineCommitInstantsUploaderTest {
 
   @Test
   void testGetUploadBatchSize() {
+    when(metadataExtractorConfig.getPresignedUrlRequestBatchSizeArchivedTimeline())
+        .thenReturn(PRESIGNED_URL_REQUEST_BATCH_SIZE_ARCHIVED_TIMELINE);
+    when(metadataExtractorConfig.getPresignedUrlRequestBatchSizeActiveTimeline())
+        .thenReturn(PRESIGNED_URL_REQUEST_BATCH_SIZE_ACTIVE_TIMELINE);
+    timelineCommitInstantsUploader = getTimelineCommitInstantsUploader();
+
     assertEquals(
         20,
         timelineCommitInstantsUploader.getUploadBatchSize(

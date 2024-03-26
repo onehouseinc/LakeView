@@ -6,8 +6,6 @@ import static com.onehouse.constants.MetadataExtractorConstants.ARCHIVED_FOLDER_
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE_OBJ;
-import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ACTIVE_TIMELINE;
-import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ARCHIVED_TIMELINE;
 import static com.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,6 +19,7 @@ import com.onehouse.api.models.request.CommitTimelineType;
 import com.onehouse.api.models.request.GenerateCommitMetadataUploadUrlRequest;
 import com.onehouse.api.models.request.UploadedFile;
 import com.onehouse.api.models.request.UpsertTableMetricsCheckpointRequest;
+import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
 import com.onehouse.storage.AsyncStorageClient;
@@ -53,6 +52,7 @@ public class TimelineCommitInstantsUploader {
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
   private final ActiveTimelineInstantBatcher activeTimelineInstantBatcher;
+  private final MetadataExtractorConfig extractorConfig;
 
   @Inject
   TimelineCommitInstantsUploader(
@@ -61,13 +61,15 @@ public class TimelineCommitInstantsUploader {
       @Nonnull OnehouseApiClient onehouseApiClient,
       @Nonnull StorageUtils storageUtils,
       @Nonnull ExecutorService executorService,
-      @Nonnull ActiveTimelineInstantBatcher activeTimelineInstantBatcher) {
+      @Nonnull ActiveTimelineInstantBatcher activeTimelineInstantBatcher,
+      MetadataExtractorConfig extractorConfig) {
     this.asyncStorageClient = asyncStorageClient;
     this.presignedUrlFileUploader = presignedUrlFileUploader;
     this.onehouseApiClient = onehouseApiClient;
     this.storageUtils = storageUtils;
     this.executorService = executorService;
     this.activeTimelineInstantBatcher = activeTimelineInstantBatcher;
+    this.extractorConfig = extractorConfig;
     this.mapper = new ObjectMapper();
     mapper.registerModule(new JavaTimeModule());
   }
@@ -564,9 +566,9 @@ public class TimelineCommitInstantsUploader {
   @VisibleForTesting
   int getUploadBatchSize(CommitTimelineType commitTimelineType) {
     if (commitTimelineType == CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED) {
-      return PRESIGNED_URL_REQUEST_BATCH_SIZE_ARCHIVED_TIMELINE;
+      return extractorConfig.getPresignedUrlRequestBatchSizeArchivedTimeline();
     } else {
-      return PRESIGNED_URL_REQUEST_BATCH_SIZE_ACTIVE_TIMELINE;
+      return extractorConfig.getPresignedUrlRequestBatchSizeActiveTimeline();
     }
   }
 }
