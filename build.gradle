@@ -4,6 +4,7 @@ plugins {
     id "io.freefair.lombok" version "8.4"
     id 'com.diffplug.spotless' version '6.13.0'
     id 'com.github.johnrengelman.shadow' version '7.1.0'
+    id 'maven-publish'
     id 'org.sonarqube' version '4.0.0.2929'
 }
 
@@ -146,6 +147,26 @@ tasks.shadowJar {
     setProperty("zip64", true)
 
     // other shadow jar config
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = 'com.onehouse'
+            artifactId = 'hudi-metadata-extractor'
+            version = System.env.VERSION
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url 'https://onehouse-194159489498.d.codeartifact.us-west-2.amazonaws.com/maven/onehouse-internal/'
+            credentials {
+                username "aws"
+                password System.env.CODEARTIFACT_AUTH_TOKEN
+            }
+        }
+    }
 }
 
 build.dependsOn sourceJar
