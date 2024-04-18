@@ -36,6 +36,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -44,12 +45,14 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -184,8 +187,8 @@ class TimelineCommitInstantsUploaderTest {
   }
 
   @ParameterizedTest
-  @ValueSource(booleans = {false, true})
-  void testUploadInstantsInActiveTimeline(boolean archivedTimeLinePresent) {
+  @MethodSource("getActiveTimeLineIngestCases")
+  void testUploadInstantsInActiveTimeline(boolean archivedTimeLinePresent, boolean isCOW) {
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
         spy(timelineCommitInstantsUploader);
     Instant currentTime = Instant.now();
@@ -202,6 +205,8 @@ class TimelineCommitInstantsUploaderTest {
       previousCheckpoint = generateCheckpointObj(3, Instant.EPOCH, false, "");
     }
 
+    String inFlightSuffix = isCOW ? ".inflight" : ".action.inflight";
+
     // Page 1
     mockListPage(
         TABLE_PREFIX + "/.hoodie/",
@@ -210,22 +215,36 @@ class TimelineCommitInstantsUploaderTest {
         Arrays.asList(
             generateFileObj("should_be_ignored", false),
             generateFileObj("111.action", false),
-            generateFileObj("111.action.inflight", false),
+            generateFileObj("111" + inFlightSuffix, false),
             generateFileObj("111.action.requested", false),
             generateFileObj("222.action", false, currentTime)));
-    // page 2 (last page)
+    // page 2
+    mockListPage(
+        TABLE_PREFIX + "/.hoodie/",
+        CONTINUATION_TOKEN_PREFIX + "2",
+        TABLE_PREFIX
+            + "/.hoodie/"
+            + "111.action", // last successful commit is used for checkpointing
+        Arrays.asList(
+            generateFileObj("111" + inFlightSuffix, false),
+            generateFileObj("111.action.requested", false),
+            generateFileObj("222.action", false, currentTime),
+            generateFileObj("222" + inFlightSuffix, false),
+            generateFileObj("222.action.requested", false),
+            generateFileObj(HOODIE_PROPERTIES_FILE, false) // will be listed
+            ));
+    // page 3 (last page)
     mockListPage(
         TABLE_PREFIX + "/.hoodie/",
         null,
         TABLE_PREFIX
             + "/.hoodie/"
-            + "111.action", // last successful commit is used for checkpointing
+            + "222.action", // last successful commit is used for checkpointing
         Arrays.asList(
-            generateFileObj("111.action.inflight", false),
-            generateFileObj("111.action.requested", false),
-            generateFileObj("222.action", false, currentTime),
-            generateFileObj("222.action.inflight", false),
+            generateFileObj("222" + inFlightSuffix, false),
             generateFileObj("222.action.requested", false),
+            generateFileObj("333" + inFlightSuffix, false), // incomplete
+            generateFileObj("333.action.requested", false),
             generateFileObj(HOODIE_PROPERTIES_FILE, false) // will be listed
             ));
 
@@ -233,7 +252,7 @@ class TimelineCommitInstantsUploaderTest {
         Stream.of(
                 archivedTimeLinePresent ? null : generateFileObj(HOODIE_PROPERTIES_FILE, false),
                 generateFileObj("111.action", false),
-                generateFileObj("111.action.inflight", false),
+                generateFileObj("111" + inFlightSuffix, false),
                 generateFileObj("111.action.requested", false))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
@@ -241,14 +260,14 @@ class TimelineCommitInstantsUploaderTest {
     List<File> batch2 =
         Arrays.asList(
             generateFileObj("222.action", false, currentTime),
-            generateFileObj("222.action.inflight", false),
+            generateFileObj("222" + inFlightSuffix, false),
             generateFileObj("222.action.requested", false));
 
     stubCreateBatches(
         Stream.of(
                 archivedTimeLinePresent ? null : generateFileObj(HOODIE_PROPERTIES_FILE, false),
                 generateFileObj("111.action", false),
-                generateFileObj("111.action.inflight", false),
+                generateFileObj("111" + inFlightSuffix, false),
                 generateFileObj("111.action.requested", false),
                 generateFileObj("222.action", false, currentTime))
             .filter(Objects::nonNull)
@@ -258,7 +277,7 @@ class TimelineCommitInstantsUploaderTest {
     stubCreateBatches(
         Arrays.asList(
             generateFileObj("222.action", false, currentTime),
-            generateFileObj("222.action.inflight", false),
+            generateFileObj("222" + inFlightSuffix, false),
             generateFileObj("222.action.requested", false)),
         Collections.singletonList(batch2));
 
@@ -300,7 +319,7 @@ class TimelineCommitInstantsUploaderTest {
                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
             .join();
 
-    verify(asyncStorageClient, times(2)).fetchObjectsByPage(anyString(), anyString(), any(), any());
+    verify(asyncStorageClient, times(3)).fetchObjectsByPage(anyString(), anyString(), any(), any());
     verifyFilesUploaded(
         batch1.stream()
             .map(
@@ -324,6 +343,14 @@ class TimelineCommitInstantsUploaderTest {
         checkpoint2,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     assertEquals(checkpoint2, response);
+  }
+
+  static Stream<Arguments> getActiveTimeLineIngestCases() {
+    return Stream.of(
+        Arguments.of(true, false),
+        Arguments.of(false, false),
+        Arguments.of(true, true),
+        Arguments.of(false, true));
   }
 
   @Test
@@ -819,7 +846,22 @@ class TimelineCommitInstantsUploaderTest {
   }
 
   private void stubCreateBatches(List<File> files, List<List<File>> expectedBatches) {
-    when(activeTimelineInstantBatcher.createBatches(files, 4)).thenReturn(expectedBatches);
+    List<File> sortedFiles =
+        files.stream()
+            .sorted(
+                Comparator.comparing(
+                    File::getFilename,
+                    (instant1, instant2) -> {
+                      if (instant1.equals(HOODIE_PROPERTIES_FILE)) {
+                        return -1;
+                      } else if (instant2.equals(HOODIE_PROPERTIES_FILE)) {
+                        return 1;
+                      } else {
+                        return StringUtils.compare(instant1, instant2);
+                      }
+                    }))
+            .collect(Collectors.toList());
+    when(activeTimelineInstantBatcher.createBatches(sortedFiles, 4)).thenReturn(expectedBatches);
   }
 
   private String addPrefixToFileName(String fileName, CommitTimelineType commitTimelineType) {

@@ -30,13 +30,11 @@ import com.onehouse.storage.models.File;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -173,7 +171,6 @@ public class TimelineCommitInstantsUploader {
               List<File> filesToUpload =
                   getFilesToUploadBasedOnPreviousCheckpoint(
                       continuationTokenAndFiles.getRight(), checkpoint, commitTimelineType, false);
-
               if (!filesToUpload.isEmpty()) {
                 return uploadInstantsInSequentialBatches(
                         tableId, table, filesToUpload, checkpoint, commitTimelineType)
@@ -251,6 +248,10 @@ public class TimelineCommitInstantsUploader {
     int numBatches = batches.size();
 
     if (numBatches == 0) {
+      log.info(
+          "Could not create batches with completed commits for table {} timeline {}",
+          table,
+          commitTimelineType);
       return CompletableFuture.completedFuture(null);
     }
 
@@ -439,30 +440,14 @@ public class TimelineCommitInstantsUploader {
           Comparator.comparing(file -> getNumericPartFromArchivedCommit(file.getFilename()));
     }
 
-    List<File> filteredAndSortedFiles =
+    List<File> filesToUpload =
         filesList.stream()
-            .filter(file -> shouldIncludeFile(file, checkpoint, applyLastModifiedAtFilter))
+            .filter(
+                file ->
+                    shouldIncludeFile(
+                        file, checkpoint, applyLastModifiedAtFilter, commitTimelineType))
             .sorted(fileComparator)
             .collect(Collectors.toList());
-
-    // index of the last file which was uploaded
-    OptionalInt lastUploadedIndexOpt =
-        StringUtils.isNotBlank(checkpoint.getLastUploadedFile())
-            ? IntStream.range(0, filteredAndSortedFiles.size())
-                .filter(
-                    i ->
-                        filteredAndSortedFiles
-                            .get(i)
-                            .getFilename()
-                            .startsWith(checkpoint.getLastUploadedFile()))
-                .reduce((first, second) -> second) // finding last occurrence
-            : OptionalInt.empty();
-
-    List<File> filesToUpload =
-        lastUploadedIndexOpt.isPresent()
-            ? filteredAndSortedFiles.subList(
-                lastUploadedIndexOpt.getAsInt() + 1, filteredAndSortedFiles.size())
-            : filteredAndSortedFiles;
 
     if (checkpoint.getBatchId() == 0) {
       // for the first batch, always include hoodie properties file
@@ -474,13 +459,27 @@ public class TimelineCommitInstantsUploader {
 
   /** Determines if a file should be included based on filters. */
   private boolean shouldIncludeFile(
-      File file, Checkpoint checkpoint, boolean applyLastModifiedAtFilter) {
+      File file,
+      Checkpoint checkpoint,
+      boolean applyLastModifiedAtFilter,
+      CommitTimelineType commitTimelineType) {
     return !file.isDirectory()
         && (!file.getLastModifiedAt().isBefore(checkpoint.getCheckpointTimestamp())
             || !applyLastModifiedAtFilter)
         && isInstantFile(file.getFilename())
+        && !isInstantAlreadyUploaded(checkpoint, file, commitTimelineType)
         && !file.getFilename().equals(HOODIE_PROPERTIES_FILE)
         && StringUtils.isNotBlank(file.getFilename());
+  }
+
+  private boolean isInstantAlreadyUploaded(
+      Checkpoint checkpoint, File file, CommitTimelineType commitTimelineType) {
+    if (checkpoint.getBatchId() != 0
+        && commitTimelineType.equals(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)) {
+      return getCommitIdFromActiveTimelineInstant(file.getFilename())
+          .equals(getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile()));
+    }
+    return false;
   }
 
   private boolean isInstantFile(String fileName) {
@@ -513,6 +512,10 @@ public class TimelineCommitInstantsUploader {
             && !HOODIE_PROPERTIES_FILE.equals(file.getFilename())
         ? archivedPrefix + file.getFilename()
         : file.getFilename();
+  }
+
+  private String getCommitIdFromActiveTimelineInstant(String activeTimeLineInstant) {
+    return activeTimeLineInstant.split("\\.")[0];
   }
 
   private int getNumericPartFromArchivedCommit(String archivedCommitFileName) {
