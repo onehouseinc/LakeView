@@ -53,7 +53,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -206,7 +205,7 @@ class TimelineCommitInstantsUploaderTest {
       previousCheckpoint = generateCheckpointObj(3, Instant.EPOCH, false, "");
     }
 
-    String inFlightSuffix = isCOW? ".inflight" : ".action.inflight";
+    String inFlightSuffix = isCOW ? ".inflight" : ".action.inflight";
 
     // Page 1
     mockListPage(
@@ -227,10 +226,10 @@ class TimelineCommitInstantsUploaderTest {
             + "/.hoodie/"
             + "111.action", // last successful commit is used for checkpointing
         Arrays.asList(
-            generateFileObj("111"+inFlightSuffix, false),
+            generateFileObj("111" + inFlightSuffix, false),
             generateFileObj("111.action.requested", false),
             generateFileObj("222.action", false, currentTime),
-            generateFileObj("222"+inFlightSuffix, false),
+            generateFileObj("222" + inFlightSuffix, false),
             generateFileObj("222.action.requested", false),
             generateFileObj(HOODIE_PROPERTIES_FILE, false) // will be listed
             ));
@@ -239,7 +238,7 @@ class TimelineCommitInstantsUploaderTest {
         Stream.of(
                 archivedTimeLinePresent ? null : generateFileObj(HOODIE_PROPERTIES_FILE, false),
                 generateFileObj("111.action", false),
-                generateFileObj("111"+inFlightSuffix, false),
+                generateFileObj("111" + inFlightSuffix, false),
                 generateFileObj("111.action.requested", false))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
@@ -247,14 +246,14 @@ class TimelineCommitInstantsUploaderTest {
     List<File> batch2 =
         Arrays.asList(
             generateFileObj("222.action", false, currentTime),
-            generateFileObj("222"+inFlightSuffix, false),
+            generateFileObj("222" + inFlightSuffix, false),
             generateFileObj("222.action.requested", false));
 
     stubCreateBatches(
         Stream.of(
                 archivedTimeLinePresent ? null : generateFileObj(HOODIE_PROPERTIES_FILE, false),
                 generateFileObj("111.action", false),
-                generateFileObj("111"+inFlightSuffix, false),
+                generateFileObj("111" + inFlightSuffix, false),
                 generateFileObj("111.action.requested", false),
                 generateFileObj("222.action", false, currentTime))
             .filter(Objects::nonNull)
@@ -264,7 +263,7 @@ class TimelineCommitInstantsUploaderTest {
     stubCreateBatches(
         Arrays.asList(
             generateFileObj("222.action", false, currentTime),
-            generateFileObj("222"+inFlightSuffix, false),
+            generateFileObj("222" + inFlightSuffix, false),
             generateFileObj("222.action.requested", false)),
         Collections.singletonList(batch2));
 
@@ -332,13 +331,12 @@ class TimelineCommitInstantsUploaderTest {
     assertEquals(checkpoint2, response);
   }
 
-  static Stream<Arguments> getActiveTimeLineIngestCases(){
+  static Stream<Arguments> getActiveTimeLineIngestCases() {
     return Stream.of(
-            Arguments.of(true, false),
-            Arguments.of(false, false),
-            Arguments.of(true, true),
-            Arguments.of(false, true)
-    );
+        Arguments.of(true, false),
+        Arguments.of(false, false),
+        Arguments.of(true, true),
+        Arguments.of(false, true));
   }
 
   @Test
@@ -834,16 +832,20 @@ class TimelineCommitInstantsUploaderTest {
   }
 
   private void stubCreateBatches(List<File> files, List<List<File>> expectedBatches) {
-    List<File> sortedFiles = files.stream()
-            .sorted(Comparator.comparing(File::getFilename, (instant1, instant2) -> {
-              if (instant1.equals(HOODIE_PROPERTIES_FILE)) {
-                return -1;
-              } else if (instant2.equals(HOODIE_PROPERTIES_FILE)) {
-                return 1;
-              } else {
-                return StringUtils.compare(instant1,instant2);
-              }
-            }))
+    List<File> sortedFiles =
+        files.stream()
+            .sorted(
+                Comparator.comparing(
+                    File::getFilename,
+                    (instant1, instant2) -> {
+                      if (instant1.equals(HOODIE_PROPERTIES_FILE)) {
+                        return -1;
+                      } else if (instant2.equals(HOODIE_PROPERTIES_FILE)) {
+                        return 1;
+                      } else {
+                        return StringUtils.compare(instant1, instant2);
+                      }
+                    }))
             .collect(Collectors.toList());
     when(activeTimelineInstantBatcher.createBatches(sortedFiles, 4)).thenReturn(expectedBatches);
   }
