@@ -218,10 +218,10 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj("111" + inFlightSuffix, false),
             generateFileObj("111.action.requested", false),
             generateFileObj("222.action", false, currentTime)));
-    // page 2 (last page)
+    // page 2
     mockListPage(
         TABLE_PREFIX + "/.hoodie/",
-        null,
+        CONTINUATION_TOKEN_PREFIX + "2",
         TABLE_PREFIX
             + "/.hoodie/"
             + "111.action", // last successful commit is used for checkpointing
@@ -231,6 +231,20 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj("222.action", false, currentTime),
             generateFileObj("222" + inFlightSuffix, false),
             generateFileObj("222.action.requested", false),
+            generateFileObj(HOODIE_PROPERTIES_FILE, false) // will be listed
+            ));
+    // page 3 (last page)
+    mockListPage(
+        TABLE_PREFIX + "/.hoodie/",
+        null,
+        TABLE_PREFIX
+            + "/.hoodie/"
+            + "222.action", // last successful commit is used for checkpointing
+        Arrays.asList(
+            generateFileObj("222" + inFlightSuffix, false),
+            generateFileObj("222.action.requested", false),
+            generateFileObj("333" + inFlightSuffix, false), // incomplete
+            generateFileObj("333.action.requested", false),
             generateFileObj(HOODIE_PROPERTIES_FILE, false) // will be listed
             ));
 
@@ -305,7 +319,7 @@ class TimelineCommitInstantsUploaderTest {
                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
             .join();
 
-    verify(asyncStorageClient, times(2)).fetchObjectsByPage(anyString(), anyString(), any(), any());
+    verify(asyncStorageClient, times(3)).fetchObjectsByPage(anyString(), anyString(), any(), any());
     verifyFilesUploaded(
         batch1.stream()
             .map(

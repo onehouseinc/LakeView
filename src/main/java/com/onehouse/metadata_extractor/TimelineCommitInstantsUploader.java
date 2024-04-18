@@ -474,14 +474,10 @@ public class TimelineCommitInstantsUploader {
 
   private boolean isInstantAlreadyUploaded(
       Checkpoint checkpoint, File file, CommitTimelineType commitTimelineType) {
-    if (checkpoint.getBatchId() != 0) {
-      if (commitTimelineType.equals(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)) {
-        return getCommitIdFromActiveTimelineInstant(file.getFilename())
-            .equals(getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile()));
-      } else {
-        return getNumericPartFromArchivedCommit(file.getFilename())
-            == getNumericPartFromArchivedCommit(checkpoint.getLastUploadedFile());
-      }
+    if (checkpoint.getBatchId() != 0
+        && commitTimelineType.equals(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)) {
+      return getCommitIdFromActiveTimelineInstant(file.getFilename())
+          .equals(getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile()));
     }
     return false;
   }
