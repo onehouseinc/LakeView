@@ -474,10 +474,10 @@ public class TimelineCommitInstantsUploader {
 
   private boolean isInstantAlreadyUploaded(
       Checkpoint checkpoint, File file, CommitTimelineType commitTimelineType) {
-    if (checkpoint.getBatchId() != 0) {
+    if (checkpoint.getBatchId() != 0 && StringUtils.isNotBlank(checkpoint.getLastUploadedFile())) {
       if (commitTimelineType.equals(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)) {
         return getCommitIdFromActiveTimelineInstant(file.getFilename())
-            .equals(getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile()));
+            <= getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile());
       } else {
         return getNumericPartFromArchivedCommit(file.getFilename())
             <= getNumericPartFromArchivedCommit(checkpoint.getLastUploadedFile());
@@ -518,8 +518,8 @@ public class TimelineCommitInstantsUploader {
         : file.getFilename();
   }
 
-  private String getCommitIdFromActiveTimelineInstant(String activeTimeLineInstant) {
-    return activeTimeLineInstant.split("\\.")[0];
+  private Long getCommitIdFromActiveTimelineInstant(String activeTimeLineInstant) {
+    return Long.parseLong(activeTimeLineInstant.split("\\.")[0]);
   }
 
   private int getNumericPartFromArchivedCommit(String archivedCommitFileName) {

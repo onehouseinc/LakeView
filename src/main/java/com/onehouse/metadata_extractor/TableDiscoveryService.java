@@ -64,9 +64,11 @@ public class TableDiscoveryService {
           String basePath = extractBasePath(basePathConfig);
 
           if (isExcluded(basePath, excludedPathPatterns)) {
-            return CompletableFuture.failedFuture(
+            CompletableFuture<Set<Table>> failedFuture = new CompletableFuture<>();
+            failedFuture.completeExceptionally(
                 new IllegalArgumentException(
                     "Provided base path cannot be part of paths to excluded"));
+            return failedFuture;
           }
 
           pathToDiscoveredTablesFuturePairList.add(
