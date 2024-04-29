@@ -64,8 +64,9 @@ public class TableDiscoveryService {
           String basePath = extractBasePath(basePathConfig);
 
           if (isExcluded(basePath, excludedPathPatterns)) {
-            throw new IllegalArgumentException(
-                "Provided base path cannot be part of paths to excluded");
+            return CompletableFuture.failedFuture(
+                new IllegalArgumentException(
+                    "Provided base path cannot be part of paths to excluded"));
           }
 
           pathToDiscoveredTablesFuturePairList.add(

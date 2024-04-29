@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
@@ -271,10 +272,12 @@ class TableDiscoveryServiceTest {
             new StorageUtils(),
             new ConfigProvider(config),
             ForkJoinPool.commonPool());
-    IllegalArgumentException exception =
+    CompletionException exception =
         assertThrows(
-            IllegalArgumentException.class, () -> tableDiscoveryService.discoverTables().join());
-    assertEquals("Provided base path cannot be part of paths to excluded", exception.getMessage());
+            CompletionException.class, () -> tableDiscoveryService.discoverTables().join());
+    assertEquals(
+        "java.lang.IllegalArgumentException: Provided base path cannot be part of paths to excluded",
+        exception.getMessage());
   }
 
   @Test
