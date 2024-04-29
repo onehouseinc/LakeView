@@ -474,7 +474,7 @@ public class TimelineCommitInstantsUploader {
 
   private boolean isInstantAlreadyUploaded(
       Checkpoint checkpoint, File file, CommitTimelineType commitTimelineType) {
-    if (checkpoint.getBatchId() != 0 && StringUtils.isNotBlank(checkpoint.getLastUploadedFile())) {
+    if (checkpoint.getBatchId() != 0 && isInstantFile(checkpoint.getLastUploadedFile())) {
       if (commitTimelineType.equals(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)) {
         return getCommitIdFromActiveTimelineInstant(file.getFilename())
             <= getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile());
