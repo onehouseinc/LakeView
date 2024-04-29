@@ -53,6 +53,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -100,8 +101,9 @@ class TimelineCommitInstantsUploaderTest {
     timelineCommitInstantsUploader = getTimelineCommitInstantsUploader();
   }
 
-  @Test
-  void testUploadInstantsInArchivedTimeline() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testUploadInstantsInArchivedTimeline(boolean continueFromCheckpoint) {
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
         spy(timelineCommitInstantsUploader);
 
@@ -130,15 +132,18 @@ class TimelineCommitInstantsUploaderTest {
             false,
             ".commits_.archive.3_1-0-1"); // testing to makesure checkpoint timestamp has updated
 
-    stubUploadInstantsCalls(
-        Collections.singletonList(UploadedFile.builder().name(HOODIE_PROPERTIES_FILE).build()),
-        checkpoint0,
-        CommitTimelineType
-            .COMMIT_TIMELINE_TYPE_ARCHIVED); // will be sent as part of archived timeline batch 1
-    stubUploadInstantsCalls(
-        Collections.singletonList(UploadedFile.builder().name(".commits_.archive.1_1-0-1").build()),
-        checkpoint1,
-        CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+    if (!continueFromCheckpoint) {
+      stubUploadInstantsCalls(
+          Collections.singletonList(UploadedFile.builder().name(HOODIE_PROPERTIES_FILE).build()),
+          checkpoint0,
+          CommitTimelineType
+              .COMMIT_TIMELINE_TYPE_ARCHIVED); // will be sent as part of archived timeline batch 1
+      stubUploadInstantsCalls(
+          Collections.singletonList(
+              UploadedFile.builder().name(".commits_.archive.1_1-0-1").build()),
+          checkpoint1,
+          CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+    }
     stubUploadInstantsCalls(
         Collections.singletonList(UploadedFile.builder().name(".commits_.archive.2_1-0-1").build()),
         checkpoint2,
@@ -152,25 +157,31 @@ class TimelineCommitInstantsUploaderTest {
         checkpoint3,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
 
-    // uploading instants in archived timeline for the first time
+    Checkpoint previousCheckpoint =
+        continueFromCheckpoint
+            ? generateCheckpointObj(2, Instant.EPOCH, false, ".commits_.archive.1_1-0-1")
+            : INITIAL_CHECKPOINT;
     Checkpoint response =
         timelineCommitInstantsUploaderSpy
             .batchUploadWithCheckpoint(
                 TABLE_ID.toString(),
                 TABLE,
-                INITIAL_CHECKPOINT,
+                previousCheckpoint,
                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
             .join();
 
     verify(asyncStorageClient, times(1)).listAllFilesInDir(anyString());
-    verifyFilesUploaded(
-        Collections.singletonList(UploadedFile.builder().name(HOODIE_PROPERTIES_FILE).build()),
-        checkpoint0,
-        CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
-    verifyFilesUploaded(
-        Collections.singletonList(UploadedFile.builder().name(".commits_.archive.1_1-0-1").build()),
-        checkpoint1,
-        CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+    if (!continueFromCheckpoint) {
+      verifyFilesUploaded(
+          Collections.singletonList(UploadedFile.builder().name(HOODIE_PROPERTIES_FILE).build()),
+          checkpoint0,
+          CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+      verifyFilesUploaded(
+          Collections.singletonList(
+              UploadedFile.builder().name(".commits_.archive.1_1-0-1").build()),
+          checkpoint1,
+          CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+    }
     verifyFilesUploaded(
         Collections.singletonList(UploadedFile.builder().name(".commits_.archive.2_1-0-1").build()),
         checkpoint2,
@@ -483,7 +494,7 @@ class TimelineCommitInstantsUploaderTest {
   }
 
   @Test
-  void testUploadInstantsInActiveTimelineFromCheckpoint() {
+  void testUploadInstantsInActiveTimelineFromCheckpointArchivedTimeLineProcessed() {
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
         spy(timelineCommitInstantsUploader);
     Instant currentTime = Instant.now();

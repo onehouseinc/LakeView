@@ -79,6 +79,8 @@ class TableDiscoveryServiceTest {
      * │
      * ├─ /tableWithId (Hudi table directory)
      * │   └─ /.hoodie (presence of this folder indicates a Hudi table)
+     * ├─ /table-4 (Hudi table, but should be excluded)
+     * │   └─ /.hoodie
      *
      * This mock setup will be used to validate the table discovery process, ensuring that only valid tables
      * are discovered and that excluded paths are properly ignored.
@@ -115,19 +117,25 @@ class TableDiscoveryServiceTest {
     when(asyncStorageClient.listAllFilesInDir(BASE_PATH_2))
         .thenReturn(
             CompletableFuture.completedFuture(
-                Arrays.asList(generateFileObj("tableWithId/", true))));
+                Arrays.asList(
+                    generateFileObj("tableWithId/", true), generateFileObj("table-4/", true))));
     when(asyncStorageClient.listAllFilesInDir(BASE_PATH_2 + "tableWithId/"))
+        .thenReturn(
+            CompletableFuture.completedFuture(Arrays.asList(generateFileObj(".hoodie", true))));
+    when(asyncStorageClient.listAllFilesInDir(BASE_PATH_2 + "table-4/"))
         .thenReturn(
             CompletableFuture.completedFuture(Arrays.asList(generateFileObj(".hoodie", true))));
     String tableId = "11111";
     String basePath2ConfigWithTableId = BASE_PATH_2 + "#" + tableId;
+    String basePath2ExplicitlyExcludedTable = BASE_PATH_2 + "table-4/";
 
     // parser config
     when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
     when(metadataExtractorConfig.getPathExclusionPatterns())
         .thenReturn(
             Optional.of(
-                Arrays.asList(dirToExclude, ".*excluded-table.*"))); // also providing a regex exp
+                Arrays.asList(
+                    dirToExclude, ".*excluded-table.*", basePath2ExplicitlyExcludedTable)));
     when(metadataExtractorConfig.getParserConfig())
         .thenReturn(
             Collections.singletonList(
@@ -137,7 +145,11 @@ class TableDiscoveryServiceTest {
                         Collections.singletonList(
                             Database.builder()
                                 .name(DATABASE)
-                                .basePaths(Arrays.asList(BASE_PATH, basePath2ConfigWithTableId))
+                                .basePaths(
+                                    Arrays.asList(
+                                        BASE_PATH,
+                                        basePath2ConfigWithTableId,
+                                        basePath2ExplicitlyExcludedTable))
                                 .build()))
                     .build()));
 
@@ -184,7 +196,8 @@ class TableDiscoveryServiceTest {
     // s3://bucket/base_path/nested-folder/unrelated-folder1
     // s3://bucket/base_path_2/
     // s3://bucket/base_path_2/tableWithId/
-    verify(asyncStorageClient, times(7)).listAllFilesInDir(anyString());
+    // s3://bucket/base_path_2/table-4/
+    verify(asyncStorageClient, times(8)).listAllFilesInDir(anyString());
   }
 
   @Test
@@ -241,40 +254,6 @@ class TableDiscoveryServiceTest {
 
     Set<Table> discoveredTables = tableDiscoveryService.discoverTables().join();
     assertEquals(emptySet(), discoveredTables);
-  }
-
-  @Test
-  void testCaseWhereBasePathEqualsExcludedPath() {
-    // paths to exclude
-    String dirToExclude = BASE_PATH + "excluded";
-
-    // parser config
-    when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
-    when(metadataExtractorConfig.getPathExclusionPatterns())
-        .thenReturn(Optional.of(Collections.singletonList(dirToExclude)));
-    when(metadataExtractorConfig.getParserConfig())
-        .thenReturn(
-            Collections.singletonList(
-                ParserConfig.builder()
-                    .lake(LAKE)
-                    .databases(
-                        Collections.singletonList(
-                            Database.builder()
-                                .name(DATABASE)
-                                .basePaths(Collections.singletonList(dirToExclude))
-                                .build()))
-                    .build()));
-
-    tableDiscoveryService =
-        new TableDiscoveryService(
-            asyncStorageClient,
-            new StorageUtils(),
-            new ConfigProvider(config),
-            ForkJoinPool.commonPool());
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class, () -> tableDiscoveryService.discoverTables().join());
-    assertEquals("Provided base path cannot be part of paths to excluded", exception.getMessage());
   }
 
   @Test
