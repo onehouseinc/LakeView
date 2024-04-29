@@ -63,6 +63,10 @@ public class TableDiscoveryService {
         for (String basePathConfig : database.getBasePaths()) {
           String basePath = extractBasePath(basePathConfig);
 
+          if (isExcluded(basePath, excludedPathPatterns)) {
+            log.warn("Provided base-path has also been passed under paths to exclude {}", basePath);
+          }
+
           pathToDiscoveredTablesFuturePairList.add(
               Pair.of(
                   basePathConfig,
