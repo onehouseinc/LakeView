@@ -224,6 +224,12 @@ public class TableMetadataUploaderService {
                                 .map(CompletableFuture::join)
                                 .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
+
+                    if (initializeSingleTableMetricsCheckpointRequestList.isEmpty()) {
+                      log.error("No valid table to initialise");
+                      return CompletableFuture.completedFuture(null);
+                    }
+
                     return onehouseApiClient.initializeTableMetricsCheckpoint(
                         InitializeTableMetricsCheckpointRequest.builder()
                             .tables(initializeSingleTableMetricsCheckpointRequestList)
@@ -232,6 +238,11 @@ public class TableMetadataUploaderService {
                   executorService)
               .thenComposeAsync(
                   initializeTableMetricsCheckpointResponse -> {
+                    if (initializeTableMetricsCheckpointResponse == null) {
+                      return CompletableFuture.completedFuture(
+                          Collections.singletonList(CompletableFuture.completedFuture(false)));
+                    }
+
                     if (initializeTableMetricsCheckpointResponse.isFailure()) {
                       log.error(
                           "Error encountered when initialising tables, skipping table processing.status code: {} message {}",
@@ -268,6 +279,7 @@ public class TableMetadataUploaderService {
                                   table.getTableId(), null);
                       if (response == null) {
                         // table not initialised due to errors in previous steps
+                        processTablesFuture.add(CompletableFuture.completedFuture(false));
                         continue;
                       }
                       if (!StringUtils.isBlank(response.getError())) {
