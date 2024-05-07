@@ -114,7 +114,9 @@ class TableMetadataUploaderServiceTest {
                         .tableBasePath(S3_TABLE_URI)
                         .build()))
             .build();
-    Set<Table> requestedTables = Set.of(TABLE, TABLE2);
+    Set<Table> requestedTables = new HashSet<>();
+    requestedTables.add(TABLE);
+    requestedTables.add(TABLE2);
     when(onehouseApiClient.getTableMetricsCheckpoints(
             requestedTables.stream().map(Table::getTableId).collect(Collectors.toList())))
         .thenReturn(
@@ -181,7 +183,8 @@ class TableMetadataUploaderServiceTest {
                         .tableBasePath(S3_TABLE_URI)
                         .build()))
             .build();
-    when(onehouseApiClient.getTableMetricsCheckpoints(List.of(TABLE_ID.toString())))
+    when(onehouseApiClient.getTableMetricsCheckpoints(
+            Collections.singletonList(TABLE_ID.toString())))
         .thenReturn(
             CompletableFuture.completedFuture(
                 GetTableMetricsCheckpointResponse.builder()
@@ -193,7 +196,8 @@ class TableMetadataUploaderServiceTest {
     when(onehouseApiClient.initializeTableMetricsCheckpoint(expectedRequest))
         .thenReturn(CompletableFuture.completedFuture(initializeTableMetricsCheckpointResponse));
 
-    assertFalse(tableMetadataUploaderService.uploadInstantsInTables(Set.of(TABLE)).join());
+    assertFalse(
+        tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join());
 
     verify(onehouseApiClient, times(1)).initializeTableMetricsCheckpoint(expectedRequest);
   }

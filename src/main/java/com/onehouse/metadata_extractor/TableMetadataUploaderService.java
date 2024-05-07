@@ -238,7 +238,7 @@ public class TableMetadataUploaderService {
                           initializeTableMetricsCheckpointResponse.getStatusCode(),
                           initializeTableMetricsCheckpointResponse.getCause());
                       return CompletableFuture.completedFuture(
-                          List.of(CompletableFuture.completedFuture(false)));
+                          Collections.singletonList(CompletableFuture.completedFuture(false)));
                     }
 
                     Map<

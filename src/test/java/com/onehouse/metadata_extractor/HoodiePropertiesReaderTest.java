@@ -65,10 +65,16 @@ class HoodiePropertiesReaderTest {
     String path = "some/path/to/properties/file";
 
     when(asyncStorageClient.readFileAsInputStream(path))
-        .thenReturn(CompletableFuture.failedFuture(new Exception("File not found")));
+        .thenReturn(failedFuture(new Exception("File not found")));
     CompletableFuture<ParsedHudiProperties> futureResult =
         hoodiePropertiesReader.readHoodieProperties(path);
 
     assertNull(futureResult.join());
+  }
+
+  public static <R> CompletableFuture<R> failedFuture(Throwable error) {
+    CompletableFuture<R> future = new CompletableFuture<>();
+    future.completeExceptionally(error);
+    return future;
   }
 }
