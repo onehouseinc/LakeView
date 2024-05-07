@@ -56,7 +56,19 @@ class HoodiePropertiesReaderTest {
     CompletableFuture<ParsedHudiProperties> futureResult =
         hoodiePropertiesReader.readHoodieProperties(path);
 
-    ExecutionException exception = assertThrows(ExecutionException.class, futureResult::get);
-    assertTrue(exception.getCause() instanceof NullPointerException);
+    // on encountering error, readHoodieProperties returns null
+    assertNull(futureResult.join());
+  }
+
+  @Test
+  void testReadHoodiePropertiesEncountersError() {
+    String path = "some/path/to/properties/file";
+
+    when(asyncStorageClient.readFileAsInputStream(path))
+        .thenReturn(CompletableFuture.failedFuture(new Exception("File not found")));
+    CompletableFuture<ParsedHudiProperties> futureResult =
+        hoodiePropertiesReader.readHoodieProperties(path);
+
+    assertNull(futureResult.join());
   }
 }

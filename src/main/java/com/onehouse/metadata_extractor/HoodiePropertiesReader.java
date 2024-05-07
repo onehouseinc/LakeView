@@ -38,6 +38,11 @@ public class HoodiePropertiesReader {
                   .tableName(properties.getProperty(HOODIE_TABLE_NAME_KEY))
                   .tableType(TableType.valueOf(properties.getProperty(HOODIE_TABLE_TYPE_KEY)))
                   .build();
+            })
+        .exceptionally(
+            throwable -> {
+              log.error("Error encountered when reading hoodie properties file", throwable);
+              return null;
             });
   }
 }
