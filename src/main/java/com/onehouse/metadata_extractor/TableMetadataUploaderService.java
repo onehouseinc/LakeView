@@ -169,7 +169,7 @@ public class TableMetadataUploaderService {
         .exceptionally(
             throwable -> {
               log.error("Encountered exception when uploading instants", throwable);
-              return null;
+              return false;
             });
   }
 
@@ -192,16 +192,23 @@ public class TableMetadataUploaderService {
             hoodiePropertiesReader
                 .readHoodieProperties(getHoodiePropertiesFilePath(table))
                 .thenApply(
-                    properties ->
-                        InitializeTableMetricsCheckpointRequest
-                            .InitializeSingleTableMetricsCheckpointRequest.builder()
-                            .tableId(table.getTableId())
-                            .tableName(properties.getTableName())
-                            .tableType(properties.getTableType())
-                            .databaseName(table.getDatabaseName())
-                            .lakeName(table.getLakeName())
-                            .tableBasePath(table.getAbsoluteTableUri())
-                            .build()));
+                    properties -> {
+                      if (properties == null) {
+                        log.error(
+                            "Encountered exception when reading hoodie.properties file for table: {}, skipping this table",
+                            table);
+                        return null; // will be filtered out later
+                      }
+                      return InitializeTableMetricsCheckpointRequest
+                          .InitializeSingleTableMetricsCheckpointRequest.builder()
+                          .tableId(table.getTableId())
+                          .tableName(properties.getTableName())
+                          .tableType(properties.getTableType())
+                          .databaseName(table.getDatabaseName())
+                          .lakeName(table.getLakeName())
+                          .tableBasePath(table.getAbsoluteTableUri())
+                          .build();
+                    }));
       }
       initialiseAndProcessNewlyDiscoveredTablesFuture =
           CompletableFuture.allOf(
@@ -215,7 +222,14 @@ public class TableMetadataUploaderService {
                         initializeSingleTableMetricsCheckpointRequestList =
                             initializeSingleTableMetricsCheckpointRequestFutureList.stream()
                                 .map(CompletableFuture::join)
+                                .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
+
+                    if (initializeSingleTableMetricsCheckpointRequestList.isEmpty()) {
+                      log.error("No valid table to initialise");
+                      return CompletableFuture.completedFuture(null);
+                    }
+
                     return onehouseApiClient.initializeTableMetricsCheckpoint(
                         InitializeTableMetricsCheckpointRequest.builder()
                             .tables(initializeSingleTableMetricsCheckpointRequestList)
@@ -224,12 +238,18 @@ public class TableMetadataUploaderService {
                   executorService)
               .thenComposeAsync(
                   initializeTableMetricsCheckpointResponse -> {
+                    if (initializeTableMetricsCheckpointResponse == null) {
+                      return CompletableFuture.completedFuture(
+                          Collections.singletonList(CompletableFuture.completedFuture(false)));
+                    }
+
                     if (initializeTableMetricsCheckpointResponse.isFailure()) {
                       log.error(
                           "Error encountered when initialising tables, skipping table processing.status code: {} message {}",
                           initializeTableMetricsCheckpointResponse.getStatusCode(),
                           initializeTableMetricsCheckpointResponse.getCause());
-                      return CompletableFuture.completedFuture(null);
+                      return CompletableFuture.completedFuture(
+                          Collections.singletonList(CompletableFuture.completedFuture(false)));
                     }
 
                     Map<
@@ -254,7 +274,14 @@ public class TableMetadataUploaderService {
                     for (Table table : tablesToInitialise) {
                       InitializeTableMetricsCheckpointResponse
                               .InitializeSingleTableMetricsCheckpointResponse
-                          response = initialiseTableMetricsCheckpointMap.get(table.getTableId());
+                          response =
+                              initialiseTableMetricsCheckpointMap.getOrDefault(
+                                  table.getTableId(), null);
+                      if (response == null) {
+                        // table not initialised due to errors in previous steps
+                        processTablesFuture.add(CompletableFuture.completedFuture(false));
+                        continue;
+                      }
                       if (!StringUtils.isBlank(response.getError())) {
                         log.error(
                             "Error initialising table: {} error: {}, skipping table processing",

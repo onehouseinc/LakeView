@@ -1,6 +1,9 @@
 package com.onehouse.metadata_extractor;
 
 import static com.onehouse.constants.MetadataExtractorConstants.*;
+import static org.junit.Assert.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,6 +31,7 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,11 +49,31 @@ class TableMetadataUploaderServiceTest {
   private TableMetadataUploaderService tableMetadataUploaderService;
   private final ObjectMapper mapper = new ObjectMapper();
   private static final String S3_TABLE_URI = "s3://bucket/table/";
+  private static final String S3_TABLE_2_URI = "s3://bucket/table2/";
+  private static final String S3_TABLE_3_URI = "s3://bucket/table3/";
   private static final UUID TABLE_ID = UUID.nameUUIDFromBytes(S3_TABLE_URI.getBytes());
+  private static final UUID TABLE_ID2 = UUID.nameUUIDFromBytes(S3_TABLE_2_URI.getBytes());
+  private static final UUID TABLE_ID3 = UUID.nameUUIDFromBytes(S3_TABLE_3_URI.getBytes());
   private static final Table TABLE =
       Table.builder()
           .tableId(TABLE_ID.toString())
           .absoluteTableUri(S3_TABLE_URI)
+          .databaseName("database")
+          .lakeName("lake")
+          .build();
+
+  private static final Table TABLE2 =
+      Table.builder()
+          .tableId(TABLE_ID2.toString())
+          .absoluteTableUri(S3_TABLE_2_URI)
+          .databaseName("database")
+          .lakeName("lake")
+          .build();
+
+  private static final Table TABLE3 =
+      Table.builder()
+          .tableId(TABLE_ID3.toString())
+          .absoluteTableUri(S3_TABLE_3_URI)
           .databaseName("database")
           .lakeName("lake")
           .build();
@@ -77,16 +101,112 @@ class TableMetadataUploaderServiceTest {
   }
 
   @Test
-  void testUploadMetadataOfANewlyDiscoveredTable() {
+  void testUploadMetadataOfANewlyDiscoveredTables() {
+    when(onehouseApiClient.getTableMetricsCheckpoints(
+            Collections.singletonList(TABLE_ID.toString())))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                GetTableMetricsCheckpointResponse.builder()
+                    .checkpoints(Collections.emptyList())
+                    .build()));
+    when(onehouseApiClient.getTableMetricsCheckpoints(
+            Collections.singletonList(TABLE_ID2.toString())))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                GetTableMetricsCheckpointResponse.builder()
+                    .checkpoints(Collections.emptyList())
+                    .build()));
+    Set<Table> multiTableRequest = new HashSet<>();
+    multiTableRequest.add(TABLE2);
+    multiTableRequest.add(TABLE3);
+    when(onehouseApiClient.getTableMetricsCheckpoints(
+            multiTableRequest.stream().map(Table::getTableId).collect(Collectors.toList())))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                GetTableMetricsCheckpointResponse.builder()
+                    .checkpoints(Collections.emptyList())
+                    .build()));
+
+    // Hoodie properties file not present for table 2
+    when(hoodiePropertiesReader.readHoodieProperties(
+            String.format("%s%s/%s", S3_TABLE_2_URI, HOODIE_FOLDER_NAME, HOODIE_PROPERTIES_FILE)))
+        .thenReturn(CompletableFuture.completedFuture(null));
+
+    setupInitialiseTableMetricsCheckpointSuccessMocks(TABLE_ID.toString(), S3_TABLE_URI, TABLE);
+    setupInitialiseTableMetricsCheckpointSuccessMocks(TABLE_ID3.toString(), S3_TABLE_3_URI, TABLE3);
+
+    // initialise table successfully
+    Assertions.assertTrue(
+        tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join());
+    // error when trying to initialise a table
+    Assertions.assertFalse(
+        tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE2)).join());
+    // initialise two tables, table 2 init fails.
+    Assertions.assertFalse(
+        tableMetadataUploaderService.uploadInstantsInTables(multiTableRequest).join());
+
+    verify(onehouseApiClient, times(2)).initializeTableMetricsCheckpoint(any());
+    verify(timelineCommitInstantsUploader, times(2))
+        .batchUploadWithCheckpoint(
+            any(),
+            any(),
+            eq(INITIAL_CHECKPOINT),
+            eq(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED));
+    verify(timelineCommitInstantsUploader, times(2))
+        .paginatedBatchUploadWithCheckpoint(
+            any(),
+            any(),
+            eq(FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS),
+            eq(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE));
+  }
+
+  private void setupInitialiseTableMetricsCheckpointSuccessMocks(
+      String tableId, String tableBasePath, Table table) {
     InitializeTableMetricsCheckpointResponse initializeTableMetricsCheckpointResponse =
         InitializeTableMetricsCheckpointResponse.builder()
             .response(
                 Collections.singletonList(
                     InitializeTableMetricsCheckpointResponse
                         .InitializeSingleTableMetricsCheckpointResponse.builder()
-                        .tableId(TABLE_ID.toString())
+                        .tableId(tableId)
                         .build()))
             .build();
+    InitializeTableMetricsCheckpointRequest expectedRequest =
+        InitializeTableMetricsCheckpointRequest.builder()
+            .tables(
+                Collections.singletonList(
+                    InitializeTableMetricsCheckpointRequest
+                        .InitializeSingleTableMetricsCheckpointRequest.builder()
+                        .tableId(tableId)
+                        .tableName(PARSED_HUDI_PROPERTIES.getTableName())
+                        .tableType(PARSED_HUDI_PROPERTIES.getTableType())
+                        .databaseName(table.getDatabaseName())
+                        .lakeName(table.getLakeName())
+                        .tableBasePath(tableBasePath)
+                        .build()))
+            .build();
+    when(hoodiePropertiesReader.readHoodieProperties(
+            String.format("%s%s/%s", tableBasePath, HOODIE_FOLDER_NAME, HOODIE_PROPERTIES_FILE)))
+        .thenReturn(CompletableFuture.completedFuture(PARSED_HUDI_PROPERTIES));
+
+    when(onehouseApiClient.initializeTableMetricsCheckpoint(expectedRequest))
+        .thenReturn(CompletableFuture.completedFuture(initializeTableMetricsCheckpointResponse));
+    when(timelineCommitInstantsUploader.batchUploadWithCheckpoint(
+            tableId, table, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED))
+        .thenReturn(CompletableFuture.completedFuture(FINAL_ARCHIVED_TIMELINE_CHECKPOINT));
+    when(timelineCommitInstantsUploader.paginatedBatchUploadWithCheckpoint(
+            tableId,
+            table,
+            FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS,
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
+        .thenReturn(CompletableFuture.completedFuture(FINAL_ACTIVE_TIMELINE_CHECKPOINT));
+  }
+
+  @Test
+  void testUploadMetadataInitialiseCheckpointFails() {
+    InitializeTableMetricsCheckpointResponse initializeTableMetricsCheckpointResponse =
+        InitializeTableMetricsCheckpointResponse.builder().build();
+    initializeTableMetricsCheckpointResponse.setError(10, "valid error");
 
     InitializeTableMetricsCheckpointRequest expectedRequest =
         InitializeTableMetricsCheckpointRequest.builder()
@@ -114,34 +234,11 @@ class TableMetadataUploaderServiceTest {
         .thenReturn(CompletableFuture.completedFuture(PARSED_HUDI_PROPERTIES));
     when(onehouseApiClient.initializeTableMetricsCheckpoint(expectedRequest))
         .thenReturn(CompletableFuture.completedFuture(initializeTableMetricsCheckpointResponse));
-    when(timelineCommitInstantsUploader.batchUploadWithCheckpoint(
-            TABLE_ID.toString(),
-            TABLE,
-            INITIAL_CHECKPOINT,
-            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED))
-        .thenReturn(CompletableFuture.completedFuture(FINAL_ARCHIVED_TIMELINE_CHECKPOINT));
-    when(timelineCommitInstantsUploader.paginatedBatchUploadWithCheckpoint(
-            TABLE_ID.toString(),
-            TABLE,
-            FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS,
-            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
-        .thenReturn(CompletableFuture.completedFuture(FINAL_ACTIVE_TIMELINE_CHECKPOINT));
 
-    tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join();
+    assertFalse(
+        tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join());
 
     verify(onehouseApiClient, times(1)).initializeTableMetricsCheckpoint(expectedRequest);
-    verify(timelineCommitInstantsUploader, times(1))
-        .batchUploadWithCheckpoint(
-            TABLE_ID.toString(),
-            TABLE,
-            INITIAL_CHECKPOINT,
-            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
-    verify(timelineCommitInstantsUploader, times(1))
-        .paginatedBatchUploadWithCheckpoint(
-            TABLE_ID.toString(),
-            TABLE,
-            FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS,
-            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
   }
 
   @Test

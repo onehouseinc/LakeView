@@ -152,7 +152,7 @@ public class TimelineCommitInstantsUploader {
                   table,
                   commitTimelineType,
                   throwable);
-              return null;
+              return null; // handled in uploadNewInstantsSinceCheckpoint function
             });
   }
 
@@ -209,7 +209,7 @@ public class TimelineCommitInstantsUploader {
                   table,
                   commitTimelineType,
                   throwable);
-              return null;
+              return null; // handled in uploadNewInstantsSinceCheckpoint
             });
   }
 
@@ -227,7 +227,7 @@ public class TimelineCommitInstantsUploader {
    * @param checkpoint Checkpoint object used to track already processed instants.
    * @param commitTimelineType Type of the commit timeline.
    * @return CompletableFuture<Checkpoint> A future that completes with a new checkpoint after each
-   *     paginated upload.
+   *     paginated upload. if upload fails for the batch then the function returns null instead
    */
   private CompletableFuture<Checkpoint> uploadInstantsInSequentialBatches(
       String tableId,
