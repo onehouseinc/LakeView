@@ -4,6 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.config.Config;
 import com.onehouse.metadata_extractor.models.Table;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
@@ -20,6 +21,7 @@ public class TableDiscoveryAndUploadJob {
   private final TableMetadataUploaderService tableMetadataUploaderService;
   private final ScheduledExecutorService scheduler;
   private final Object lock = new Object();
+  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
 
   private Set<Table> tablesToProcess;
   private Instant previousTableMetadataUploadRunStartTime = Instant.EPOCH;
@@ -27,10 +29,12 @@ public class TableDiscoveryAndUploadJob {
   @Inject
   public TableDiscoveryAndUploadJob(
       @Nonnull TableDiscoveryService tableDiscoveryService,
-      @Nonnull TableMetadataUploaderService tableMetadataUploaderService) {
+      @Nonnull TableMetadataUploaderService tableMetadataUploaderService,
+      @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics) {
     this.scheduler = getScheduler();
     this.tableDiscoveryService = tableDiscoveryService;
     this.tableMetadataUploaderService = tableMetadataUploaderService;
+    this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
   }
 
   /*
@@ -79,10 +83,12 @@ public class TableDiscoveryAndUploadJob {
               synchronized (lock) {
                 tablesToProcess = tables;
               }
+              hudiMetadataExtractorMetrics.setDiscoveredTablesPerRound(tables.size());
             })
         .exceptionally(
             ex -> {
               log.error("Error discovering tables: ", ex);
+              hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter();
               return null;
             })
         .join();

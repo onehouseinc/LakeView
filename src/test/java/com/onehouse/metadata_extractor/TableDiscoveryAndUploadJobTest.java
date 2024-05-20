@@ -10,6 +10,8 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +35,8 @@ class TableDiscoveryAndUploadJobTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private Config config;
 
+  @Mock private HudiMetadataExtractorMetrics mockHudiMetadataExtractorMetrics;
+
   @Captor private ArgumentCaptor<Runnable> runnableCaptor;
 
   private TableDiscoveryAndUploadJob job;
@@ -41,7 +45,7 @@ class TableDiscoveryAndUploadJobTest {
   void setUp() {
     job =
         new TableDiscoveryAndUploadJob(
-            mockTableDiscoveryService, mockTableMetadataUploaderService) {
+            mockTableDiscoveryService, mockTableMetadataUploaderService, mockHudiMetadataExtractorMetrics) {
           @Override
           ScheduledExecutorService getScheduler() {
             return mockScheduler;

@@ -1,0 +1,57 @@
+package com.onehouse.metrics;
+
+import com.onehouse.config.Config;
+import com.onehouse.config.ConfigProvider;
+import io.micrometer.core.instrument.Tag;
+import lombok.Getter;
+
+import javax.annotation.Nonnull;
+import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.onehouse.constants.MetricsConstants.CONFIG_VERSION_TAG_KEY;
+import static com.onehouse.constants.MetricsConstants.EXTRACTOR_JOB_RUN_MODE_TAG_KEY;
+import static com.onehouse.constants.MetricsConstants.METRICS_COMMON_PREFIX;
+import static com.onehouse.constants.MetricsConstants.TABLE_DISCOVERY_ERROR_COUNTER;
+import static com.onehouse.constants.MetricsConstants.TABLE_DISCOVERY_SUCCESS_COUNTER;
+
+public class HudiMetadataExtractorMetrics {
+    private final Metrics metrics;
+    private final Metrics.Gauge tablesDiscoveredGaugeMetric;
+    private final Config extractorConfig;
+    @Inject
+    public HudiMetadataExtractorMetrics(@Nonnull Metrics metrics, @Nonnull ConfigProvider configProvider){
+        this.metrics = metrics;
+        this.tablesDiscoveredGaugeMetric = metrics.gauge(TablesDiscoveredGaugeMetricsMetadata.NAME,
+                TablesDiscoveredGaugeMetricsMetadata.DESCRIPTION,
+                getDefaultTags()
+                );
+        this.extractorConfig = configProvider.getConfig();
+    }
+
+    public void setDiscoveredTablesPerRound(long numTablesDiscovered) {
+        tablesDiscoveredGaugeMetric.setValue(numTablesDiscovered);
+        incrementTableDiscoverySuccessCounter();
+    }
+
+    private void incrementTableDiscoverySuccessCounter() {
+        metrics.increment(TABLE_DISCOVERY_SUCCESS_COUNTER);
+    }
+    public void incrementTableDiscoveryFailureCounter() {
+        metrics.increment(TABLE_DISCOVERY_ERROR_COUNTER);
+    }
+
+    private List<Tag> getDefaultTags(){
+        List<Tag> tags = new ArrayList<>();
+        tags.add(Tag.of(CONFIG_VERSION_TAG_KEY, extractorConfig.getVersion().toString()));
+        tags.add(Tag.of(EXTRACTOR_JOB_RUN_MODE_TAG_KEY, extractorConfig.getMetadataExtractorConfig().getJobRunMode().toString()));
+        return tags;
+    }
+
+    @Getter
+    private static class TablesDiscoveredGaugeMetricsMetadata {
+        public static final String NAME = METRICS_COMMON_PREFIX + "discovered_tables";
+        public static final String DESCRIPTION = "Number of tables discovered during extractor run";
+    }
+}
