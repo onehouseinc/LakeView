@@ -15,17 +15,15 @@ public class MetricsConstants {
 
   // Metrics
   public static final String TABLE_DISCOVERY_SUCCESS_COUNTER =
-      METRICS_COMMON_PREFIX
-          + "table_discovery_success"; // number of successful table discovery rounds
+      METRICS_COMMON_PREFIX + "table_discovery_success";
   public static final String TABLE_DISCOVERY_FAILURE_COUNTER =
-      METRICS_COMMON_PREFIX + "table_discovery_failure"; // number of unrecoverable failures
+      METRICS_COMMON_PREFIX + "table_discovery_failure";
   public static final String TABLE_SYNC_SUCCESS_COUNTER =
-      METRICS_COMMON_PREFIX + "table_sync_success"; // number of successful table sync rounds
+      METRICS_COMMON_PREFIX + "table_sync_success";
   public static final String TABLE_SYNC_ERROR_COUNTER =
-      METRICS_COMMON_PREFIX + "table_sync_failure"; // number of unrecoverable failures
+      METRICS_COMMON_PREFIX + "table_sync_failure";
   public static final String TABLE_METADATA_PROCESSING_FAILURE_COUNTER =
-      METRICS_COMMON_PREFIX
-          + "table_metadata_processing_failure"; // number of errors when processing table metadata
+      METRICS_COMMON_PREFIX + "table_metadata_processing_failure";
 
   public enum MetadataUploadFailureReasons {
     API_FAILURE_USER_ERROR,
