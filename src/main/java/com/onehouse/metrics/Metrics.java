@@ -11,6 +11,7 @@ import io.micrometer.core.instrument.Timer;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 import io.prometheus.client.CollectorRegistry;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,8 +43,13 @@ public class Metrics {
     return meterRegistry.getPrometheusRegistry();
   }
 
-  public void increment(String name, String... tags) {
-    Counter.builder(name).tags(tags).register(meterRegistry).increment();
+  public void increment(String name, List<Tag> tags) {
+    List<String> tagList = new ArrayList<>();
+    for(Tag tag: tags){
+      tagList.add(tag.getKey());
+      tagList.add(tag.getValue());
+    }
+    Counter.builder(name).tags(tagList.toArray(new String[0])).register(meterRegistry).increment();
   }
 
   public void increment(String name, Double amount, String... tags) {

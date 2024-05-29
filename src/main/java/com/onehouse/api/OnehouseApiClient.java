@@ -1,5 +1,6 @@
 package com.onehouse.api;
 
+import static com.onehouse.constants.ApiConstants.ACCEPTABLE_HTTP_FAILURE_STATUS_CODES;
 import static com.onehouse.constants.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD_URL;
 import static com.onehouse.constants.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
 import static com.onehouse.constants.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
@@ -32,6 +33,9 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
+
+import com.onehouse.constants.MetricsConstants;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import lombok.SneakyThrows;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
@@ -44,12 +48,15 @@ import org.apache.commons.lang3.StringUtils;
 public class OnehouseApiClient {
   private final AsyncHttpClientWithRetry asyncClient;
   private final Headers headers;
+  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
   private final ObjectMapper mapper;
 
   @Inject
-  public OnehouseApiClient(@Nonnull AsyncHttpClientWithRetry asyncClient, @Nonnull Config config) {
+  public OnehouseApiClient(@Nonnull AsyncHttpClientWithRetry asyncClient, @Nonnull Config config,
+  @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics) {
     this.asyncClient = asyncClient;
     this.headers = getHeaders(config.getOnehouseClientConfig());
+    this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
     this.mapper = new ObjectMapper();
   }
 
@@ -150,6 +157,7 @@ public class OnehouseApiClient {
           ((ApiResponse) errorResponse).setError(response.code(), response.message());
         }
         response.close();
+        emmitApiErrorMetric(response.code());
         return errorResponse;
       } catch (InstantiationException
           | IllegalAccessException
@@ -157,6 +165,15 @@ public class OnehouseApiClient {
           | InvocationTargetException e) {
         throw new RuntimeException("Failed to instantiate error response object", e);
       }
+    }
+  }
+
+  private void emmitApiErrorMetric(int apiStatusCode){
+    if(ACCEPTABLE_HTTP_FAILURE_STATUS_CODES.contains(apiStatusCode)){
+      hudiMetadataExtractorMetrics.incrementTableMetadataUploadFailureCounter(MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
+    }
+    else{
+      hudiMetadataExtractorMetrics.incrementTableMetadataUploadFailureCounter(MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR);
     }
   }
 }

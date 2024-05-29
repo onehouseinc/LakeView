@@ -2,6 +2,7 @@ package com.onehouse.metrics;
 
 import com.onehouse.config.Config;
 import com.onehouse.config.ConfigProvider;
+import com.onehouse.constants.MetricsConstants;
 import io.micrometer.core.instrument.Tag;
 import lombok.Getter;
 
@@ -12,9 +13,13 @@ import java.util.List;
 
 import static com.onehouse.constants.MetricsConstants.CONFIG_VERSION_TAG_KEY;
 import static com.onehouse.constants.MetricsConstants.EXTRACTOR_JOB_RUN_MODE_TAG_KEY;
+import static com.onehouse.constants.MetricsConstants.METADATA_UPLOAD_FAILURE_REASON_TAG_KEY;
 import static com.onehouse.constants.MetricsConstants.METRICS_COMMON_PREFIX;
 import static com.onehouse.constants.MetricsConstants.TABLE_DISCOVERY_ERROR_COUNTER;
 import static com.onehouse.constants.MetricsConstants.TABLE_DISCOVERY_SUCCESS_COUNTER;
+import static com.onehouse.constants.MetricsConstants.TABLE_METADATA_PROCESSING_FAILURE_COUNTER;
+import static com.onehouse.constants.MetricsConstants.TABLE_SYNC_ERROR_COUNTER;
+import static com.onehouse.constants.MetricsConstants.TABLE_SYNC_SUCCESS_COUNTER;
 
 public class HudiMetadataExtractorMetrics {
     private final Metrics metrics;
@@ -36,10 +41,22 @@ public class HudiMetadataExtractorMetrics {
     }
 
     private void incrementTableDiscoverySuccessCounter() {
-        metrics.increment(TABLE_DISCOVERY_SUCCESS_COUNTER);
+        metrics.increment(TABLE_DISCOVERY_SUCCESS_COUNTER, getDefaultTags());
     }
     public void incrementTableDiscoveryFailureCounter() {
-        metrics.increment(TABLE_DISCOVERY_ERROR_COUNTER);
+        metrics.increment(TABLE_DISCOVERY_ERROR_COUNTER, getDefaultTags());
+    }
+    public void incrementTableSyncSuccessCounter() {
+        metrics.increment(TABLE_SYNC_SUCCESS_COUNTER, getDefaultTags());
+    }
+    public void incrementTableSyncFailureCounter() {
+        metrics.increment(TABLE_SYNC_ERROR_COUNTER, getDefaultTags());
+    }
+
+    public void incrementTableMetadataUploadFailureCounter(MetricsConstants.MetadataUploadFailureReasons metadataUploadFailureReasons) {
+        List<Tag> tags = getDefaultTags();
+        tags.add(Tag.of(METADATA_UPLOAD_FAILURE_REASON_TAG_KEY, metadataUploadFailureReasons.name()));
+        metrics.increment(TABLE_METADATA_PROCESSING_FAILURE_COUNTER, tags);
     }
 
     private List<Tag> getDefaultTags(){

@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -108,14 +109,20 @@ public class TableDiscoveryAndUploadJob {
       }
       if (tables != null && !tables.isEmpty()) {
         log.debug("Uploading table metadata for discovered tables");
+        AtomicBoolean hasError = new AtomicBoolean(false);
         tableMetadataUploaderService
             .uploadInstantsInTables(tables)
             .exceptionally(
                 ex -> {
                   log.error("Error uploading instants in tables: ", ex);
+                  hasError.set(true);
+                  hudiMetadataExtractorMetrics.incrementTableSyncFailureCounter();
                   return null;
                 })
             .join();
+        if(!hasError.get()) {
+          hudiMetadataExtractorMetrics.incrementTableSyncSuccessCounter();
+        }
         previousTableMetadataUploadRunStartTime = tableMetadataUploadRunStartTime;
       }
     }

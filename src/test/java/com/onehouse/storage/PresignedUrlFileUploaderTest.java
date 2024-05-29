@@ -9,6 +9,8 @@ import static org.mockito.Mockito.when;
 import com.onehouse.api.AsyncHttpClientWithRetry;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import okhttp3.MediaType;
 import okhttp3.Protocol;
 import okhttp3.Request;
@@ -24,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PresignedUrlFileUploaderTest {
   @Mock private AsyncHttpClientWithRetry asyncHttpClientWithRetry;
   @Mock AsyncStorageClient mockAsyncStorageClient;
+  @Mock private HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
   private static final int FAILURE_STATUS_CODE = 500;
   private static final String FAILURE_ERROR = "call failed";
   private static final String FILE_URI = "s3://bucket/file";
@@ -41,7 +44,7 @@ class PresignedUrlFileUploaderTest {
     mockOkHttpCall(PRESIGNED_URL, false);
 
     PresignedUrlFileUploader uploader =
-        new PresignedUrlFileUploader(mockAsyncStorageClient, asyncHttpClientWithRetry);
+        new PresignedUrlFileUploader(mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
 
     uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI).get();
 
@@ -55,7 +58,7 @@ class PresignedUrlFileUploaderTest {
     mockOkHttpCall(PRESIGNED_URL, true);
 
     PresignedUrlFileUploader uploader =
-        new PresignedUrlFileUploader(mockAsyncStorageClient, asyncHttpClientWithRetry);
+        new PresignedUrlFileUploader(mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
 
     ExecutionException exception =
         assertThrows(

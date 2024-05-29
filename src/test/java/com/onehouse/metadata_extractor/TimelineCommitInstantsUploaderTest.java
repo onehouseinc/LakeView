@@ -28,6 +28,7 @@ import com.onehouse.config.Config;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.PresignedUrlFileUploader;
 import com.onehouse.storage.StorageUtils;
@@ -65,6 +66,7 @@ class TimelineCommitInstantsUploaderTest {
   @Mock private Config config;
   @Mock private MetadataExtractorConfig metadataExtractorConfig;
   @Mock private ActiveTimelineInstantBatcher activeTimelineInstantBatcher;
+  @Mock private HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
   private TimelineCommitInstantsUploader timelineCommitInstantsUploader;
   private final ObjectMapper mapper = new ObjectMapper();
   private static final String S3_TABLE_URI = "s3://bucket/table/";
@@ -92,6 +94,7 @@ class TimelineCommitInstantsUploaderTest {
         new StorageUtils(),
         ForkJoinPool.commonPool(),
         activeTimelineInstantBatcher,
+        hudiMetadataExtractorMetrics,
         config);
   }
 

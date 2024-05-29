@@ -1,5 +1,9 @@
 package com.onehouse.constants;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class ApiConstants {
 
   private ApiConstants() {}
@@ -21,4 +25,8 @@ public class ApiConstants {
   public static final String LINK_UID_KEY = "x-onehouse-link-uid";
   public static final String ONEHOUSE_REGION_KEY = "x-onehouse-region";
   public static final String ONEHOUSE_USER_UUID_KEY = "x-onehouse-uuid";
+  // using mapping from:
+  // https://chromium.googlesource.com/external/github.com/grpc/grpc/+/refs/tags/v1.21.4-pre1/doc/statuscodes.md
+  public static final List<Integer> ACCEPTABLE_HTTP_FAILURE_STATUS_CODES =
+          new ArrayList<>(Arrays.asList(404, 400, 403, 401, 409));
 }

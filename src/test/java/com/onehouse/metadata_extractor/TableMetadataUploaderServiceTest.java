@@ -30,6 +30,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +48,7 @@ class TableMetadataUploaderServiceTest {
   @Mock private HoodiePropertiesReader hoodiePropertiesReader;
   @Mock private OnehouseApiClient onehouseApiClient;
   @Mock private TimelineCommitInstantsUploader timelineCommitInstantsUploader;
+  @Mock private HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
   private TableMetadataUploaderService tableMetadataUploaderService;
   private final ObjectMapper mapper = new ObjectMapper();
   private static final String S3_TABLE_URI = "s3://bucket/table/";
@@ -97,6 +100,7 @@ class TableMetadataUploaderServiceTest {
             hoodiePropertiesReader,
             onehouseApiClient,
             timelineCommitInstantsUploader,
+                hudiMetadataExtractorMetrics,
             ForkJoinPool.commonPool());
   }
 
