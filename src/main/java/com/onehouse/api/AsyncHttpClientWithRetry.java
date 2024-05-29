@@ -1,10 +1,9 @@
 package com.onehouse.api;
 
+import static com.onehouse.constants.ApiConstants.ACCEPTABLE_HTTP_FAILURE_STATUS_CODES;
+
 import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -18,8 +17,6 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-
-import static com.onehouse.constants.ApiConstants.ACCEPTABLE_HTTP_FAILURE_STATUS_CODES;
 
 @Slf4j
 public class AsyncHttpClientWithRetry {

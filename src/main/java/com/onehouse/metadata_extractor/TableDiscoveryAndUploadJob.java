@@ -79,12 +79,13 @@ public class TableDiscoveryAndUploadJob {
     log.info("Discovering tables in provided paths");
     tableDiscoveryService
         .discoverTables()
-        .thenAccept(
+        .thenApply(
             tables -> {
               synchronized (lock) {
                 tablesToProcess = tables;
               }
               hudiMetadataExtractorMetrics.setDiscoveredTablesPerRound(tables.size());
+              return null;
             })
         .exceptionally(
             ex -> {
@@ -120,7 +121,7 @@ public class TableDiscoveryAndUploadJob {
                   return null;
                 })
             .join();
-        if(!hasError.get()) {
+        if (!hasError.get()) {
           hudiMetadataExtractorMetrics.incrementTableSyncSuccessCounter();
         }
         previousTableMetadataUploadRunStartTime = tableMetadataUploadRunStartTime;

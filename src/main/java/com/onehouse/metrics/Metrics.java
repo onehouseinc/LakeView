@@ -5,12 +5,9 @@ import static io.micrometer.prometheus.PrometheusConfig.DEFAULT;
 import com.google.common.base.Preconditions;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Meter;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
-import io.micrometer.core.instrument.Timer;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 import io.prometheus.client.CollectorRegistry;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,7 +20,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
 public class Metrics {
   private final PrometheusMeterRegistry meterRegistry;
   private static final Metrics INSTANCE =
@@ -35,29 +32,17 @@ public class Metrics {
     return INSTANCE;
   }
 
-  public MeterRegistry getMeterRegistry() {
-    return meterRegistry;
-  }
-
   public CollectorRegistry getCollectorRegistry() {
     return meterRegistry.getPrometheusRegistry();
   }
 
   public void increment(String name, List<Tag> tags) {
     List<String> tagList = new ArrayList<>();
-    for(Tag tag: tags){
+    for (Tag tag : tags) {
       tagList.add(tag.getKey());
       tagList.add(tag.getValue());
     }
-    Counter.builder(name).tags(tagList.toArray(new String[0])).register(meterRegistry).increment();
-  }
-
-  public void increment(String name, Double amount, String... tags) {
-    Counter.builder(name).tags(tags).register(meterRegistry).increment(amount);
-  }
-
-  public void timer(String name, Duration duration, String... tags) {
-    Timer.builder(name).tags(tags).register(meterRegistry).record(duration);
+    createAndIncrementCounter(name, tagList);
   }
 
   public Gauge gauge(String name, String description, List<Tag> tags) {
@@ -68,25 +53,22 @@ public class Metrics {
     }
 
     gauge = new Gauge();
-    Meter.Id registeredId =
-        io.micrometer.core.instrument.Gauge.builder(name, gauge)
-            .tags(tags)
-            .description(description)
-            .register(meterRegistry)
-            .getId();
-    gauge.setMeterId(registeredId);
+
+    gauge.setMeterId(getGaugeRegisterId(name, description, gauge, tags));
     gaugeMap.put(gaugeKey, gauge);
     return gauge;
   }
 
-  public void removeGauge(Gauge gauge) {
-    String gaugeKey =
-        generateGaugeKey(
-            gauge.getMeterId().getName(),
-            gauge.getMeterId().getDescription(),
-            gauge.getMeterId().getTags());
-    gaugeMap.remove(gaugeKey);
-    meterRegistry.remove(gauge.getMeterId());
+  Meter.Id getGaugeRegisterId(String name, String description, Gauge gauge, List<Tag> tags) {
+    return io.micrometer.core.instrument.Gauge.builder(name, gauge)
+        .tags(tags)
+        .description(description)
+        .register(meterRegistry)
+        .getId();
+  }
+
+  void createAndIncrementCounter(String name, List<String> tagList) {
+    Counter.builder(name).tags(tagList.toArray(new String[0])).register(meterRegistry).increment();
   }
 
   // Generates a unique key based on the name, description, and tags
@@ -113,14 +95,6 @@ public class Metrics {
 
     public void setValue(long val) {
       value.set(val);
-    }
-
-    public void increment() {
-      value.incrementAndGet();
-    }
-
-    public void decrement() {
-      value.decrementAndGet();
     }
 
     public void setMeterId(Meter.Id id) {

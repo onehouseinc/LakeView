@@ -6,16 +6,18 @@ import static org.mockito.Mockito.*;
 
 import com.onehouse.config.Config;
 import com.onehouse.metadata_extractor.models.Table;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
@@ -45,7 +47,9 @@ class TableDiscoveryAndUploadJobTest {
   void setUp() {
     job =
         new TableDiscoveryAndUploadJob(
-            mockTableDiscoveryService, mockTableMetadataUploaderService, mockHudiMetadataExtractorMetrics) {
+            mockTableDiscoveryService,
+            mockTableMetadataUploaderService,
+            mockHudiMetadataExtractorMetrics) {
           @Override
           ScheduledExecutorService getScheduler() {
             return mockScheduler;
@@ -53,19 +57,41 @@ class TableDiscoveryAndUploadJobTest {
         };
   }
 
-  @Test
-  void testRunInContinuousMode() {
+  private static Stream<Arguments> continuousModeFailureCases() {
+    return Stream.of(
+        Arguments.of(true, true),
+        Arguments.of(true, false),
+        Arguments.of(false, true),
+        Arguments.of(false, false));
+  }
+
+  @ParameterizedTest
+  @MethodSource("continuousModeFailureCases")
+  void testRunInContinuousMode(boolean discoveryFailed, boolean tableMetadataExtractionFailed) {
     Table discoveredTable =
         Table.builder()
             .absoluteTableUri("absolute_uri")
             .lakeName("lake")
             .databaseName("database")
             .build();
-    when(mockTableDiscoveryService.discoverTables())
-        .thenReturn(CompletableFuture.completedFuture(Collections.singleton(discoveredTable)));
-    when(mockTableMetadataUploaderService.uploadInstantsInTables(
-            Collections.singleton(discoveredTable)))
-        .thenReturn(CompletableFuture.completedFuture(null));
+    if (discoveryFailed) {
+      when(mockTableDiscoveryService.discoverTables())
+          .thenReturn(failedFuture(new Exception("error")));
+    } else {
+      when(mockTableDiscoveryService.discoverTables())
+          .thenReturn(CompletableFuture.completedFuture(Collections.singleton(discoveredTable)));
+
+      // If discovery fails, table upload is never invoked
+      if (tableMetadataExtractionFailed) {
+        when(mockTableMetadataUploaderService.uploadInstantsInTables(
+                Collections.singleton(discoveredTable)))
+            .thenReturn(failedFuture(new Exception("error")));
+      } else {
+        when(mockTableMetadataUploaderService.uploadInstantsInTables(
+                Collections.singleton(discoveredTable)))
+            .thenReturn(CompletableFuture.completedFuture(null));
+      }
+    }
 
     when(config.getMetadataExtractorConfig().getTableDiscoveryIntervalMinutes())
         .thenReturn(TABLE_DISCOVERY_INTERVAL_MINUTES);
@@ -92,8 +118,19 @@ class TableDiscoveryAndUploadJobTest {
     uploadTask.run();
 
     verify(mockTableDiscoveryService, times(1)).discoverTables();
-    verify(mockTableMetadataUploaderService, times(1))
-        .uploadInstantsInTables(Collections.singleton(discoveredTable));
+
+    if (discoveryFailed) {
+      verify(mockHudiMetadataExtractorMetrics).incrementTableDiscoveryFailureCounter();
+    } else {
+      verify(mockTableMetadataUploaderService, times(1))
+          .uploadInstantsInTables(Collections.singleton(discoveredTable));
+      verify(mockHudiMetadataExtractorMetrics).setDiscoveredTablesPerRound(1);
+      if (tableMetadataExtractionFailed) {
+        verify(mockHudiMetadataExtractorMetrics).incrementTableSyncFailureCounter();
+      } else {
+        verify(mockHudiMetadataExtractorMetrics).incrementTableSyncSuccessCounter();
+      }
+    }
   }
 
   @ParameterizedTest
@@ -120,5 +157,11 @@ class TableDiscoveryAndUploadJobTest {
   void testShutdown() {
     job.shutdown();
     verify(mockScheduler).shutdown();
+  }
+
+  public static <R> CompletableFuture<R> failedFuture(Throwable error) {
+    CompletableFuture<R> future = new CompletableFuture<>();
+    future.completeExceptionally(error);
+    return future;
   }
 }

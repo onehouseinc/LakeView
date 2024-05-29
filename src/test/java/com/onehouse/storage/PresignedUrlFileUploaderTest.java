@@ -7,10 +7,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.onehouse.api.AsyncHttpClientWithRetry;
+import com.onehouse.constants.MetricsConstants;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import okhttp3.MediaType;
 import okhttp3.Protocol;
 import okhttp3.Request;
@@ -44,7 +44,8 @@ class PresignedUrlFileUploaderTest {
     mockOkHttpCall(PRESIGNED_URL, false);
 
     PresignedUrlFileUploader uploader =
-        new PresignedUrlFileUploader(mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
+        new PresignedUrlFileUploader(
+            mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
 
     uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI).get();
 
@@ -58,7 +59,8 @@ class PresignedUrlFileUploaderTest {
     mockOkHttpCall(PRESIGNED_URL, true);
 
     PresignedUrlFileUploader uploader =
-        new PresignedUrlFileUploader(mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
+        new PresignedUrlFileUploader(
+            mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
 
     ExecutionException exception =
         assertThrows(
@@ -69,6 +71,9 @@ class PresignedUrlFileUploaderTest {
             "java.lang.RuntimeException: file upload failed failed: response code: %d error message: %s",
             FAILURE_STATUS_CODE, FAILURE_ERROR),
         exception.getMessage());
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            MetricsConstants.MetadataUploadFailureReasons.PRESIGNED_URL_UPLOAD_FAILURE);
   }
 
   private void mockOkHttpCall(String url, boolean failure) {

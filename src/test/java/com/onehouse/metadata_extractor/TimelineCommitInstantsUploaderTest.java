@@ -26,6 +26,7 @@ import com.onehouse.api.models.response.GenerateCommitMetadataUploadUrlResponse;
 import com.onehouse.api.models.response.UpsertTableMetricsCheckpointResponse;
 import com.onehouse.config.Config;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
+import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
 import com.onehouse.metrics.HudiMetadataExtractorMetrics;
@@ -641,6 +642,9 @@ class TimelineCommitInstantsUploaderTest {
     verify(asyncStorageClient, times(1)).listAllFilesInDir(anyString());
     verify(onehouseApiClient, times(1)).generateCommitMetadataUploadUrl(expectedRequest);
     verify(presignedUrlFileUploader, times(0)).uploadFileToPresignedUrl(any(), any());
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
   }
 
   @Test
@@ -709,6 +713,9 @@ class TimelineCommitInstantsUploaderTest {
     verify(onehouseApiClient, times(1)).generateCommitMetadataUploadUrl(expectedRequest);
     verify(presignedUrlFileUploader, times(1)).uploadFileToPresignedUrl(any(), any());
     verify(onehouseApiClient, times(1)).upsertTableMetricsCheckpoint(any());
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
   }
 
   @Test

@@ -157,7 +157,8 @@ public class TimelineCommitInstantsUploader {
                   table,
                   commitTimelineType,
                   throwable);
-              hudiMetadataExtractorMetrics.incrementTableMetadataUploadFailureCounter(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+              hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
               return null; // handled in uploadNewInstantsSinceCheckpoint function
             });
   }
@@ -215,7 +216,8 @@ public class TimelineCommitInstantsUploader {
                   table,
                   commitTimelineType,
                   throwable);
-              hudiMetadataExtractorMetrics.incrementTableMetadataUploadFailureCounter(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+              hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
               return null; // handled in uploadNewInstantsSinceCheckpoint
             });
   }
@@ -312,7 +314,9 @@ public class TimelineCommitInstantsUploader {
                         executorService)
                     .exceptionally(
                         throwable -> {
-                          hudiMetadataExtractorMetrics.incrementTableMetadataUploadFailureCounter(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+                          hudiMetadataExtractorMetrics
+                              .incrementTableMetadataProcessingFailureCounter(
+                                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
                           log.error(
                               "error processing batch for table: {}. Skipping processing of further batches of table in current run.",
                               table.getAbsoluteTableUri(),

@@ -1,9 +1,11 @@
 package com.onehouse.metadata_extractor;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.onehouse.api.models.request.TableType;
+import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
 import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import com.onehouse.storage.AsyncStorageClient;
@@ -72,6 +74,9 @@ class HoodiePropertiesReaderTest {
         hoodiePropertiesReader.readHoodieProperties(path);
 
     assertNull(futureResult.join());
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED);
   }
 
   public static <R> CompletableFuture<R> failedFuture(Throwable error) {

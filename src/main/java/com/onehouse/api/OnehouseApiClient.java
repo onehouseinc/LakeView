@@ -26,6 +26,8 @@ import com.onehouse.api.models.response.InitializeTableMetricsCheckpointResponse
 import com.onehouse.api.models.response.UpsertTableMetricsCheckpointResponse;
 import com.onehouse.config.Config;
 import com.onehouse.config.models.common.OnehouseClientConfig;
+import com.onehouse.constants.MetricsConstants;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
@@ -33,9 +35,6 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
-
-import com.onehouse.constants.MetricsConstants;
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import lombok.SneakyThrows;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
@@ -52,8 +51,10 @@ public class OnehouseApiClient {
   private final ObjectMapper mapper;
 
   @Inject
-  public OnehouseApiClient(@Nonnull AsyncHttpClientWithRetry asyncClient, @Nonnull Config config,
-  @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics) {
+  public OnehouseApiClient(
+      @Nonnull AsyncHttpClientWithRetry asyncClient,
+      @Nonnull Config config,
+      @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics) {
     this.asyncClient = asyncClient;
     this.headers = getHeaders(config.getOnehouseClientConfig());
     this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
@@ -168,12 +169,13 @@ public class OnehouseApiClient {
     }
   }
 
-  private void emmitApiErrorMetric(int apiStatusCode){
-    if(ACCEPTABLE_HTTP_FAILURE_STATUS_CODES.contains(apiStatusCode)){
-      hudiMetadataExtractorMetrics.incrementTableMetadataUploadFailureCounter(MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
-    }
-    else{
-      hudiMetadataExtractorMetrics.incrementTableMetadataUploadFailureCounter(MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR);
+  private void emmitApiErrorMetric(int apiStatusCode) {
+    if (ACCEPTABLE_HTTP_FAILURE_STATUS_CODES.contains(apiStatusCode)) {
+      hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+          MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
+    } else {
+      hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+          MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR);
     }
   }
 }

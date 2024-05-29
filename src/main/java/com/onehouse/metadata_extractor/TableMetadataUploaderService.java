@@ -19,6 +19,7 @@ import com.onehouse.api.models.response.InitializeTableMetricsCheckpointResponse
 import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,8 +33,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -175,7 +174,8 @@ public class TableMetadataUploaderService {
         .exceptionally(
             throwable -> {
               log.error("Encountered exception when uploading instants", throwable);
-              hudiMetadataExtractorMetrics.incrementTableMetadataUploadFailureCounter(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+              hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
               return false;
             });
   }
@@ -234,7 +234,8 @@ public class TableMetadataUploaderService {
 
                     if (initializeSingleTableMetricsCheckpointRequestList.isEmpty()) {
                       log.error("No valid table to initialise");
-                        hudiMetadataExtractorMetrics.incrementTableMetadataUploadFailureCounter(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+                      hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+                          MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
                       return CompletableFuture.completedFuture(null);
                     }
 
@@ -291,7 +292,8 @@ public class TableMetadataUploaderService {
                         continue;
                       }
                       if (!StringUtils.isBlank(response.getError())) {
-                          hudiMetadataExtractorMetrics.incrementTableMetadataUploadFailureCounter(MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
+                        hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+                            MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
                         log.error(
                             "Error initialising table: {} error: {}, skipping table processing",
                             table,
