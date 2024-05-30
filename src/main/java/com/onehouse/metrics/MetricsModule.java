@@ -13,7 +13,9 @@ public class MetricsModule extends AbstractModule {
   @Provides
   @Singleton
   static Metrics providesMetrics() {
-    return Metrics.getInstance();
+    Metrics metrics = Metrics.getInstance();
+    providesMetricsServer(metrics);
+    return metrics;
   }
 
   @Provides
