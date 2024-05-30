@@ -7,7 +7,6 @@ import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.config.Config;
 import com.onehouse.config.ConfigProvider;
 import com.onehouse.config.models.common.FileSystemConfiguration;
-import com.onehouse.metrics.MetricsModule;
 import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.GCSAsyncStorageClient;
 import com.onehouse.storage.S3AsyncStorageClient;
@@ -131,6 +130,5 @@ public class RuntimeModule extends AbstractModule {
   @Override
   protected void configure() {
     bind(Config.class).toInstance(config);
-    install(new MetricsModule());
   }
 }
