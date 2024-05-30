@@ -123,6 +123,8 @@ dependencies {
     }
     implementation("org.apache.spark:spark-sql_2.12:3.2.2")
     //implementation group: 'org.apache.spark', name: 'spark-avro_2.12', version: "3.2.2"
+    implementation group: 'io.prometheus', name: 'simpleclient_httpserver', version: '0.16.0'
+    implementation "io.micrometer:micrometer-registry-prometheus:1.7.0"
 }
 
 application {

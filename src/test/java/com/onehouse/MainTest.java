@@ -13,6 +13,7 @@ import com.onehouse.config.ConfigProvider;
 import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
+import com.onehouse.metrics.MetricsModule;
 import com.onehouse.storage.AsyncStorageClient;
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,7 +74,7 @@ class MainTest {
         .thenReturn(mockAsyncHttpClientWithRetry);
     when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(mockConfigProvider);
     guiceMockedStatic
-        .when(() -> Guice.createInjector(any(RuntimeModule.class)))
+        .when(() -> Guice.createInjector(any(RuntimeModule.class), any(MetricsModule.class)))
         .thenReturn(mockInjector);
     main.start(args);
 
@@ -100,7 +101,7 @@ class MainTest {
     when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(mockConfigProvider);
     doThrow(new RuntimeException()).when(mockJob).runOnce();
     guiceMockedStatic
-        .when(() -> Guice.createInjector(any(RuntimeModule.class)))
+        .when(() -> Guice.createInjector(any(RuntimeModule.class), any(MetricsModule.class)))
         .thenReturn(mockInjector);
     main.start(args);
 
@@ -132,7 +133,7 @@ class MainTest {
     when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(configProvider);
     when(mockInjector.getInstance(AsyncStorageClient.class)).thenReturn(mockAsyncStorageClient);
     guiceMockedStatic
-        .when(() -> Guice.createInjector(any(RuntimeModule.class)))
+        .when(() -> Guice.createInjector(any(RuntimeModule.class), any(MetricsModule.class)))
         .thenReturn(mockInjector);
     Main main = new Main(mockParser, configLoader);
     main.start(args);
@@ -163,7 +164,7 @@ class MainTest {
         .thenReturn(mockAsyncHttpClientWithRetry);
     when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(mockConfigProvider);
     guiceMockedStatic
-        .when(() -> Guice.createInjector(any(RuntimeModule.class)))
+        .when(() -> Guice.createInjector(any(RuntimeModule.class), any(MetricsModule.class)))
         .thenReturn(mockInjector);
     main.start(args);
     main.shutdown();

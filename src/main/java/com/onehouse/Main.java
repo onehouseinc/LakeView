@@ -12,6 +12,7 @@ import com.onehouse.config.ConfigRefresher;
 import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
+import com.onehouse.metrics.MetricsModule;
 import com.onehouse.storage.AsyncStorageClient;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.ParseException;
@@ -56,7 +57,7 @@ public class Main {
       System.exit(1);
     }
 
-    Injector injector = Guice.createInjector(new RuntimeModule(config));
+    Injector injector = Guice.createInjector(new RuntimeModule(config), new MetricsModule());
     job = injector.getInstance(TableDiscoveryAndUploadJob.class);
     asyncHttpClientWithRetry = injector.getInstance(AsyncHttpClientWithRetry.class);
     ConfigProvider configProvider = injector.getInstance(ConfigProvider.class);
