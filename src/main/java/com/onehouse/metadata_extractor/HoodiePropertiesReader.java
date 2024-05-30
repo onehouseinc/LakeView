@@ -5,7 +5,9 @@ import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_TYP
 
 import com.google.inject.Inject;
 import com.onehouse.api.models.request.TableType;
+import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import com.onehouse.storage.AsyncStorageClient;
 import java.io.IOException;
 import java.util.Properties;
@@ -15,10 +17,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HoodiePropertiesReader {
   private final AsyncStorageClient asyncStorageClient;
+  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
 
   @Inject
-  public HoodiePropertiesReader(AsyncStorageClient asyncStorageClient) {
+  public HoodiePropertiesReader(
+      AsyncStorageClient asyncStorageClient,
+      HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics) {
     this.asyncStorageClient = asyncStorageClient;
+    this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
   }
 
   public CompletableFuture<ParsedHudiProperties> readHoodieProperties(String path) {
@@ -42,6 +48,9 @@ public class HoodiePropertiesReader {
         .exceptionally(
             throwable -> {
               log.error("Error encountered when reading hoodie properties file", throwable);
+              hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+                  MetricsConstants.MetadataUploadFailureReasons
+                      .HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED);
               return null;
             });
   }

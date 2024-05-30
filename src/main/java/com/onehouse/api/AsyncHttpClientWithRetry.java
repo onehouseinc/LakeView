@@ -1,10 +1,9 @@
 package com.onehouse.api;
 
+import static com.onehouse.constants.ApiConstants.ACCEPTABLE_HTTP_FAILURE_STATUS_CODES;
+
 import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -27,11 +26,6 @@ public class AsyncHttpClientWithRetry {
   private final long retryDelayMillis;
   private final OkHttpClient okHttpClient;
   private static final long MAX_RETRY_DELAY_MILLIS = 10000; // 10seconds
-  // using mapping from:
-  // https://chromium.googlesource.com/external/github.com/grpc/grpc/+/refs/tags/v1.21.4-pre1/doc/statuscodes.md
-  private static final List<Integer> ACCEPTABLE_HTTP_FAILURE_STATUS_CODES =
-      new ArrayList<>(Arrays.asList(404, 400, 403, 401, 409));
-
   private static final Random random = new Random();
 
   public AsyncHttpClientWithRetry(

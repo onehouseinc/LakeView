@@ -16,8 +16,10 @@ import com.onehouse.api.models.request.CommitTimelineType;
 import com.onehouse.api.models.request.InitializeTableMetricsCheckpointRequest;
 import com.onehouse.api.models.response.GetTableMetricsCheckpointResponse;
 import com.onehouse.api.models.response.InitializeTableMetricsCheckpointResponse;
+import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,6 +44,7 @@ public class TableMetadataUploaderService {
   private final HoodiePropertiesReader hoodiePropertiesReader;
   private final OnehouseApiClient onehouseApiClient;
   private final TimelineCommitInstantsUploader timelineCommitInstantsUploader;
+  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
 
@@ -50,10 +53,12 @@ public class TableMetadataUploaderService {
       @Nonnull HoodiePropertiesReader hoodiePropertiesReader,
       @Nonnull OnehouseApiClient onehouseApiClient,
       @Nonnull TimelineCommitInstantsUploader timelineCommitInstantsUploader,
+      @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics,
       @Nonnull ExecutorService executorService) {
     this.hoodiePropertiesReader = hoodiePropertiesReader;
     this.onehouseApiClient = onehouseApiClient;
     this.timelineCommitInstantsUploader = timelineCommitInstantsUploader;
+    this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
     this.executorService = executorService;
     this.mapper = new ObjectMapper();
     mapper.registerModule(new JavaTimeModule());
@@ -100,7 +105,7 @@ public class TableMetadataUploaderService {
             getTableMetricsCheckpointResponse -> {
               if (getTableMetricsCheckpointResponse.isFailure()) {
                 log.error(
-                    "Error encountered when fetching checkpoint, skipping table processing.status code: {} message {}",
+                    "Error encountered when fetching checkpoint, skipping table processing. status code: {} message {}",
                     getTableMetricsCheckpointResponse.getStatusCode(),
                     getTableMetricsCheckpointResponse.getCause());
                 return CompletableFuture.completedFuture(false);
@@ -169,6 +174,8 @@ public class TableMetadataUploaderService {
         .exceptionally(
             throwable -> {
               log.error("Encountered exception when uploading instants", throwable);
+              hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
               return false;
             });
   }
@@ -227,6 +234,8 @@ public class TableMetadataUploaderService {
 
                     if (initializeSingleTableMetricsCheckpointRequestList.isEmpty()) {
                       log.error("No valid table to initialise");
+                      hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+                          MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
                       return CompletableFuture.completedFuture(null);
                     }
 
@@ -283,6 +292,8 @@ public class TableMetadataUploaderService {
                         continue;
                       }
                       if (!StringUtils.isBlank(response.getError())) {
+                        hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+                            MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
                         log.error(
                             "Error initialising table: {} error: {}, skipping table processing",
                             table,
