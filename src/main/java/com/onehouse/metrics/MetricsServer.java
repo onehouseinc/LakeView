@@ -7,10 +7,15 @@ import java.net.InetSocketAddress;
 
 public class MetricsServer {
   public MetricsServer(CollectorRegistry registry, int port) {
-    try (HTTPServer server = new HTTPServer(new InetSocketAddress(port), registry)) {
+    try (HTTPServer server = initHttpServer(new InetSocketAddress(port), registry)) {
       Runtime.getRuntime().addShutdownHook(new Thread(server::close));
     } catch (IOException e) {
       throw new RuntimeException("Failed to start Prometheus server", e);
     }
+  }
+
+  static HTTPServer initHttpServer(InetSocketAddress socketAddress, CollectorRegistry registry)
+      throws IOException {
+    return new HTTPServer(socketAddress, registry);
   }
 }
