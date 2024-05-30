@@ -81,9 +81,10 @@ class MetricsTest {
     Meter.Id meterId = mock(Meter.Id.class);
     doReturn(meterId).when(metrics).getGaugeRegisterId(anyString(), anyString(), any(), anyList());
     Metrics.Gauge gauge = metrics.gauge("test.gauge", "A test gauge", tags);
-
     assertNotNull(gauge);
     assertEquals(0, gauge.get().intValue());
+    gauge.setValue(10);
+    assertEquals(10, gauge.get().intValue());
 
     Metrics.Gauge sameGauge = metrics.gauge("test.gauge", "A test gauge", tags);
     assertEquals(gauge, sameGauge);

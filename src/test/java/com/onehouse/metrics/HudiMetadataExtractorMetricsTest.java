@@ -1,14 +1,14 @@
 package com.onehouse.metrics;
 
-import static com.onehouse.constants.MetricsConstants.CONFIG_VERSION_TAG_KEY;
-import static com.onehouse.constants.MetricsConstants.EXTRACTOR_JOB_RUN_MODE_TAG_KEY;
-import static com.onehouse.constants.MetricsConstants.METADATA_UPLOAD_FAILURE_REASON_TAG_KEY;
-import static com.onehouse.constants.MetricsConstants.METRICS_COMMON_PREFIX;
-import static com.onehouse.constants.MetricsConstants.TABLE_DISCOVERY_FAILURE_COUNTER;
-import static com.onehouse.constants.MetricsConstants.TABLE_DISCOVERY_SUCCESS_COUNTER;
-import static com.onehouse.constants.MetricsConstants.TABLE_METADATA_PROCESSING_FAILURE_COUNTER;
-import static com.onehouse.constants.MetricsConstants.TABLE_SYNC_ERROR_COUNTER;
-import static com.onehouse.constants.MetricsConstants.TABLE_SYNC_SUCCESS_COUNTER;
+import static com.onehouse.metrics.HudiMetadataExtractorMetrics.CONFIG_VERSION_TAG_KEY;
+import static com.onehouse.metrics.HudiMetadataExtractorMetrics.EXTRACTOR_JOB_RUN_MODE_TAG_KEY;
+import static com.onehouse.metrics.HudiMetadataExtractorMetrics.METADATA_UPLOAD_FAILURE_REASON_TAG_KEY;
+import static com.onehouse.metrics.HudiMetadataExtractorMetrics.METRICS_COMMON_PREFIX;
+import static com.onehouse.metrics.HudiMetadataExtractorMetrics.TABLE_DISCOVERY_FAILURE_COUNTER;
+import static com.onehouse.metrics.HudiMetadataExtractorMetrics.TABLE_DISCOVERY_SUCCESS_COUNTER;
+import static com.onehouse.metrics.HudiMetadataExtractorMetrics.TABLE_METADATA_PROCESSING_FAILURE_COUNTER;
+import static com.onehouse.metrics.HudiMetadataExtractorMetrics.TABLE_SYNC_ERROR_COUNTER;
+import static com.onehouse.metrics.HudiMetadataExtractorMetrics.TABLE_SYNC_SUCCESS_COUNTER;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 

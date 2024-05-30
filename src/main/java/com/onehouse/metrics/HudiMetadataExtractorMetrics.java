@@ -1,15 +1,5 @@
 package com.onehouse.metrics;
 
-import static com.onehouse.constants.MetricsConstants.CONFIG_VERSION_TAG_KEY;
-import static com.onehouse.constants.MetricsConstants.EXTRACTOR_JOB_RUN_MODE_TAG_KEY;
-import static com.onehouse.constants.MetricsConstants.METADATA_UPLOAD_FAILURE_REASON_TAG_KEY;
-import static com.onehouse.constants.MetricsConstants.METRICS_COMMON_PREFIX;
-import static com.onehouse.constants.MetricsConstants.TABLE_DISCOVERY_FAILURE_COUNTER;
-import static com.onehouse.constants.MetricsConstants.TABLE_DISCOVERY_SUCCESS_COUNTER;
-import static com.onehouse.constants.MetricsConstants.TABLE_METADATA_PROCESSING_FAILURE_COUNTER;
-import static com.onehouse.constants.MetricsConstants.TABLE_SYNC_ERROR_COUNTER;
-import static com.onehouse.constants.MetricsConstants.TABLE_SYNC_SUCCESS_COUNTER;
-
 import com.onehouse.config.Config;
 import com.onehouse.config.ConfigProvider;
 import com.onehouse.constants.MetricsConstants;
@@ -24,6 +14,23 @@ public class HudiMetadataExtractorMetrics {
   private final Metrics metrics;
   private final Metrics.Gauge tablesDiscoveredGaugeMetric;
   private final Config extractorConfig;
+
+  static final String METRICS_COMMON_PREFIX = "hudi_metadata_extractor_";
+
+  // Tag keys
+  static final String CONFIG_VERSION_TAG_KEY = "config_version";
+  static final String EXTRACTOR_JOB_RUN_MODE_TAG_KEY = "extractor_job_run_mode";
+  static final String METADATA_UPLOAD_FAILURE_REASON_TAG_KEY = "metadata_upload_failure_reason";
+
+  // Metrics
+  static final String TABLE_DISCOVERY_SUCCESS_COUNTER =
+      METRICS_COMMON_PREFIX + "table_discovery_success";
+  static final String TABLE_DISCOVERY_FAILURE_COUNTER =
+      METRICS_COMMON_PREFIX + "table_discovery_failure";
+  static final String TABLE_SYNC_SUCCESS_COUNTER = METRICS_COMMON_PREFIX + "table_sync_success";
+  static final String TABLE_SYNC_ERROR_COUNTER = METRICS_COMMON_PREFIX + "table_sync_failure";
+  static final String TABLE_METADATA_PROCESSING_FAILURE_COUNTER =
+      METRICS_COMMON_PREFIX + "table_metadata_processing_failure";
 
   @Inject
   public HudiMetadataExtractorMetrics(
