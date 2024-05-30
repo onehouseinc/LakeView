@@ -4,6 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.config.Config;
 import com.onehouse.metadata_extractor.models.Table;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
@@ -11,6 +12,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,6 +22,7 @@ public class TableDiscoveryAndUploadJob {
   private final TableMetadataUploaderService tableMetadataUploaderService;
   private final ScheduledExecutorService scheduler;
   private final Object lock = new Object();
+  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
 
   private Set<Table> tablesToProcess;
   private Instant previousTableMetadataUploadRunStartTime = Instant.EPOCH;
@@ -27,10 +30,12 @@ public class TableDiscoveryAndUploadJob {
   @Inject
   public TableDiscoveryAndUploadJob(
       @Nonnull TableDiscoveryService tableDiscoveryService,
-      @Nonnull TableMetadataUploaderService tableMetadataUploaderService) {
+      @Nonnull TableMetadataUploaderService tableMetadataUploaderService,
+      @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics) {
     this.scheduler = getScheduler();
     this.tableDiscoveryService = tableDiscoveryService;
     this.tableMetadataUploaderService = tableMetadataUploaderService;
+    this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
   }
 
   /*
@@ -74,15 +79,18 @@ public class TableDiscoveryAndUploadJob {
     log.info("Discovering tables in provided paths");
     tableDiscoveryService
         .discoverTables()
-        .thenAccept(
+        .thenApply(
             tables -> {
               synchronized (lock) {
                 tablesToProcess = tables;
               }
+              hudiMetadataExtractorMetrics.setDiscoveredTablesPerRound(tables.size());
+              return null;
             })
         .exceptionally(
             ex -> {
               log.error("Error discovering tables: ", ex);
+              hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter();
               return null;
             })
         .join();
@@ -102,14 +110,20 @@ public class TableDiscoveryAndUploadJob {
       }
       if (tables != null && !tables.isEmpty()) {
         log.debug("Uploading table metadata for discovered tables");
+        AtomicBoolean hasError = new AtomicBoolean(false);
         tableMetadataUploaderService
             .uploadInstantsInTables(tables)
             .exceptionally(
                 ex -> {
                   log.error("Error uploading instants in tables: ", ex);
+                  hasError.set(true);
+                  hudiMetadataExtractorMetrics.incrementTableSyncFailureCounter();
                   return null;
                 })
             .join();
+        if (!hasError.get()) {
+          hudiMetadataExtractorMetrics.incrementTableSyncSuccessCounter();
+        }
         previousTableMetadataUploadRunStartTime = tableMetadataUploadRunStartTime;
       }
     }

@@ -16,9 +16,11 @@ import com.onehouse.api.models.request.InitializeTableMetricsCheckpointRequest;
 import com.onehouse.api.models.request.TableType;
 import com.onehouse.api.models.response.GetTableMetricsCheckpointResponse;
 import com.onehouse.api.models.response.InitializeTableMetricsCheckpointResponse;
+import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
 import com.onehouse.metadata_extractor.models.Table;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,6 +48,7 @@ class TableMetadataUploaderServiceTest {
   @Mock private HoodiePropertiesReader hoodiePropertiesReader;
   @Mock private OnehouseApiClient onehouseApiClient;
   @Mock private TimelineCommitInstantsUploader timelineCommitInstantsUploader;
+  @Mock private HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
   private TableMetadataUploaderService tableMetadataUploaderService;
   private final ObjectMapper mapper = new ObjectMapper();
   private static final String S3_TABLE_URI = "s3://bucket/table/";
@@ -97,6 +100,7 @@ class TableMetadataUploaderServiceTest {
             hoodiePropertiesReader,
             onehouseApiClient,
             timelineCommitInstantsUploader,
+            hudiMetadataExtractorMetrics,
             ForkJoinPool.commonPool());
   }
 
@@ -158,6 +162,9 @@ class TableMetadataUploaderServiceTest {
             any(),
             eq(FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS),
             eq(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE));
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
   }
 
   private void setupInitialiseTableMetricsCheckpointSuccessMocks(

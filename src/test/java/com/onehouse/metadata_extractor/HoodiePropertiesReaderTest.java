@@ -1,10 +1,13 @@
 package com.onehouse.metadata_extractor;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.onehouse.api.models.request.TableType;
+import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import com.onehouse.storage.AsyncStorageClient;
 import java.io.ByteArrayInputStream;
 import java.util.concurrent.CompletableFuture;
@@ -20,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class HoodiePropertiesReaderTest {
   @Mock private AsyncStorageClient asyncStorageClient;
+  @Mock private HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
   @InjectMocks private HoodiePropertiesReader hoodiePropertiesReader;
 
   @ParameterizedTest
@@ -28,7 +32,7 @@ class HoodiePropertiesReaderTest {
       throws ExecutionException, InterruptedException {
     String path = "some/path/to/properties/file";
     String propertiesContent =
-        String.format("hoodie.table.name=test_table\nhoodie.table.type=%s", tableType.toString());
+        String.format("hoodie.table.name=test_table%nhoodie.table.type=%s", tableType.toString());
     ByteArrayInputStream inputStream = new ByteArrayInputStream(propertiesContent.getBytes());
 
     when(asyncStorageClient.readFileAsInputStream(path))
@@ -70,6 +74,9 @@ class HoodiePropertiesReaderTest {
         hoodiePropertiesReader.readHoodieProperties(path);
 
     assertNull(futureResult.join());
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED);
   }
 
   public static <R> CompletableFuture<R> failedFuture(Throwable error) {

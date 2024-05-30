@@ -2,6 +2,8 @@ package com.onehouse.storage;
 
 import com.google.inject.Inject;
 import com.onehouse.api.AsyncHttpClientWithRetry;
+import com.onehouse.constants.MetricsConstants;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
@@ -12,13 +14,16 @@ import okhttp3.RequestBody;
 public class PresignedUrlFileUploader {
   private final AsyncStorageClient asyncStorageClient;
   private final AsyncHttpClientWithRetry asyncHttpClientWithRetry;
+  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
 
   @Inject
   public PresignedUrlFileUploader(
       @Nonnull AsyncStorageClient asyncStorageClient,
-      @Nonnull AsyncHttpClientWithRetry asyncHttpClientWithRetry) {
+      @Nonnull AsyncHttpClientWithRetry asyncHttpClientWithRetry,
+      @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics) {
     this.asyncStorageClient = asyncStorageClient;
     this.asyncHttpClientWithRetry = asyncHttpClientWithRetry;
+    this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
   }
 
   public CompletableFuture<Void> uploadFileToPresignedUrl(String presignedUrl, String fileUrl) {
@@ -38,6 +43,10 @@ public class PresignedUrlFileUploader {
                           int statusCode = uploadResponse.code();
                           String message = uploadResponse.message();
                           uploadResponse.close();
+                          hudiMetadataExtractorMetrics
+                              .incrementTableMetadataProcessingFailureCounter(
+                                  MetricsConstants.MetadataUploadFailureReasons
+                                      .PRESIGNED_URL_UPLOAD_FAILURE);
                           throw new RuntimeException(
                               String.format(
                                   "file upload failed failed: response code: %s error message: %s",

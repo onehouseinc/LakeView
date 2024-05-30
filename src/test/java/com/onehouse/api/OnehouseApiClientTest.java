@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +31,8 @@ import com.onehouse.api.models.response.InitializeTableMetricsCheckpointResponse
 import com.onehouse.api.models.response.UpsertTableMetricsCheckpointResponse;
 import com.onehouse.config.models.common.OnehouseClientConfig;
 import com.onehouse.config.models.configv1.ConfigV1;
+import com.onehouse.constants.MetricsConstants;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,6 +53,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -58,9 +62,11 @@ class OnehouseApiClientTest {
   @Mock private AsyncHttpClientWithRetry client;
   @Mock private ConfigV1 config;
   @Mock private OnehouseClientConfig onehouseClientConfig;
+  @Mock private HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
   private OnehouseApiClient onehouseApiClient;
 
-  private static final int FAILURE_STATUS_CODE = 500;
+  private static final int FAILURE_STATUS_CODE_USER = 400;
+  private static final int FAILURE_STATUS_CODE_SYSTEM = 500;
   private static final String SAMPLE_HOST = "http://example.com";
   private static final String FAILURE_ERROR = "call failed";
   private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -78,7 +84,7 @@ class OnehouseApiClientTest {
     when(onehouseClientConfig.getApiKey()).thenReturn(API_KEY);
     when(onehouseClientConfig.getApiSecret()).thenReturn(API_SECRET);
     when(onehouseClientConfig.getUserId()).thenReturn(USER_ID);
-    onehouseApiClient = new OnehouseApiClient(client, config);
+    onehouseApiClient = new OnehouseApiClient(client, config, hudiMetadataExtractorMetrics);
   }
 
   @Test
@@ -97,7 +103,7 @@ class OnehouseApiClientTest {
         headers);
     when(onehouseClientConfig.getRequestId()).thenReturn(REQUEST_ID);
     when(onehouseClientConfig.getRegion()).thenReturn(REGION);
-    onehouseApiClient = new OnehouseApiClient(client, config);
+    onehouseApiClient = new OnehouseApiClient(client, config, hudiMetadataExtractorMetrics);
     headers = onehouseApiClient.getHeaders(onehouseClientConfig);
     assertEquals(
         Headers.of(
@@ -128,17 +134,23 @@ class OnehouseApiClientTest {
     assertEquals("checkpoint", result.getCheckpoints().get(0).getCheckpoint());
   }
 
-  @Test
-  void testAsyncPostFailure() {
+  @ParameterizedTest
+  @ValueSource(ints = {FAILURE_STATUS_CODE_SYSTEM, FAILURE_STATUS_CODE_USER})
+  void testAsyncPostFailure(int failureStatusCode) {
     String apiEndpoint = "/testEndpoint";
     String requestJson = "{\"key\":\"value\"}";
-    stubOkHttpCall(apiEndpoint, true);
+    stubOkHttpCall(apiEndpoint, true, failureStatusCode);
     CompletableFuture<GetTableMetricsCheckpointResponse> futureResult =
         onehouseApiClient.asyncPost(
             apiEndpoint, requestJson, GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse result = futureResult.join();
     assertTrue(result.isFailure());
-    assertEquals(FAILURE_STATUS_CODE, result.getStatusCode());
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            failureStatusCode == FAILURE_STATUS_CODE_SYSTEM
+                ? MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR
+                : MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
+    assertEquals(failureStatusCode, result.getStatusCode());
   }
 
   @Test
@@ -152,16 +164,22 @@ class OnehouseApiClientTest {
     assertEquals("checkpoint", result.getCheckpoints().get(0).getCheckpoint());
   }
 
-  @Test
-  void testAsyncGetFailure() {
+  @ParameterizedTest
+  @ValueSource(ints = {FAILURE_STATUS_CODE_SYSTEM, FAILURE_STATUS_CODE_USER})
+  void testAsyncGetFailure(int failureStatusCode) {
     String apiEndpoint = "/testEndpoint";
-    stubOkHttpCall(apiEndpoint, true);
+    stubOkHttpCall(apiEndpoint, true, failureStatusCode);
     CompletableFuture<GetTableMetricsCheckpointResponse> futureResult =
         onehouseApiClient.asyncGet(
             SAMPLE_HOST + apiEndpoint, GetTableMetricsCheckpointResponse.class);
     GetTableMetricsCheckpointResponse result = futureResult.join();
     assertTrue(result.isFailure());
-    assertEquals(FAILURE_STATUS_CODE, result.getStatusCode());
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            failureStatusCode == FAILURE_STATUS_CODE_SYSTEM
+                ? MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR
+                : MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
+    assertEquals(failureStatusCode, result.getStatusCode());
   }
 
   static Stream<Arguments> provideInitializeTableMetricsCheckpointValue() {
@@ -291,6 +309,10 @@ class OnehouseApiClientTest {
   }
 
   private void stubOkHttpCall(String apiEndpoint, boolean isFailure) {
+    stubOkHttpCall(apiEndpoint, isFailure, FAILURE_STATUS_CODE_SYSTEM);
+  }
+
+  private void stubOkHttpCall(String apiEndpoint, boolean isFailure, int failureStatusCode) {
     String responseBodyContent =
         "{\"checkpoints\":[{\"checkpoint\":\"checkpoint\",\"tableId\":\"tableId\"}]}";
     ResponseBody responseBody =
@@ -299,7 +321,7 @@ class OnehouseApiClientTest {
     if (isFailure) {
       response =
           new Response.Builder()
-              .code(FAILURE_STATUS_CODE)
+              .code(failureStatusCode)
               .message(FAILURE_ERROR)
               .request(new Request.Builder().url(SAMPLE_HOST + apiEndpoint).build())
               .protocol(Protocol.HTTP_1_1)
