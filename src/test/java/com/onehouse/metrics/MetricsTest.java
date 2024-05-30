@@ -82,11 +82,26 @@ class MetricsTest {
     doReturn(meterId).when(metrics).getGaugeRegisterId(anyString(), anyString(), any(), anyList());
     Metrics.Gauge gauge = metrics.gauge("test.gauge", "A test gauge", tags);
     assertNotNull(gauge);
+    assertEquals(String.format("Metrics.Gauge(value=0, meterId=Mock for Id, hashCode: %s)", meterId.hashCode()), gauge.toString());
+    assertEquals(meterId, gauge.getMeterId());
     assertEquals(0, gauge.get().intValue());
     gauge.setValue(10);
     assertEquals(10, gauge.get().intValue());
 
     Metrics.Gauge sameGauge = metrics.gauge("test.gauge", "A test gauge", tags);
     assertEquals(gauge, sameGauge);
+  }
+
+  @Test
+  void testGaugeFailure() {
+    List<Tag> tags = new ArrayList<>();
+    tags.add(Tag.of("key1", "value1"));
+    tags.add(Tag.of("key2", "value2"));
+
+    Meter.Id meterId = mock(Meter.Id.class);
+    doReturn(meterId).when(metrics).getGaugeRegisterId(anyString(), anyString(), any(), anyList());
+    Metrics.Gauge gauge = metrics.gauge("test.gauge", "A test gauge", tags);
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> gauge.setMeterId(meterId));
+    assertEquals("MeterId cannot be set more than once", exception.getMessage());
   }
 }
