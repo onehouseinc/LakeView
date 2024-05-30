@@ -9,8 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class MetricsServer {
   public MetricsServer(CollectorRegistry registry, int port) {
-    try (HTTPServer server = initHttpServer(new InetSocketAddress(port), registry)) {
+    try {
       log.info("Starting metrics server");
+      HTTPServer server = initHttpServer(new InetSocketAddress(port), registry);
       Runtime.getRuntime().addShutdownHook(new Thread(server::close));
     } catch (IOException e) {
       throw new RuntimeException("Failed to start Prometheus server", e);
