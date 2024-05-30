@@ -13,15 +13,12 @@ public class MetricsModule extends AbstractModule {
   @Provides
   @Singleton
   static Metrics providesMetrics() {
-    Metrics metrics = Metrics.getInstance();
-    providesMetricsServer(metrics);
-    return metrics;
+    return Metrics.getInstance();
   }
 
   @Provides
   @Singleton
   static MetricsServer providesMetricsServer(Metrics metrics) {
-    log.info("initialising metrics server");
     return new MetricsServer(metrics.getCollectorRegistry(), PROMETHEUS_METRICS_SCRAPE_PORT);
   }
 }
