@@ -2,6 +2,7 @@ package com.onehouse.constants;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class ApiConstants {
@@ -28,5 +29,5 @@ public class ApiConstants {
   // using mapping from:
   // https://chromium.googlesource.com/external/github.com/grpc/grpc/+/refs/tags/v1.21.4-pre1/doc/statuscodes.md
   public static final List<Integer> ACCEPTABLE_HTTP_FAILURE_STATUS_CODES =
-      new ArrayList<>(Arrays.asList(404, 400, 403, 401, 409));
+      Collections.unmodifiableList(new ArrayList<>(Arrays.asList(404, 400, 403, 401, 409)));
 }

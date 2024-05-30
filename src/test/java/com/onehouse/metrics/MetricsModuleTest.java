@@ -11,7 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class MetricsModuleTest {
+class MetricsModuleTest {
   @Mock private Metrics metrics;
 
   @Test

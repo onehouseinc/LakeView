@@ -23,7 +23,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class MetricsTest {
+class MetricsTest {
 
   private Metrics metrics;
   @Mock private PrometheusMeterRegistry meterRegistry;

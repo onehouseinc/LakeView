@@ -32,7 +32,7 @@ class HoodiePropertiesReaderTest {
       throws ExecutionException, InterruptedException {
     String path = "some/path/to/properties/file";
     String propertiesContent =
-        String.format("hoodie.table.name=test_table\nhoodie.table.type=%s", tableType.toString());
+        String.format("hoodie.table.name=test_table%nhoodie.table.type=%s", tableType.toString());
     ByteArrayInputStream inputStream = new ByteArrayInputStream(propertiesContent.getBytes());
 
     when(asyncStorageClient.readFileAsInputStream(path))

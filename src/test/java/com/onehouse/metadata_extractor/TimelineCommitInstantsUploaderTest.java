@@ -206,7 +206,6 @@ class TimelineCommitInstantsUploaderTest {
   void testUploadInstantsInActiveTimeline(boolean archivedTimeLinePresent, boolean isCOW) {
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
         spy(timelineCommitInstantsUploader);
-    Instant currentTime = Instant.now();
 
     doReturn(4)
         .when(timelineCommitInstantsUploaderSpy)
@@ -431,7 +430,6 @@ class TimelineCommitInstantsUploaderTest {
   void testUploadInstantsInActiveTimelineWithOnlySavepoint() {
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
         spy(timelineCommitInstantsUploader);
-    Instant currentTime = Instant.now();
 
     doReturn(4)
         .when(timelineCommitInstantsUploaderSpy)

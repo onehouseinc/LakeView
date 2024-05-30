@@ -28,7 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class HudiMetadataExtractorMetricsTest {
+class HudiMetadataExtractorMetricsTest {
   @Mock private Metrics metrics;
   @Mock private ConfigProvider configProvider;
 
