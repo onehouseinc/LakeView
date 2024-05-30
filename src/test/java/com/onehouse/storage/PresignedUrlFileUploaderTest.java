@@ -7,6 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.onehouse.api.AsyncHttpClientWithRetry;
+import com.onehouse.constants.MetricsConstants;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import okhttp3.MediaType;
@@ -24,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PresignedUrlFileUploaderTest {
   @Mock private AsyncHttpClientWithRetry asyncHttpClientWithRetry;
   @Mock AsyncStorageClient mockAsyncStorageClient;
+  @Mock private HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
   private static final int FAILURE_STATUS_CODE = 500;
   private static final String FAILURE_ERROR = "call failed";
   private static final String FILE_URI = "s3://bucket/file";
@@ -41,7 +44,8 @@ class PresignedUrlFileUploaderTest {
     mockOkHttpCall(PRESIGNED_URL, false);
 
     PresignedUrlFileUploader uploader =
-        new PresignedUrlFileUploader(mockAsyncStorageClient, asyncHttpClientWithRetry);
+        new PresignedUrlFileUploader(
+            mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
 
     uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI).get();
 
@@ -55,7 +59,8 @@ class PresignedUrlFileUploaderTest {
     mockOkHttpCall(PRESIGNED_URL, true);
 
     PresignedUrlFileUploader uploader =
-        new PresignedUrlFileUploader(mockAsyncStorageClient, asyncHttpClientWithRetry);
+        new PresignedUrlFileUploader(
+            mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
 
     ExecutionException exception =
         assertThrows(
@@ -66,6 +71,9 @@ class PresignedUrlFileUploaderTest {
             "java.lang.RuntimeException: file upload failed failed: response code: %d error message: %s",
             FAILURE_STATUS_CODE, FAILURE_ERROR),
         exception.getMessage());
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            MetricsConstants.MetadataUploadFailureReasons.PRESIGNED_URL_UPLOAD_FAILURE);
   }
 
   private void mockOkHttpCall(String url, boolean failure) {

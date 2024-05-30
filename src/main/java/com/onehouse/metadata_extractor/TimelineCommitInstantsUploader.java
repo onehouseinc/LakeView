@@ -21,8 +21,10 @@ import com.onehouse.api.models.request.UploadedFile;
 import com.onehouse.api.models.request.UpsertTableMetricsCheckpointRequest;
 import com.onehouse.config.Config;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
+import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
+import com.onehouse.metrics.HudiMetadataExtractorMetrics;
 import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.PresignedUrlFileUploader;
 import com.onehouse.storage.StorageUtils;
@@ -51,6 +53,7 @@ public class TimelineCommitInstantsUploader {
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
   private final ActiveTimelineInstantBatcher activeTimelineInstantBatcher;
+  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
   private final MetadataExtractorConfig extractorConfig;
 
   @Inject
@@ -61,6 +64,7 @@ public class TimelineCommitInstantsUploader {
       @Nonnull StorageUtils storageUtils,
       @Nonnull ExecutorService executorService,
       @Nonnull ActiveTimelineInstantBatcher activeTimelineInstantBatcher,
+      @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics,
       @Nonnull Config config) {
     this.asyncStorageClient = asyncStorageClient;
     this.presignedUrlFileUploader = presignedUrlFileUploader;
@@ -68,6 +72,7 @@ public class TimelineCommitInstantsUploader {
     this.storageUtils = storageUtils;
     this.executorService = executorService;
     this.activeTimelineInstantBatcher = activeTimelineInstantBatcher;
+    this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
     this.extractorConfig = config.getMetadataExtractorConfig();
     this.mapper = new ObjectMapper();
     mapper.registerModule(new JavaTimeModule());
@@ -152,6 +157,8 @@ public class TimelineCommitInstantsUploader {
                   table,
                   commitTimelineType,
                   throwable);
+              hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
               return null; // handled in uploadNewInstantsSinceCheckpoint function
             });
   }
@@ -209,6 +216,8 @@ public class TimelineCommitInstantsUploader {
                   table,
                   commitTimelineType,
                   throwable);
+              hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
               return null; // handled in uploadNewInstantsSinceCheckpoint
             });
   }
@@ -305,6 +314,9 @@ public class TimelineCommitInstantsUploader {
                         executorService)
                     .exceptionally(
                         throwable -> {
+                          hudiMetadataExtractorMetrics
+                              .incrementTableMetadataProcessingFailureCounter(
+                                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
                           log.error(
                               "error processing batch for table: {}. Skipping processing of further batches of table in current run.",
                               table.getAbsoluteTableUri(),
