@@ -14,6 +14,7 @@ import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
 import com.onehouse.metrics.MetricsModule;
+import com.onehouse.metrics.MetricsServer;
 import com.onehouse.storage.AsyncStorageClient;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,6 +43,7 @@ class MainTest {
   @Mock private TableDiscoveryAndUploadJob mockJob;
   @Mock private AsyncHttpClientWithRetry mockAsyncHttpClientWithRetry;
   @Mock private ConfigV1 mockConfig;
+  @Mock private MetricsServer mockMetricsServer;
   MockedStatic<Guice> guiceMockedStatic;
 
   private Main main;
@@ -72,6 +74,7 @@ class MainTest {
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
         .thenReturn(mockAsyncHttpClientWithRetry);
+    when(mockInjector.getInstance(MetricsServer.class)).thenReturn(mockMetricsServer);
     when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(mockConfigProvider);
     guiceMockedStatic
         .when(() -> Guice.createInjector(any(RuntimeModule.class), any(MetricsModule.class)))
@@ -98,6 +101,7 @@ class MainTest {
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
         .thenReturn(mockAsyncHttpClientWithRetry);
+    when(mockInjector.getInstance(MetricsServer.class)).thenReturn(mockMetricsServer);
     when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(mockConfigProvider);
     doThrow(new RuntimeException()).when(mockJob).runOnce();
     guiceMockedStatic
@@ -135,6 +139,7 @@ class MainTest {
     guiceMockedStatic
         .when(() -> Guice.createInjector(any(RuntimeModule.class), any(MetricsModule.class)))
         .thenReturn(mockInjector);
+    when(mockInjector.getInstance(MetricsServer.class)).thenReturn(mockMetricsServer);
     Main main = new Main(mockParser, configLoader);
     main.start(args);
 
@@ -162,6 +167,7 @@ class MainTest {
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
         .thenReturn(mockAsyncHttpClientWithRetry);
+    when(mockInjector.getInstance(MetricsServer.class)).thenReturn(mockMetricsServer);
     when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(mockConfigProvider);
     guiceMockedStatic
         .when(() -> Guice.createInjector(any(RuntimeModule.class), any(MetricsModule.class)))
@@ -184,6 +190,7 @@ class MainTest {
   private void verifyShutdown() {
     verify(mockJob).shutdown();
     verify(mockAsyncHttpClientWithRetry).shutdownScheduler();
+    verify(mockMetricsServer).shutdown();
   }
 
   private static String getFileAsString(String filePath) throws IOException {

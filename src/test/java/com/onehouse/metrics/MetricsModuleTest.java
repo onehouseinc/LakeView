@@ -19,9 +19,15 @@ class MetricsModuleTest {
   void testProvidesMetrics() {
     try (MockedStatic<Metrics> mockedStatic = mockStatic(Metrics.class)) {
       mockedStatic.when(() -> Metrics.getInstance()).thenReturn(metrics);
-      when(metrics.getCollectorRegistry()).thenReturn(new CollectorRegistry());
       Metrics providedMetrics = MetricsModule.providesMetrics();
       assertNotNull(providedMetrics, "Metrics instance should not be null");
     }
+  }
+
+  @Test
+  void testProvidesMetricServer() {
+    when(metrics.getCollectorRegistry()).thenReturn(new CollectorRegistry());
+    MetricsServer providedMetricsServer = MetricsModule.providesMetricsServer(metrics);
+    assertNotNull(providedMetricsServer, "Metrics instance should not be null");
   }
 }
