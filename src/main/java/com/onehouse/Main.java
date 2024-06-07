@@ -13,6 +13,7 @@ import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
 import com.onehouse.metrics.MetricsModule;
+import com.onehouse.metrics.MetricsServer;
 import com.onehouse.storage.AsyncStorageClient;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.ParseException;
@@ -23,6 +24,7 @@ public class Main {
 
   private TableDiscoveryAndUploadJob job;
   private AsyncHttpClientWithRetry asyncHttpClientWithRetry;
+  private MetricsServer metricsServer;
   private final CliParser parser;
   private final ConfigLoader configLoader;
 
@@ -61,6 +63,7 @@ public class Main {
     job = injector.getInstance(TableDiscoveryAndUploadJob.class);
     asyncHttpClientWithRetry = injector.getInstance(AsyncHttpClientWithRetry.class);
     ConfigProvider configProvider = injector.getInstance(ConfigProvider.class);
+    metricsServer = injector.getInstance(MetricsServer.class);
 
     // If metadata extractor config is provided externally, then override and refresh config
     // periodically.
@@ -116,5 +119,6 @@ public class Main {
   void shutdown() {
     asyncHttpClientWithRetry.shutdownScheduler();
     job.shutdown();
+    metricsServer.shutdown();
   }
 }
