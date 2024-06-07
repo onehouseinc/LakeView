@@ -4,11 +4,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.exporter.HTTPServer;
 import java.io.IOException;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -17,6 +19,7 @@ class MetricsServerTest {
 
   private CollectorRegistry registry;
   private int port;
+  @Mock HTTPServer httpServer;
 
   @BeforeEach
   void setUp() {
@@ -39,6 +42,18 @@ class MetricsServerTest {
               });
 
       assertEquals("Failed to start Prometheus server", exception.getMessage());
+    }
+  }
+
+  @Test
+  @SneakyThrows
+  void testMetricsServerShutdown() {
+    try (MockedStatic<MetricsServer> mocked = mockStatic(MetricsServer.class)) {
+      mocked.when(() -> MetricsServer.initHttpServer(any(), any())).thenReturn(httpServer);
+      MetricsServer metricsServer = new MetricsServer(registry, port);
+      metricsServer.shutdown();
+
+      verify(httpServer).close();
     }
   }
 }
