@@ -242,13 +242,11 @@ Click the “Partition Insights” tab under the table to see charts and statist
 
 <img width="878" alt="Screenshot 2024-06-17 at 6 00 30 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/e202c9b9-8ac3-494c-af59-ee9ba7dcebcb">
 
-**Optimizing partition sizes**
-Operations are typically most efficient when partitions are similar in size. Onehouse provides insights to identify partition sizing inefficiencies:
+**Optimizing partition sizes:** Operations are typically most efficient when partitions are similar in size. Onehouse provides insights to identify partition sizing inefficiencies:
 The Partition Size Distribution chart shows the number of partitions that fall into each size range. Ideally, this chart should look like a bell curve with most partitions near the average size and the range (difference between the max and min partition size) should be small.
 Data Skew indicates if a partition is significantly smaller or larger in total size than the average partition in the table. Onehouse If you find that the Data Skew is high in magnitude for certain partitions, you may reconsider your partitioning strategy to even out partition sizes.
 
-**Optimizing file sizes**
-Small file sizes can lead to poor query performance because they require you to scan more files in order to query data. You can use the p10, p50, etc. file sizes to understand if a partition contains small files. If you identify small files, review your file sizing configs and ensure that these services are running properly. Feel free to leverage the Hudi Slack community for further support on any questions.
+**Optimizing file sizes:** Small file sizes can lead to poor query performance because they require you to scan more files in order to query data. You can use the p10, p50, etc. file sizes to understand if a partition contains small files. If you identify small files, review your file sizing configs and ensure that these services are running properly. Feel free to leverage the Hudi Slack community for further support on any questions.
 
 ## Notifications
 
