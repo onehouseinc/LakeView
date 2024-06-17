@@ -25,8 +25,7 @@ Lakehouse Observer currently supports Apache Hudi tables stored on Amazon S3 and
 1. In the sidebar, open Settings > API Settings, then generate a new token. You will use this token in the next step.
 1. Return to the homepage, where you will be prompted to push your Hudi metadata to the project. Lakehouse Observer works with just your .hoodie metadata. Base data never leaves your cloud. 
 
-
-
+<img width="1207" alt="Screenshot 2024-06-17 at 6 04 02 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/9005db67-e96f-439b-b223-81e0150d40d5">
 
 ## Push Metadata to the Lakehouse Observer
 
@@ -198,10 +197,9 @@ spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientC
 
 After you have pushed your metadata, you should see a “Metadata received” banner on the homepage. You can view your tables by clicking the link on this banner or the “Data” tab on the sidebar.
 
-
+<img width="1404" alt="Screenshot 2024-06-17 at 5 59 54 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/454134f0-bf77-4511-9c32-fe8364bec7f0">
 
 On the Data page, you will see all of your tables organized under Lakes and Databases. Click on a table to view the relevant dashboards, metrics, and history.
-
 
 ## Table Stats
 
@@ -209,6 +207,8 @@ Table statistics give you a birds-eye view of the table’s status and key trend
 
 Click the “Overview” tab under the table to see statistics about the table.
 
+<img width="914" alt="Screenshot 2024-06-17 at 6 00 00 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/20294a96-9069-49af-80e1-6898101d7bb7">
+<img width="791" alt="Screenshot 2024-06-17 at 6 00 04 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/b4e5f087-d667-4101-b91c-9e024c4ef31f">
 
 
 ## Timeline History
@@ -217,11 +217,11 @@ Timeline History gives you a searchable, visual interface for the Hudi timeline.
 
 Click the “History” tab under the table to see the Hudi timeline history. This view shows timeline events such as Commits, Cleaning, and Clustering. You can search and filter for particular table events.
 
-
+<img width="833" alt="Screenshot 2024-06-17 at 6 00 12 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/b7059603-05e5-489a-87b2-3ab85cab8b09">
 
 If you want to view additional details about a timeline event, click “Details”.
 
-
+<img width="796" alt="Screenshot 2024-06-17 at 6 00 20 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/45eeadaa-4981-430d-b47a-0c1786eafeca">
 
 ## Compaction Backlog Monitoring
 
@@ -229,7 +229,7 @@ Compaction Backlog Monitoring (available for Merge on Read tables only) can help
 
 Click the “Compaction Backlog” tab under the table to see the status of recent compactions and log file build-up.
 
-
+<img width="944" alt="Screenshot 2024-06-17 at 6 00 24 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/c99fcf6a-4dec-4ae6-bb0d-a8e297923efb">
 
 **Identifying compaction issues**
 For Merge on Read tables, your real-time views will be outdated if data is not compacted. You can identify uncompacted file groups by checking the number of log files and the time of last compaction. If log files are increasing significantly or compaction has not run in a long time on a file group, you should ensure that compaction is running and consider adjusting your compaction strategy.
@@ -240,7 +240,7 @@ Partition Insights can help you optimize your table performance by improving par
 
 Click the “Partition Insights” tab under the table to see charts and statistics about your partition sizes.
 
-
+<img width="878" alt="Screenshot 2024-06-17 at 6 00 30 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/e202c9b9-8ac3-494c-af59-ee9ba7dcebcb">
 
 **Optimizing partition sizes**
 Operations are typically most efficient when partitions are similar in size. Onehouse provides insights to identify partition sizing inefficiencies:
@@ -256,7 +256,7 @@ Notifications allow you to receive alerts to proactively identify issues and ine
 
 Click the “Notifications” page in the sidebar or the bell icon at the top of the screen to open notifications. By default, notifications are turned off. To turn on notifications, click the gear icon on the notifications page and configure your notification settings.
 
-
+<img width="852" alt="Screenshot 2024-06-17 at 6 00 35 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/bdf00d9c-d9fc-4053-8783-b1280952ae2e">
 
 ## Weekly Review Emails
 
@@ -264,7 +264,7 @@ Lakehouse Observer will send you weekly review emails to help you stay on top of
 
 No action is required to set up weekly review emails – you will receive them automatically when you create or join a Lakehouse Observer project.
 
-
+<img width="552" alt="Screenshot 2024-06-17 at 6 00 42 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/30f15f8c-1795-4568-ae87-26ece172327e">
 
 # FAQ
 
