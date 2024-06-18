@@ -1,3 +1,12 @@
+# Table of Contents
+1. [Lakehouse Observer Overview](#Lakehouse-Observer-Overview)
+1. [Feature Highlights](#Feature-Highlights)
+1. [Setup Guide](#Setup-Guide)
+  1. [Step 1: Install the Metadata Extractor Tool](#Step-1:-Install-the-Metadata-Extractor-Tool)
+  1. [Step 2: Configure the Metadata Extractor Tool](#Step-2:-Configure-the-Metadata-Extractor-Tool)
+  1. [Step 3: Deploy the Metadata Extractor Tool](#Step-3:-Deploy-the-Metadata-Extractor-Tool)
+1. [FAQ](#FAQ)
+
 # Lakehouse Observer Overview
 
 Lakehouse Observer is a free product provided by Onehouse for the Apache Hudi community. Lakehouse Observer exposes an interactive interface with pre-built metrics, charts, and alerts to help you monitor, optimize, and debug your data lakehouse tables.
