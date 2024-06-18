@@ -2,9 +2,8 @@
 1. [Lakehouse Observer Overview](#Lakehouse-Observer-Overview)
 1. [Feature Highlights](#Feature-Highlights)
 1. [Setup Guide](#Setup-Guide)
-  1. [Step 1: Install the Metadata Extractor Tool](#Step-1:-Install-the-Metadata-Extractor-Tool)
-  1. [Step 2: Configure the Metadata Extractor Tool](#Step-2:-Configure-the-Metadata-Extractor-Tool)
-  1. [Step 3: Deploy the Metadata Extractor Tool](#Step-3:-Deploy-the-Metadata-Extractor-Tool)
+    1. [Sign Up](##Sign-Up)
+    1. [Push Metadata to the Lakehouse Observer](##Push-Metadata-to-the-Lakehouse-Observer)
 1. [FAQ](#FAQ)
 
 # Lakehouse Observer Overview
