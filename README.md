@@ -2,7 +2,7 @@
 
 Lakehouse Observer is a free product provided by Onehouse for the Apache Hudi community. Lakehouse Observer exposes an interactive interface with pre-built metrics, charts, and alerts to help you monitor, optimize, and debug your data lakehouse tables.
 
-All of this is possible in just a few steps without sharing access to any base data in the tables:
+All of this is possible in just a few steps without sending any table base data to the Lakehouse Observer:
 1. Contact the Onehouse team at gtm@onehouse.ai to get your email allowlisted
 2. Sign up [here](https://cloud.onehouse.ai/signup/community-edition)  and create an API token in the Onehouse UI
 3. Run the metadata extractor tool in this repo to continuously push table metadata to your Lakehouse Observer (no base data files are pushed)
