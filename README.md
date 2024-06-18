@@ -20,7 +20,7 @@ Lakehouse Observer currently supports Apache Hudi tables stored on Amazon S3 and
 
 ## Sign Up
 
-1. Visit https://cloud.onehouse.ai/signup/community-edition and sign up.
+1. Contact gtm@onehouse.ai to get allowlisted, then visit https://cloud.onehouse.ai/signup/community-edition to create your account.
 1. Upon signing up, you will create a new Lakehouse Observer project.
 1. In the sidebar, open Settings > API Settings, then generate a new token. You will use this token in the next step.
 1. Return to the homepage, where you will be prompted to push your Hudi metadata to the project. Lakehouse Observer works with just your .hoodie metadata. Base data never leaves your cloud. 
@@ -52,7 +52,7 @@ Metadata Sent to the Observer:
 
 There are three methods to deploy the metadata extractor tool:
 1.**Download and run a JAR package:** Download the latest JAR from the [Drive link](https://drive.google.com/drive/folders/1ULWGZ9Tv7nY1GAit5H4euF_e8D6ajMb8)
-1.** Download and run a Helm chart in Kubernetes:** Deploy the tool in your Kubernetes cluster using our Helm chart (present in `/helm-chart` directory).
+1.** Download and install a Helm chart in Kubernetes:** Deploy the tool in your Kubernetes cluster using our Helm chart (present in `/helm-chart` directory).
 1.**Pull and run a Docker image:** Pull from [docker hub](https://hub.docker.com/r/onehouse/hudi-metadata-extractor) and run in supported environments.**Note:** stable releases start with the prefix `release-v`.
   (image: `onehouse/hudi-metadata-extractor`)
 
@@ -144,8 +144,8 @@ Use command line arguments for the JAR file:
 # Option 1: YAML configuration string
 java -jar <jar_path> -c '<yaml_string>'
 
-# Option 2: YAML configuration file
-java -jar <jar_path> -c '<yaml_string>'
+# Option 2: YAML configuration file (local filepaths only)
+java -jar <jar_path> -p '<path_to_config_file>'
 ```
 
 #### Deploy with Docker
@@ -155,7 +155,7 @@ Use command line arguments for the Docker image:
 # Option 1: YAML configuration string
 docker run <image_name> -c '<yaml_string>'
 
-# Option 2: YAML configuration file
+# Option 2: YAML configuration file (local filepaths only)
 docker run <image_name> -p '<path_to_config_file>'
 ```
 
