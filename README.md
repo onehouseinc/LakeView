@@ -1,21 +1,21 @@
 # Table of Contents
-1. [Lakehouse Observer Overview](#Lakehouse-Observer-Overview)
+1. [Intro to LakeView](#Intro-to-LakeView)
 1. [Feature Highlights](#Feature-Highlights)
 1. [Setup Guide](#Setup-Guide)
     1. [Sign Up](##Sign-Up)
-    1. [Push Metadata to the Lakehouse Observer](##Push-Metadata-to-the-Lakehouse-Observer)
+    1. [Push Metadata to LakeView](##Push-Metadata-to-LakeView)
 1. [FAQ](#FAQ)
 
-# Lakehouse Observer Overview
+# Intro to LakeView
 
-Lakehouse Observer is a free product provided by Onehouse for the Apache Hudi community. Lakehouse Observer exposes an interactive interface with pre-built metrics, charts, and alerts to help you monitor, optimize, and debug your data lakehouse tables.
+LakeView is a free product provided by Onehouse for the Apache Hudi community. LakeView exposes an interactive interface with pre-built metrics, charts, and alerts to help you monitor, optimize, and debug your data lakehouse tables.
 
-All of this is possible in just a few steps without sending any table base data to the Lakehouse Observer:
+All of this is possible in just a few steps without sending any table base data to LakeView:
 1. Contact the Onehouse team at gtm@onehouse.ai to get your email allowlisted
 2. Sign up [here](https://cloud.onehouse.ai/signup/community-edition)  and create an API token in the Onehouse UI
-3. Run the metadata extractor tool in this repo to continuously push table metadata to your Lakehouse Observer (no base data files are pushed)
+3. Run the metadata extractor tool in this repo to continuously push table metadata to LakeView (no base data files are pushed)
 
-Lakehouse Observer currently supports Apache Hudi tables stored on Amazon S3 and Google Cloud Storage. We plan to support additional clouds and table formats in the future.
+LakeView currently supports Apache Hudi tables stored on Amazon S3 and Google Cloud Storage. We plan to support additional clouds and table formats in the future.
 
 **Feature Highlights:**
 - UI view of all tables with key metrics and charts (table size, updates over time, etc.)
@@ -91,9 +91,9 @@ Click the “Notifications” page in the sidebar or the bell icon at the top of
 
 ## Weekly Review Emails
 
-Lakehouse Observer will send you weekly review emails to help you stay on top of important activity in your Hudi deployment. These emails include trends, new tables, and potential issues.
+LakeView will send you weekly review emails to help you stay on top of important activity in your Hudi deployment. These emails include trends, new tables, and potential issues.
 
-No action is required to set up weekly review emails – you will receive them automatically when you create or join a Lakehouse Observer project.
+No action is required to set up weekly review emails – you will receive them automatically when you create or join a LakeView project.
 
 <img width="552" alt="Screenshot 2024-06-17 at 6 00 42 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/30f15f8c-1795-4568-ae87-26ece172327e">
 
@@ -102,15 +102,15 @@ No action is required to set up weekly review emails – you will receive them a
 ## Sign Up
 
 1. Contact gtm@onehouse.ai to get allowlisted, then visit https://cloud.onehouse.ai/signup/community-edition to create your account.
-1. Upon signing up, you will create a new Lakehouse Observer project.
+1. Upon signing up, you will create a new LakeView project.
 1. In the sidebar, open Settings > API Settings, then generate a new token. You will use this token in the next step.
-1. Return to the homepage, where you will be prompted to push your Hudi metadata to the project. Lakehouse Observer works with just your .hoodie metadata. Base data never leaves your cloud. 
+1. Return to the homepage, where you will be prompted to push your Hudi metadata to the project. LakeView works with just your .hoodie metadata. Base data never leaves your cloud. 
 
 <img width="1207" alt="Screenshot 2024-06-17 at 6 04 02 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/9005db67-e96f-439b-b223-81e0150d40d5">
 
-## Push Metadata to the Lakehouse Observer
+## Push Metadata to LakeView
 
-Onehouse provides a metadata extractor tool that you can run within your AWS or Google Cloud environment to continuously push metadata from specified file storage path(s) to the Lakehouse Observer. 
+Onehouse provides a metadata extractor tool that you can run within your AWS or Google Cloud environment to continuously push metadata from specified file storage path(s) to LakeView. 
 
 Key functionality of the metadata extractor tool:
 - Data Security: The tool interacts exclusively with metadata. It does not access, move, or control actual data files, ensuring the integrity and confidentiality of your data.
@@ -124,7 +124,7 @@ Supported Cloud Platforms:
 - Amazon Web Services (AWS)
 - Google Cloud Platform (GCP)
 
-Metadata Sent to the Observer:
+Metadata Pushed to LakeView:
 - The instant files in the active and archived timeline of the tables
 - The last modification timestamp of the instant files (this is used to incrementally process changes)
 
@@ -274,11 +274,11 @@ spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientC
 
 # FAQ
 
-## How is Table Observer different from the Onehouse Managed Service?
+## How is LakeView different from Onehouse Cloud?
 
-Lakehouse Observer is a standalone product offered by Onehouse for free to the Apache Hudi community. These are the core differences between the two products:
+LakeView is a standalone product offered by Onehouse for free to the Apache Hudi community. These are the core differences between the two products:
 
-| | Table Observer | Onehouse Managed Service |
+| | LakeView | Onehouse Cloud |
 |-|-|-|
 | **Description** | Observability tools to help you analyze, debug, and optimize Apache Hudi tables | Fully managed ingestion and incremental ETL pipelines, managed table services, and interoperability with Apache Hudi, Apache Iceberg, and Delta Lake. [Learn more.](https://www.onehouse.ai/product) |
 | **Cost** | Free | Free for 30 days, then compute-based pricing |
