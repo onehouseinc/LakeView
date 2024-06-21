@@ -57,7 +57,7 @@ tasks.register('jacocoRootReport', JacocoReport) {
 sonarqube {
     properties {
         property "sonar.gradle.skipCompile", true
-        property "sonar.projectKey", "onehouseinc_lakeView"
+        property "sonar.projectKey", "onehouseinc_lake-view"
         property "sonar.organization", "onehouseinc"
         property "sonar.host.url", "https://sonarcloud.io"
         property "sonar.scm.provider", "git"
