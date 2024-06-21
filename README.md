@@ -133,7 +133,7 @@ Metadata Pushed to LakeView:
 ### Step 1: Install the Metadata Extractor Tool
 
 There are three methods to deploy the metadata extractor tool:
-1. **Download and run a JAR package:** Download the latest JAR from the [Drive link](https://drive.google.com/drive/folders/1ULWGZ9Tv7nY1GAit5H4euF_e8D6ajMb8)
+1. **Download and run a JAR package:** Download the latest JAR from the [release's page](https://github.com/onehouseinc/hudi-metadata-extractor/releases) prefer using the latest stable release
 1. **Download and install a Helm chart in Kubernetes:** Deploy the tool in your Kubernetes cluster using our Helm chart (present in `/helm-chart` directory).
 1. **Pull and run a Docker image:** Pull from [docker hub](https://hub.docker.com/r/onehouse/lake-view) and run in supported environments.**Note:** stable releases start with the prefix `release-v`.
   (image: `onehouse/hudi-metadata-extractor`)
