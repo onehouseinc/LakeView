@@ -20,7 +20,7 @@ import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
 import com.onehouse.metadata_extractor.models.Table;
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
+import com.onehouse.metrics.LakeViewExtractorMetrics;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,7 +48,7 @@ class TableMetadataUploaderServiceTest {
   @Mock private HoodiePropertiesReader hoodiePropertiesReader;
   @Mock private OnehouseApiClient onehouseApiClient;
   @Mock private TimelineCommitInstantsUploader timelineCommitInstantsUploader;
-  @Mock private HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
+  @Mock private LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
   private TableMetadataUploaderService tableMetadataUploaderService;
   private final ObjectMapper mapper = new ObjectMapper();
   private static final String S3_TABLE_URI = "s3://bucket/table/";

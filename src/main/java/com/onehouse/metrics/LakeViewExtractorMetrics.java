@@ -10,12 +10,12 @@ import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import lombok.Getter;
 
-public class HudiMetadataExtractorMetrics {
+public class LakeViewExtractorMetrics {
   private final Metrics metrics;
   private final Metrics.Gauge tablesDiscoveredGaugeMetric;
   private final Config extractorConfig;
 
-  static final String METRICS_COMMON_PREFIX = "hudi_metadata_extractor_";
+  static final String METRICS_COMMON_PREFIX = "lakeView_";
 
   // Tag keys
   static final String CONFIG_VERSION_TAG_KEY = "config_version";
@@ -33,7 +33,7 @@ public class HudiMetadataExtractorMetrics {
       METRICS_COMMON_PREFIX + "table_metadata_processing_failure";
 
   @Inject
-  public HudiMetadataExtractorMetrics(
+  public LakeViewExtractorMetrics(
       @Nonnull Metrics metrics, @Nonnull ConfigProvider configProvider) {
     this.metrics = metrics;
     this.extractorConfig = configProvider.getConfig();

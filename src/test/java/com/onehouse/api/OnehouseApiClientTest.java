@@ -32,7 +32,7 @@ import com.onehouse.api.models.response.UpsertTableMetricsCheckpointResponse;
 import com.onehouse.config.models.common.OnehouseClientConfig;
 import com.onehouse.config.models.configv1.ConfigV1;
 import com.onehouse.constants.MetricsConstants;
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
+import com.onehouse.metrics.LakeViewExtractorMetrics;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collections;
@@ -62,7 +62,7 @@ class OnehouseApiClientTest {
   @Mock private AsyncHttpClientWithRetry client;
   @Mock private ConfigV1 config;
   @Mock private OnehouseClientConfig onehouseClientConfig;
-  @Mock private HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
+  @Mock private LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
   private OnehouseApiClient onehouseApiClient;
 
   private static final int FAILURE_STATUS_CODE_USER = 400;

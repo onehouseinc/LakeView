@@ -46,20 +46,20 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_KEY }}
       - name: Build images
-        run: docker build -t hudi-metadata-extractor .
+        run: docker build -t lake-view .
       - name: Tag and push image
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
         run: |
           for input_tag in ${{ inputs.tags }}; do
-            docker tag hudi-metadata-extractor:latest ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:$input_tag
-            docker push ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:$input_tag
-            cosign sign --key env://COSIGN_PRIVATE_KEY ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:$input_tag -y
+            docker tag lake-view:latest ${{ secrets.DOCKER_USERNAME }}/lake-view:$input_tag
+            docker push ${{ secrets.DOCKER_USERNAME }}/lake-view:$input_tag
+            cosign sign --key env://COSIGN_PRIVATE_KEY ${{ secrets.DOCKER_USERNAME }}/lake-view:$input_tag -y
           
             if [[ $input_tag == release-* ]]; then
-              docker tag hudi-metadata-extractor:latest ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:latest
-              docker push ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:latest
-              cosign sign --key env://COSIGN_PRIVATE_KEY ${{ secrets.DOCKER_USERNAME }}/hudi-metadata-extractor:latest -y
+              docker tag lake-view:latest ${{ secrets.DOCKER_USERNAME }}/lake-view:latest
+              docker push ${{ secrets.DOCKER_USERNAME }}/lake-view:latest
+              cosign sign --key env://COSIGN_PRIVATE_KEY ${{ secrets.DOCKER_USERNAME }}/lake-view:latest -y
             fi
           done

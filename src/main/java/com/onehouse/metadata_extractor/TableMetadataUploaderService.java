@@ -19,7 +19,7 @@ import com.onehouse.api.models.response.InitializeTableMetricsCheckpointResponse
 import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
+import com.onehouse.metrics.LakeViewExtractorMetrics;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,7 +44,7 @@ public class TableMetadataUploaderService {
   private final HoodiePropertiesReader hoodiePropertiesReader;
   private final OnehouseApiClient onehouseApiClient;
   private final TimelineCommitInstantsUploader timelineCommitInstantsUploader;
-  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
+  private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
 
@@ -53,7 +53,7 @@ public class TableMetadataUploaderService {
       @Nonnull HoodiePropertiesReader hoodiePropertiesReader,
       @Nonnull OnehouseApiClient onehouseApiClient,
       @Nonnull TimelineCommitInstantsUploader timelineCommitInstantsUploader,
-      @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics,
+      @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics,
       @Nonnull ExecutorService executorService) {
     this.hoodiePropertiesReader = hoodiePropertiesReader;
     this.onehouseApiClient = onehouseApiClient;

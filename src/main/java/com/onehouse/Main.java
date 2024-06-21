@@ -42,7 +42,7 @@ public class Main {
   }
 
   public void start(String[] args) {
-    log.info("Starting table metadata extractor service");
+    log.info("Starting LakeView extractor service");
     Config config = null;
     try {
       parser.parse(args);

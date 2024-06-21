@@ -45,12 +45,12 @@ public class CliParser {
     if (cmd.hasOption(HELP_OPTION)) {
       HelpFormatter formatter = new HelpFormatter();
       helpRequested = true;
-      formatter.printHelp("Onehouse Metadata Extractor", options);
+      formatter.printHelp("Onehouse LakeView", options);
       return;
     }
 
     if (cmd.hasOption(PATH_OPTION) && cmd.hasOption(CONFIG_OPTION)) {
-      throw new ParseException("Cannot specify both a file path and a config string.");
+      throw new ParseException("Cannot specify both file path and config string.");
     }
 
     if (cmd.hasOption(PATH_OPTION)) {

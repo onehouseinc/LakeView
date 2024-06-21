@@ -1,14 +1,14 @@
 package com.onehouse.metrics;
 
-import static com.onehouse.metrics.HudiMetadataExtractorMetrics.CONFIG_VERSION_TAG_KEY;
-import static com.onehouse.metrics.HudiMetadataExtractorMetrics.EXTRACTOR_JOB_RUN_MODE_TAG_KEY;
-import static com.onehouse.metrics.HudiMetadataExtractorMetrics.METADATA_UPLOAD_FAILURE_REASON_TAG_KEY;
-import static com.onehouse.metrics.HudiMetadataExtractorMetrics.METRICS_COMMON_PREFIX;
-import static com.onehouse.metrics.HudiMetadataExtractorMetrics.TABLE_DISCOVERY_FAILURE_COUNTER;
-import static com.onehouse.metrics.HudiMetadataExtractorMetrics.TABLE_DISCOVERY_SUCCESS_COUNTER;
-import static com.onehouse.metrics.HudiMetadataExtractorMetrics.TABLE_METADATA_PROCESSING_FAILURE_COUNTER;
-import static com.onehouse.metrics.HudiMetadataExtractorMetrics.TABLE_SYNC_ERROR_COUNTER;
-import static com.onehouse.metrics.HudiMetadataExtractorMetrics.TABLE_SYNC_SUCCESS_COUNTER;
+import static com.onehouse.metrics.LakeViewExtractorMetrics.CONFIG_VERSION_TAG_KEY;
+import static com.onehouse.metrics.LakeViewExtractorMetrics.EXTRACTOR_JOB_RUN_MODE_TAG_KEY;
+import static com.onehouse.metrics.LakeViewExtractorMetrics.METADATA_UPLOAD_FAILURE_REASON_TAG_KEY;
+import static com.onehouse.metrics.LakeViewExtractorMetrics.METRICS_COMMON_PREFIX;
+import static com.onehouse.metrics.LakeViewExtractorMetrics.TABLE_DISCOVERY_FAILURE_COUNTER;
+import static com.onehouse.metrics.LakeViewExtractorMetrics.TABLE_DISCOVERY_SUCCESS_COUNTER;
+import static com.onehouse.metrics.LakeViewExtractorMetrics.TABLE_METADATA_PROCESSING_FAILURE_COUNTER;
+import static com.onehouse.metrics.LakeViewExtractorMetrics.TABLE_SYNC_ERROR_COUNTER;
+import static com.onehouse.metrics.LakeViewExtractorMetrics.TABLE_SYNC_SUCCESS_COUNTER;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,7 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class HudiMetadataExtractorMetricsTest {
+class LakeViewExtractorMetricsTest {
   @Mock private Metrics metrics;
   @Mock private ConfigProvider configProvider;
 
@@ -36,7 +36,7 @@ class HudiMetadataExtractorMetricsTest {
   private Config config;
 
   @Mock private Metrics.Gauge tablesDiscoveredGaugeMetric;
-  private HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
+  private LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
 
   @BeforeEach
   void setUp() {
@@ -50,7 +50,7 @@ class HudiMetadataExtractorMetricsTest {
             getDefaultTags()))
         .thenReturn(tablesDiscoveredGaugeMetric);
 
-    hudiMetadataExtractorMetrics = new HudiMetadataExtractorMetrics(metrics, configProvider);
+    hudiMetadataExtractorMetrics = new LakeViewExtractorMetrics(metrics, configProvider);
   }
 
   @Test
