@@ -78,7 +78,7 @@ class ConfigLoaderTest {
   void testLoadingYamlFromString() {
     // minifying using https://onlineyamltools.com/minify-yaml
     String yamlString =
-        "{\"version\": \"V1\", \"onehouseClientConfig\": {\"projectId\": \"PROJECT_ID\", \"apiKey\": \"API_KEY\", \"apiSecret\": \"API_SECRET\", \"userId\": \"USER_ID\"}, \"fileSystemConfiguration\": {\"s3Config\": {\"region\": \"REGION\"}}, \"metadataExtractorConfig\": {\"jobRunMode\": \"ONCE\", \"parserConfig\": [{\"lake\": \"LAKE_NAME\", \"databases\": [{\"name\": \"DATABASE_NAME\", \"basePaths\": [\"BASE_PATH_1\", \"BASE_PATH_2\"]}]}]}}";
+        "{version: V1, onehouseClientConfig: {projectId: 0c043996-9e42-4904-95b9-f98918ebeda4, apiKey: WJ3wiaZLsX0mDrrcw234akQ==, apiSecret: /v+WFnHYscwgwerPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=, userId: KypBAFHYqAevFFeweB5UP2}, fileSystemConfiguration: {s3Config: {region: us-west-2}}, metadataExtractorConfig: {pathExclusionPatterns: ['s3://lake_bucket/tables/excluded'], parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
     Config config = configLoader.loadConfigFromString(yamlString);
     assertEquals(getValidConfigV1Obj(Filesystem.S3, "lake1", "database1"), config);
   }

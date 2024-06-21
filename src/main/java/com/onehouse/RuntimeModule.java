@@ -71,8 +71,7 @@ public class RuntimeModule extends AbstractModule {
       return new S3AsyncStorageClient(s3AsyncClientProvider, storageUtils, executorService);
     } else {
       // if S3 File system credentials are not passed, we default to GCS as GCS client can be
-      // instantiated
-      // without any credentials
+      // instantiated without any credentials
       gcsClientProvider.getGcsClient();
       return new GCSAsyncStorageClient(gcsClientProvider, storageUtils, executorService);
     }
