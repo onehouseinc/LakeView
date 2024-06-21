@@ -41,7 +41,7 @@ class MetricsServerTest {
                 new MetricsServer(registry, port);
               });
 
-      assertEquals("Failed to start Prometheus server", exception.getMessage());
+      assertEquals("Failed to start metrics server", exception.getMessage());
     }
   }
 
