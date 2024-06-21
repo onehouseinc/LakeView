@@ -43,8 +43,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: build/libs/HudiMetadataExtractor-1.0-SNAPSHOT-all.jar
-          asset_name: hudiMetadataExtractor-${{ env.INPUT_TAG }}-all.jar
+          asset_path: build/libs/lakeView-1.0-SNAPSHOT-all.jar
+          asset_name: lakeView-${{ env.INPUT_TAG }}-all.jar
           asset_content_type: application/java-archive
 
       - name: Upload JAR files to Release
@@ -53,6 +53,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: build/libs/HudiMetadataExtractor-1.0-SNAPSHOT-sources.jar
-          asset_name: hudiMetadataExtractor-${{ env.INPUT_TAG }}-sources.jar
+          asset_path: build/libs/lakeView-1.0-SNAPSHOT-sources.jar
+          asset_name: lakeView-${{ env.INPUT_TAG }}-sources.jar
           asset_content_type: application/java-archive

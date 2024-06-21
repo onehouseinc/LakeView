@@ -4,7 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.config.Config;
 import com.onehouse.metadata_extractor.models.Table;
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
+import com.onehouse.metrics.LakeViewExtractorMetrics;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
@@ -22,7 +22,7 @@ public class TableDiscoveryAndUploadJob {
   private final TableMetadataUploaderService tableMetadataUploaderService;
   private final ScheduledExecutorService scheduler;
   private final Object lock = new Object();
-  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
+  private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
 
   private Set<Table> tablesToProcess;
   private Instant previousTableMetadataUploadRunStartTime = Instant.EPOCH;
@@ -31,7 +31,7 @@ public class TableDiscoveryAndUploadJob {
   public TableDiscoveryAndUploadJob(
       @Nonnull TableDiscoveryService tableDiscoveryService,
       @Nonnull TableMetadataUploaderService tableMetadataUploaderService,
-      @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics) {
+      @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics) {
     this.scheduler = getScheduler();
     this.tableDiscoveryService = tableDiscoveryService;
     this.tableMetadataUploaderService = tableMetadataUploaderService;

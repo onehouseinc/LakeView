@@ -1,5 +1,5 @@
 image:
-  repository: onehouse/hudi-metadata-extractor
+  repository: onehouse/lakeView
   pullPolicy: Always
   # Release version to use
   tag: release-v0.9.3

@@ -13,12 +13,6 @@ public class GlueWrapperMain implements UDF1<String, String> {
     return "SUCCESS";
   }
 
-  /**
-   * Only for testing, to be removed.
-   *
-   * @param args .
-   * @throws Exception .
-   */
   public static void main(String[] args) throws Exception {
     GlueWrapperMain wrapperMain = new GlueWrapperMain();
     wrapperMain.call(args[0]);

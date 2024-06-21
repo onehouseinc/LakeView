@@ -5,6 +5,7 @@
     1. [Sign Up](##Sign-Up)
     1. [Push Metadata to LakeView](##Push-Metadata-to-LakeView)
 1. [FAQ](#FAQ)
+1. [LICENSE](#LICENSE)
 
 # Intro to LakeView
 
@@ -313,4 +314,8 @@ When using the metadata extractor tool, it's important to be aware of certain li
 - Reason: The tool processes the archived timeline only once when the table is first discovered. If new instants are committed and moved to the archived timeline while the tool is not running, these instants will not be uploaded upon resumption, leading to potential data loss.
 - Implication: There can be a mismatch between the actual table state and the metrics shown.
 - Resolution: Users should delete the table from the Onehouse console before running the tool again in case of long wait times.
+
+# LICENSE
+
+This repository is licensed under the terms of the Apache 2.0 license
 
