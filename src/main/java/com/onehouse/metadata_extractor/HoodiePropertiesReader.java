@@ -7,7 +7,7 @@ import com.google.inject.Inject;
 import com.onehouse.api.models.request.TableType;
 import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
+import com.onehouse.metrics.LakeViewExtractorMetrics;
 import com.onehouse.storage.AsyncStorageClient;
 import java.io.IOException;
 import java.util.Properties;
@@ -17,12 +17,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HoodiePropertiesReader {
   private final AsyncStorageClient asyncStorageClient;
-  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
+  private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
 
   @Inject
   public HoodiePropertiesReader(
       AsyncStorageClient asyncStorageClient,
-      HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics) {
+      LakeViewExtractorMetrics hudiMetadataExtractorMetrics) {
     this.asyncStorageClient = asyncStorageClient;
     this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
   }

@@ -6,7 +6,7 @@ import static org.mockito.Mockito.*;
 
 import com.onehouse.config.Config;
 import com.onehouse.metadata_extractor.models.Table;
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
+import com.onehouse.metrics.LakeViewExtractorMetrics;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
@@ -37,7 +37,7 @@ class TableDiscoveryAndUploadJobTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private Config config;
 
-  @Mock private HudiMetadataExtractorMetrics mockHudiMetadataExtractorMetrics;
+  @Mock private LakeViewExtractorMetrics mockHudiMetadataExtractorMetrics;
 
   @Captor private ArgumentCaptor<Runnable> runnableCaptor;
 

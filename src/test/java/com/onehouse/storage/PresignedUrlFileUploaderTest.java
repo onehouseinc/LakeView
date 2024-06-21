@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 
 import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.constants.MetricsConstants;
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
+import com.onehouse.metrics.LakeViewExtractorMetrics;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import okhttp3.MediaType;
@@ -26,7 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PresignedUrlFileUploaderTest {
   @Mock private AsyncHttpClientWithRetry asyncHttpClientWithRetry;
   @Mock AsyncStorageClient mockAsyncStorageClient;
-  @Mock private HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
+  @Mock private LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
   private static final int FAILURE_STATUS_CODE = 500;
   private static final String FAILURE_ERROR = "call failed";
   private static final String FILE_URI = "s3://bucket/file";

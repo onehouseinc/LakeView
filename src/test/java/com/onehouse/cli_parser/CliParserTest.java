@@ -37,7 +37,7 @@ class CliParserTest {
               parser.parse(args);
             });
 
-    String expectedMessage = "Cannot specify both a file path and a config string.";
+    String expectedMessage = "Cannot specify both file path and config string.";
     String actualMessage = exception.getMessage();
 
     assertTrue(actualMessage.contains(expectedMessage));

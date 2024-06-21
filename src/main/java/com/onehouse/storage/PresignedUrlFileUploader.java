@@ -3,7 +3,7 @@ package com.onehouse.storage;
 import com.google.inject.Inject;
 import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.constants.MetricsConstants;
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
+import com.onehouse.metrics.LakeViewExtractorMetrics;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
@@ -14,13 +14,13 @@ import okhttp3.RequestBody;
 public class PresignedUrlFileUploader {
   private final AsyncStorageClient asyncStorageClient;
   private final AsyncHttpClientWithRetry asyncHttpClientWithRetry;
-  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
+  private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
 
   @Inject
   public PresignedUrlFileUploader(
       @Nonnull AsyncStorageClient asyncStorageClient,
       @Nonnull AsyncHttpClientWithRetry asyncHttpClientWithRetry,
-      @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics) {
+      @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics) {
     this.asyncStorageClient = asyncStorageClient;
     this.asyncHttpClientWithRetry = asyncHttpClientWithRetry;
     this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;

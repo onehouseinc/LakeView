@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import com.onehouse.api.models.request.TableType;
 import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
+import com.onehouse.metrics.LakeViewExtractorMetrics;
 import com.onehouse.storage.AsyncStorageClient;
 import java.io.ByteArrayInputStream;
 import java.util.concurrent.CompletableFuture;
@@ -23,7 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class HoodiePropertiesReaderTest {
   @Mock private AsyncStorageClient asyncStorageClient;
-  @Mock private HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
+  @Mock private LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
   @InjectMocks private HoodiePropertiesReader hoodiePropertiesReader;
 
   @ParameterizedTest
