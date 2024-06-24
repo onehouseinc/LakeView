@@ -7,8 +7,6 @@ on:
         required: true
         type: string
     secrets:
-      CI_PAT:
-        required: true
       DOCKER_USERNAME:
         required: true
       DOCKER_KEY:
