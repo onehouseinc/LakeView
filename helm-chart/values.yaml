@@ -2,7 +2,7 @@ image:
   repository: onehouse/lakeView
   pullPolicy: Always
   # Release version to use
-  tag: release-v0.9.3
+  tag: release-v0.10.0
 
 # Config yaml to be provided to the extractor. Refer to readme for the format of the config file
 # not required if config path is being provided
