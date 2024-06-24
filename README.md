@@ -248,7 +248,7 @@ Note: When testing Docker locally, use `-v` to mount the volume where the config
 1. Clone the github repo
 1. Navigate into the helm-chart folder by running: `cd helm-chart`
 1. Create the values.yaml file, refer to the fields in [supported_values](helm-chart/values.yaml)
-1. Install using helm: `helm install LakeView . -f <path to values.yaml>`
+1. Install using helm: `helm install lake-view . -f <path to values.yaml>`
 
 #### Deploy with AWS Glue using JAR File
 
