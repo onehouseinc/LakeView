@@ -16,7 +16,7 @@ public class MetricsServer {
       server = initHttpServer(new InetSocketAddress(port), registry);
       Runtime.getRuntime().addShutdownHook(new Thread(server::close));
     } catch (IOException e) {
-      throw new RuntimeException("Failed to start Prometheus server", e);
+      throw new RuntimeException("Failed to start metrics server", e);
     }
   }
 

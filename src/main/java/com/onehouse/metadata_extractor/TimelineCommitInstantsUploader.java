@@ -24,7 +24,7 @@ import com.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.Checkpoint;
 import com.onehouse.metadata_extractor.models.Table;
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
+import com.onehouse.metrics.LakeViewExtractorMetrics;
 import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.PresignedUrlFileUploader;
 import com.onehouse.storage.StorageUtils;
@@ -53,7 +53,7 @@ public class TimelineCommitInstantsUploader {
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
   private final ActiveTimelineInstantBatcher activeTimelineInstantBatcher;
-  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
+  private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
   private final MetadataExtractorConfig extractorConfig;
 
   @Inject
@@ -64,7 +64,7 @@ public class TimelineCommitInstantsUploader {
       @Nonnull StorageUtils storageUtils,
       @Nonnull ExecutorService executorService,
       @Nonnull ActiveTimelineInstantBatcher activeTimelineInstantBatcher,
-      @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics,
+      @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics,
       @Nonnull Config config) {
     this.asyncStorageClient = asyncStorageClient;
     this.presignedUrlFileUploader = presignedUrlFileUploader;

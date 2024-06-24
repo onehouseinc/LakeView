@@ -5,6 +5,7 @@
     1. [Sign Up](##Sign-Up)
     1. [Push Metadata to LakeView](##Push-Metadata-to-LakeView)
 1. [FAQ](#FAQ)
+1. [LICENSE](#LICENSE)
 
 # Intro to LakeView
 
@@ -132,9 +133,9 @@ Metadata Pushed to LakeView:
 ### Step 1: Install the Metadata Extractor Tool
 
 There are three methods to deploy the metadata extractor tool:
-1.**Download and run a JAR package:** Download the latest JAR from the [Drive link](https://drive.google.com/drive/folders/1ULWGZ9Tv7nY1GAit5H4euF_e8D6ajMb8)
-1.** Download and install a Helm chart in Kubernetes:** Deploy the tool in your Kubernetes cluster using our Helm chart (present in `/helm-chart` directory).
-1.**Pull and run a Docker image:** Pull from [docker hub](https://hub.docker.com/r/onehouse/hudi-metadata-extractor) and run in supported environments.**Note:** stable releases start with the prefix `release-v`.
+1. **Download and run a JAR package:** Download the latest JAR from the [release's page](https://github.com/onehouseinc/hudi-metadata-extractor/releases) prefer using the latest stable release
+1. **Download and install a Helm chart in Kubernetes:** Deploy the tool in your Kubernetes cluster using our Helm chart (present in `/helm-chart` directory).
+1. **Pull and run a Docker image:** Pull from [docker hub](https://hub.docker.com/r/onehouse/lake-view) and run in supported environments.**Note:** stable releases start with the prefix `release-v`.
   (image: `onehouse/hudi-metadata-extractor`)
 
 ### Step 2: Configure the Metadata Extractor Tool
@@ -313,4 +314,8 @@ When using the metadata extractor tool, it's important to be aware of certain li
 - Reason: The tool processes the archived timeline only once when the table is first discovered. If new instants are committed and moved to the archived timeline while the tool is not running, these instants will not be uploaded upon resumption, leading to potential data loss.
 - Implication: There can be a mismatch between the actual table state and the metrics shown.
 - Resolution: Users should delete the table from the Onehouse console before running the tool again in case of long wait times.
+
+# LICENSE
+
+This repository is licensed under the terms of the Apache 2.0 license
 

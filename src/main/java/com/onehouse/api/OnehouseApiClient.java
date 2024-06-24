@@ -27,7 +27,7 @@ import com.onehouse.api.models.response.UpsertTableMetricsCheckpointResponse;
 import com.onehouse.config.Config;
 import com.onehouse.config.models.common.OnehouseClientConfig;
 import com.onehouse.constants.MetricsConstants;
-import com.onehouse.metrics.HudiMetadataExtractorMetrics;
+import com.onehouse.metrics.LakeViewExtractorMetrics;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
@@ -47,14 +47,14 @@ import org.apache.commons.lang3.StringUtils;
 public class OnehouseApiClient {
   private final AsyncHttpClientWithRetry asyncClient;
   private final Headers headers;
-  private final HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics;
+  private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
   private final ObjectMapper mapper;
 
   @Inject
   public OnehouseApiClient(
       @Nonnull AsyncHttpClientWithRetry asyncClient,
       @Nonnull Config config,
-      @Nonnull HudiMetadataExtractorMetrics hudiMetadataExtractorMetrics) {
+      @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics) {
     this.asyncClient = asyncClient;
     this.headers = getHeaders(config.getOnehouseClientConfig());
     this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;

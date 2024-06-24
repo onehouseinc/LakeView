@@ -2,17 +2,17 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hudi-metadata-extractor
+  name: lakeView
   labels:
-    app: hudi-metadata-extractor
+    app: lakeView
 spec:
   template:
     metadata:
       labels:
-        app: hudi-metadata-extractor
+        app: lakeView
     spec:
       containers:
-        - name: hudi-metadata-extractor
+        - name: lakeView
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
