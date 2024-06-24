@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
-          token: ${{ secrets.CI_PAT }}
+          token: ${{ github.token }}
       - name: Set up JDK 17 (for sonar analysis) & 8 (default)
         uses: actions/setup-java@v3
         with:

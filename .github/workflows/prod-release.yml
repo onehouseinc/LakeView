@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: recursive
-          token: ${{ secrets.CI_PAT }}
+          token: ${{ github.token }}
           fetch-depth: 0
       - name: Set COMMIT_HASH
         run: echo "COMMIT_HASH=$(git rev-parse $GITHUB_SHA)" >> $GITHUB_ENV
