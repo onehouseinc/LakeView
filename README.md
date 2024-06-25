@@ -147,8 +147,8 @@ The configuration file for the metadata extractor tool is a YAML file that speci
 version: V1
 
 onehouseClientConfig:
-    # can be obtained from the Onehouse UI
-    projectId: <CE project id>
+    # can be obtained from the Onehouse console
+    projectId: <LakeView project id>
     apiKey: <api key>
     apiSecret: <api secret>
     userId: <user id>
@@ -192,7 +192,7 @@ Note: Currently, only version V1 is supported.
 - **userUuid:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse console.
 - **apiKey:** The API key for authentication. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
 - **apiSecret:** The corresponding secret for the API key. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
-- **file:** Absolute path of json/yaml file containing onehouseClientConfig details - projectId, userId, apiKey, apiSecret.
+- **[Optional] file:** Absolute path of json/yaml file containing onehouseClientConfig details - projectId, userId, apiKey, apiSecret - if you wish to break them out into a separate file.
 
 **fileSystemConfiguration**
 - Description: Authentication configuration to access file system, only one of AWS S3 or Google Cloud Storage (GCS) credentials should be passed.
