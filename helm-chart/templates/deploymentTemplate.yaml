@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: lakeView
+  name: lake-view
   labels:
-    app: lakeView
+    app: lake-view
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: lakeView
+      app: lake-view
   template:
     metadata:
       labels:
-        app: lakeView
+        app: lake-view
     spec:
       containers:
-        - name: lakeView
+        - name: lake-view
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:

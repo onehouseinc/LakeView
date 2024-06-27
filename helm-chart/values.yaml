@@ -1,5 +1,5 @@
 image:
-  repository: onehouse/lakeView
+  repository: onehouse/lake-view
   pullPolicy: Always
   # Release version to use
   tag: release-v0.10.0
