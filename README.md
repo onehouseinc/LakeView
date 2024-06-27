@@ -13,7 +13,7 @@ LakeView is a free product provided by Onehouse for the Apache Hudi community. L
 
 All of this is possible in just a few steps without sending any table base data to LakeView:
 1. Contact the Onehouse team at gtm@onehouse.ai to get your email allowlisted
-2. Sign up [here](https://cloud.onehouse.ai/signup/community-edition)  and create an API token in the Onehouse UI
+2. Sign up at https://cloud.onehouse.ai/lakeview/signup and create an API token in the Onehouse console
 3. Run the metadata extractor tool in this repo to continuously push table metadata to LakeView (no base data files are pushed)
 
 LakeView currently supports Apache Hudi tables stored on Amazon S3 and Google Cloud Storage. We plan to support additional clouds and table formats in the future.
