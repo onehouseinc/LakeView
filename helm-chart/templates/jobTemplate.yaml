@@ -2,17 +2,17 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: lakeView
+  name: lake-view
   labels:
-    app: lakeView
+    app: lake-view
 spec:
   template:
     metadata:
       labels:
-        app: lakeView
+        app: lake-view
     spec:
       containers:
-        - name: lakeView
+        - name: lake-view
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
