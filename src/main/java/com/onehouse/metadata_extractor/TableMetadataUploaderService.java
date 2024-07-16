@@ -90,8 +90,7 @@ public class TableMetadataUploaderService {
     if (StringUtils.isNotBlank(table.getTableId())) {
       return table;
     }
-    return table
-        .toBuilder()
+    return table.toBuilder()
         .tableId(getTableIdFromAbsolutePathUrl(table.getAbsoluteTableUri()).toString())
         .build();
   }
@@ -104,10 +103,19 @@ public class TableMetadataUploaderService {
         .thenComposeAsync(
             getTableMetricsCheckpointResponse -> {
               if (getTableMetricsCheckpointResponse.isFailure()) {
-                log.error(
-                    "Error encountered when fetching checkpoint, skipping table processing. status code: {} message {}",
-                    getTableMetricsCheckpointResponse.getStatusCode(),
-                    getTableMetricsCheckpointResponse.getCause());
+                int statusCode = getTableMetricsCheckpointResponse.getStatusCode();
+                StringBuilder errorMessageBuilder = new StringBuilder();
+                errorMessageBuilder.append(
+                    "Error encountered when fetching checkpoint, skipping table processing. ");
+                if (statusCode == 401) {
+                  errorMessageBuilder.append(
+                      "Confirm that your API token is valid and has not expired. ");
+                }
+                errorMessageBuilder.append("status code: ");
+                errorMessageBuilder.append(statusCode);
+                errorMessageBuilder.append(" message ");
+                errorMessageBuilder.append(getTableMetricsCheckpointResponse.getCause());
+                log.error(errorMessageBuilder.toString());
                 return CompletableFuture.completedFuture(false);
               }
 
