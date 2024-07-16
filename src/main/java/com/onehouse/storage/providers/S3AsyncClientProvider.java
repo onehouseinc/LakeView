@@ -38,6 +38,7 @@ public class S3AsyncClientProvider {
     if (s3Config.getEndpoint().isPresent()) {
       logger.debug("Using provided endpoint");
       s3AsyncClientBuilder.endpointOverride(URI.create(s3Config.getEndpoint().get()));
+      s3AsyncClientBuilder.forcePathStyle(true);
     }
 
     if (s3Config.getForcePathStyle().isPresent()) {
@@ -45,6 +46,17 @@ public class S3AsyncClientProvider {
       s3AsyncClientBuilder.forcePathStyle(s3Config.getForcePathStyle().get());
     }
 
+    if (s3Config.getEndpoint().isPresent()) {
+      logger.debug("Using provided endpoint");
+      s3AsyncClientBuilder.endpointOverride(URI.create(s3Config.getEndpoint().get()));
+      s3AsyncClientBuilder.forcePathStyle(true);
+    }
+
+    if (s3Config.getForcePathStyle().isPresent()) {
+      logger.debug("Using provided forcePathStyle");
+      s3AsyncClientBuilder.forcePathStyle(s3Config.getForcePathStyle().get());
+    }
+    
     if (s3Config.getAccessKey().isPresent() && s3Config.getAccessSecret().isPresent()) {
       logger.debug("Using provided accessKey and accessSecret for authentication");
       AwsBasicCredentials awsCredentials =
