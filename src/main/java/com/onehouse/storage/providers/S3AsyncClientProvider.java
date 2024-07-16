@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.onehouse.config.Config;
 import com.onehouse.config.models.common.FileSystemConfiguration;
 import com.onehouse.config.models.common.S3Config;
+import java.net.URI;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
 import org.apache.commons.lang.StringUtils;
@@ -33,6 +34,16 @@ public class S3AsyncClientProvider {
     logger.debug("Instantiating S3 storage client");
     validateS3Config(s3Config);
     S3AsyncClientBuilder s3AsyncClientBuilder = S3AsyncClient.builder();
+
+    if (s3Config.getEndpoint().isPresent()) {
+      logger.debug("Using provided endpoint");
+      s3AsyncClientBuilder.endpointOverride(URI.create(s3Config.getEndpoint().get()));
+    }
+
+    if (s3Config.getForcePathStyle().isPresent()) {
+      logger.debug("Using provided forcePathStyle");
+      s3AsyncClientBuilder.forcePathStyle(s3Config.getForcePathStyle().get());
+    }
 
     if (s3Config.getAccessKey().isPresent() && s3Config.getAccessSecret().isPresent()) {
       logger.debug("Using provided accessKey and accessSecret for authentication");
