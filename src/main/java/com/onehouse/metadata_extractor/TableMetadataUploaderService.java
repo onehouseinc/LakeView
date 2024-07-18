@@ -114,8 +114,10 @@ public class TableMetadataUploaderService {
                 }
                 errorMessageBuilder.append("status code: ");
                 errorMessageBuilder.append(statusCode);
-                errorMessageBuilder.append(" message ");
-                errorMessageBuilder.append(getTableMetricsCheckpointResponse.getCause());
+                if (StringUtils.isNotBlank(getTableMetricsCheckpointResponse.getCause())) {
+                  errorMessageBuilder.append(" message: ");
+                  errorMessageBuilder.append(getTableMetricsCheckpointResponse.getCause());
+                }
                 log.error(errorMessageBuilder.toString());
                 return CompletableFuture.completedFuture(false);
               }
