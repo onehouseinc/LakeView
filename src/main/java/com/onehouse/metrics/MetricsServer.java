@@ -1,5 +1,7 @@
 package com.onehouse.metrics;
 
+import static com.onehouse.constants.MetricsConstants.PROMETHEUS_METRICS_SCRAPING_DISABLED;
+
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.exporter.HTTPServer;
 import java.io.IOException;
@@ -11,12 +13,16 @@ public class MetricsServer {
   private final HTTPServer server;
 
   public MetricsServer(CollectorRegistry registry, int port) {
-    try {
-      log.info("Starting metrics server");
-      server = initHttpServer(new InetSocketAddress(port), registry);
-      Runtime.getRuntime().addShutdownHook(new Thread(server::close));
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to start metrics server", e);
+    if (port != PROMETHEUS_METRICS_SCRAPING_DISABLED) {
+      try {
+        log.info("Starting metrics server");
+        server = initHttpServer(new InetSocketAddress(port), registry);
+        Runtime.getRuntime().addShutdownHook(new Thread(server::close));
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to start metrics server", e);
+      }
+    } else {
+      server = null;
     }
   }
 

@@ -1,5 +1,6 @@
 package com.onehouse.metrics;
 
+import static com.onehouse.constants.MetricsConstants.PROMETHEUS_METRICS_SCRAPING_DISABLED;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -54,6 +55,17 @@ class MetricsServerTest {
       metricsServer.shutdown();
 
       verify(httpServer).close();
+    }
+  }
+
+  @Test
+  @SneakyThrows
+  void testMetricsServerInitWhenScrapingIsNotConfigured() {
+    try (MockedStatic<MetricsServer> mocked = mockStatic(MetricsServer.class)) {
+      MetricsServer metricsServer =
+          new MetricsServer(registry, PROMETHEUS_METRICS_SCRAPING_DISABLED);
+      metricsServer.shutdown();
+      mocked.verify(() -> MetricsServer.initHttpServer(any(), any()), times(0));
     }
   }
 }
