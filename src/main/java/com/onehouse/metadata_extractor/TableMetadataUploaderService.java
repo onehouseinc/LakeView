@@ -105,7 +105,7 @@ public class TableMetadataUploaderService {
             getTableMetricsCheckpointResponse -> {
               if (getTableMetricsCheckpointResponse.isFailure()) {
                 log.error(
-                    "Error encountered when fetching checkpoint, skipping table processing. status code: {} message: {}",
+                    "Error encountered when fetching checkpoint, skipping table processing. status code: {}. message: {}",
                     getTableMetricsCheckpointResponse.getStatusCode(),
                     getTableMetricsCheckpointResponse.getCause());
                 return CompletableFuture.completedFuture(false);
