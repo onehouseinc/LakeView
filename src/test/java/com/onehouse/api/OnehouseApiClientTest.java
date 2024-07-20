@@ -10,6 +10,7 @@ import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_SECRET_KEY;
 import static com.onehouse.constants.ApiConstants.ONEHOUSE_REGION_KEY;
 import static com.onehouse.constants.ApiConstants.ONEHOUSE_USER_UUID_KEY;
 import static com.onehouse.constants.ApiConstants.PROJECT_UID_KEY;
+import static com.onehouse.constants.ApiConstants.UNAUTHORIZED_ERROR_MESSAGE;
 import static com.onehouse.constants.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,6 +67,7 @@ class OnehouseApiClientTest {
   private OnehouseApiClient onehouseApiClient;
 
   private static final int FAILURE_STATUS_CODE_USER = 400;
+  private static final int FAILURE_STATUS_CODE_UNAUTHORIZED = 401;
   private static final int FAILURE_STATUS_CODE_SYSTEM = 500;
   private static final String SAMPLE_HOST = "http://example.com";
   private static final String FAILURE_ERROR = "call failed";
@@ -135,7 +137,12 @@ class OnehouseApiClientTest {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {FAILURE_STATUS_CODE_SYSTEM, FAILURE_STATUS_CODE_USER})
+  @ValueSource(
+      ints = {
+        FAILURE_STATUS_CODE_SYSTEM,
+        FAILURE_STATUS_CODE_USER,
+        FAILURE_STATUS_CODE_UNAUTHORIZED
+      })
   void testAsyncPostFailure(int failureStatusCode) {
     String apiEndpoint = "/testEndpoint";
     String requestJson = "{\"key\":\"value\"}";
@@ -151,6 +158,9 @@ class OnehouseApiClientTest {
                 ? MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR
                 : MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
     assertEquals(failureStatusCode, result.getStatusCode());
+    if (failureStatusCode == FAILURE_STATUS_CODE_UNAUTHORIZED) {
+      assertEquals(UNAUTHORIZED_ERROR_MESSAGE, result.getCause());
+    }
   }
 
   @Test
@@ -165,7 +175,12 @@ class OnehouseApiClientTest {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {FAILURE_STATUS_CODE_SYSTEM, FAILURE_STATUS_CODE_USER})
+  @ValueSource(
+      ints = {
+        FAILURE_STATUS_CODE_SYSTEM,
+        FAILURE_STATUS_CODE_USER,
+        FAILURE_STATUS_CODE_UNAUTHORIZED
+      })
   void testAsyncGetFailure(int failureStatusCode) {
     String apiEndpoint = "/testEndpoint";
     stubOkHttpCall(apiEndpoint, true, failureStatusCode);
@@ -180,6 +195,9 @@ class OnehouseApiClientTest {
                 ? MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR
                 : MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
     assertEquals(failureStatusCode, result.getStatusCode());
+    if (failureStatusCode == FAILURE_STATUS_CODE_UNAUTHORIZED) {
+      assertEquals(UNAUTHORIZED_ERROR_MESSAGE, result.getCause());
+    }
   }
 
   static Stream<Arguments> provideInitializeTableMetricsCheckpointValue() {

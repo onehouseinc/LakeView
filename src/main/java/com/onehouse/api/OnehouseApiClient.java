@@ -11,6 +11,7 @@ import static com.onehouse.constants.ApiConstants.ONEHOUSE_API_SECRET_KEY;
 import static com.onehouse.constants.ApiConstants.ONEHOUSE_REGION_KEY;
 import static com.onehouse.constants.ApiConstants.ONEHOUSE_USER_UUID_KEY;
 import static com.onehouse.constants.ApiConstants.PROJECT_UID_KEY;
+import static com.onehouse.constants.ApiConstants.UNAUTHORIZED_ERROR_MESSAGE;
 import static com.onehouse.constants.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -155,7 +156,11 @@ public class OnehouseApiClient {
       try {
         T errorResponse = typeReference.getDeclaredConstructor().newInstance();
         if (errorResponse instanceof ApiResponse) {
-          ((ApiResponse) errorResponse).setError(response.code(), response.message());
+          if (response.code() == 401) {
+            ((ApiResponse) errorResponse).setError(response.code(), UNAUTHORIZED_ERROR_MESSAGE);
+          } else {
+            ((ApiResponse) errorResponse).setError(response.code(), response.message());
+          }
         }
         response.close();
         emmitApiErrorMetric(response.code());
