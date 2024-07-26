@@ -102,10 +102,10 @@ No action is required to set up weekly review emails – you will receive them a
 
 ## Sign Up
 
-1. Contact gtm@onehouse.ai to get allowlisted, then visit https://cloud.onehouse.ai/signup/community-edition to create your account.
-1. Upon signing up, you will create a new LakeView project.
+1. Visit the [LakeView website](https://www.onehouse.ai/product/lakeview) to request access. You will receive an email when you are approved.
+1. Sign up at https://cloud.onehouse.ai/lakeview/signup.
 1. In the sidebar, open Settings > API Settings, then generate a new token. You will use this token in the next step.
-1. Return to the homepage, where you will be prompted to push your Hudi metadata to the project. LakeView works with just your .hoodie metadata. Base data never leaves your cloud. 
+1. Return to the homepage, where you will be prompted to push your Hudi metadata to the project. LakeView works with just your .hoodie metadata. Base data never leaves your cloud.
 
 <img width="1207" alt="Screenshot 2024-06-17 at 6 04 02 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/9005db67-e96f-439b-b223-81e0150d40d5">
 
