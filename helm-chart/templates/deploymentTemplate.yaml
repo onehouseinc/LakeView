@@ -34,4 +34,9 @@ spec:
             - name: {{ $key }}
               value: "{{ $value }}"
           {{- end }}
+          securityContext:
+            runAsGroup: "{{ .Values.runAsGroup }}"
+      securityContext:
+        runAsGroup: "{{ .Values.runAsGroup }}"
+        runAsUser: "{{ .Values.runAsUser }}"
 {{- end }}
