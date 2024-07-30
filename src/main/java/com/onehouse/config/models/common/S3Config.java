@@ -17,4 +17,6 @@ public class S3Config {
   // optional to be used for quick testing
   @Builder.Default private Optional<String> accessKey = Optional.empty();
   @Builder.Default private Optional<String> accessSecret = Optional.empty();
+  @Builder.Default private Optional<String> endpoint = Optional.empty();
+  @Builder.Default private Optional<Boolean> forcePathStyle = Optional.empty();
 }
