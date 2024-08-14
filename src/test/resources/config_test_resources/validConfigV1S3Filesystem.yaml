@@ -1,26 +1,22 @@
 version: V1
 
 onehouseClientConfig:
-  # can be obtained from the Onehouse console
-  projectId: c3eb3868-6979-41cd-9018-952d29a43337
-  apiKey: XXXXXX
-  apiSecret: YYYYY
-  userId: x2gblCN8xNSurvCsqDaGJ84zy913
-  file: delta.yaml
+  projectId: 0c043996-9e42-4904-95b9-f98918ebeda4
+  apiKey: WJ3wiaZLsX0mDrrcw234akQ==
+  apiSecret: /v+WFnHYscwgwerPn91VK+6Lrp2/11Bp0ojKp+fhOAOA=
+  userId: KypBAFHYqAevFFeweB5UP2
 
 fileSystemConfiguration:
-  # Provide either s3Config or gcsConfig
   s3Config:
     region: us-west-2
-    accessKey: admin
-    accessSecret: password
 
 metadataExtractorConfig:
-  jobRunMode: ONCE
   pathExclusionPatterns:
+    - s3://lake_bucket/tables/excluded
   parserConfig:
-    - lake: <lake1>
+    - lake: lake1
       databases:
-        - name: people
-          basePaths: ["s3://warehouse/people"]
-    # Add additional lakes and databases as needed
+        - name: database1
+          basePaths:
+          -
+            s3://lake_bucket/tables
