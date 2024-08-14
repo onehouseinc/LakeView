@@ -357,7 +357,6 @@ public class TimelineCommitInstantsUploader {
 
               List<CompletableFuture<Void>> uploadFutures = new ArrayList<>();
               for (int i = 0; i < batch.size(); i++) {
-                System.gc();
                 uploadFutures.add(
                     presignedUrlFileUploader.uploadFileToPresignedUrl(
                         generateCommitMetadataUploadUrlResponse.getUploadUrls().get(i),
