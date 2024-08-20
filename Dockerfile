@@ -6,4 +6,17 @@ RUN useradd -u 1001 onehouse
 USER onehouse
 
 ENV FAT_JAR LakeView-1.0-SNAPSHOT-all.jar
-ENTRYPOINT ["sh", "-c", "java -XX:MaxRAMPercentage=75.0 -jar $FAT_JAR \"$@\"", "--"]
+ENTRYPOINT ["sh", "-c", "java \
+  -XX:+UseG1GC \
+  -XX:MaxRAMPercentage=75.0 \
+  -XX:InitiatingHeapOccupancyPercent=45 \
+  -XX:G1ReservePercent=15 \
+  -XX:SurvivorRatio=6 \
+  -XX:+AlwaysPreTouch \
+  -XX:+UseStringDeduplication \
+  -XX:+UseCompressedOops \
+  -XX:+ParallelRefProcEnabled \
+  -XX:G1HeapRegionSize=16M \
+  -XX:+UseNUMA \
+  -Xlog:gc*:gc.log:time,uptime,level,tags:filecount=10,filesize=10M \
+  -jar $FAT_JAR \"$@\"", "--"]
