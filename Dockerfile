@@ -18,5 +18,5 @@ ENTRYPOINT ["sh", "-c", "java \
   -XX:+ParallelRefProcEnabled \
   -XX:G1HeapRegionSize=16M \
   -XX:+UseNUMA \
-  -Xlog:gc*:gc.log:time,uptime,level,tags:filecount=10,filesize=10M \
+  -Xlog:gc*:stdout:time,uptime,level,tags \
   -jar $FAT_JAR \"$@\"", "--"]
