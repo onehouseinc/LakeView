@@ -102,6 +102,11 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
   }
 
   @Override
+  public CompletableFuture<Pair<InputStream, Long>> readFileAsInputStream2(String path) {
+    return null;
+  }
+
+  @Override
   public CompletableFuture<byte[]> readFileAsBytes(String gcsUri) {
     return readBlob(gcsUri).thenApply(Blob::getContent);
   }

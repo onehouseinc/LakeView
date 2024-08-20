@@ -67,9 +67,9 @@ public class PresignedUrlFileUploader {
   public CompletableFuture<Void> uploadFileToPresignedUrl(String presignedUrl, String fileUrl) {
     log.info("trying to upload to presigned url");
     return asyncStorageClient
-        .readFileAsInputStream(fileUrl)
+        .readFileAsInputStream2(fileUrl)
         .thenCompose(
-            inputStream ->
+            pair ->
                 CompletableFuture.runAsync(
                     () -> {
                       log.info("read object as input stream");
@@ -77,6 +77,8 @@ public class PresignedUrlFileUploader {
                           new Request.Builder()
                               .url(presignedUrl)
                               .put(
+                                  // okhttp streaming:
+                                  // https://github.com/square/okhttp/blob/master/samples/guide/src/main/java/okhttp3/recipes/PostStreaming.java
                                   new RequestBody() {
                                     @Override
                                     public MediaType contentType() {
@@ -84,8 +86,13 @@ public class PresignedUrlFileUploader {
                                     }
 
                                     @Override
+                                    public long contentLength() {
+                                      return pair.getRight();
+                                    }
+
+                                    @Override
                                     public void writeTo(BufferedSink sink) throws IOException {
-                                      try (InputStream is = inputStream) {
+                                      try (InputStream is = pair.getLeft()) {
                                         byte[] buffer = new byte[5 * 1024 * 1024]; // 5MB buffer
                                         int bytesRead;
                                         while ((bytesRead = is.read(buffer)) != -1) {

@@ -120,6 +120,21 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
   }
 
   @Override
+  public CompletableFuture<Pair<InputStream, Long>> readFileAsInputStream2(String s3Uri) {
+    log.debug("Reading S3 file as InputStream: {}", s3Uri);
+    GetObjectRequest getObjectRequest =
+        GetObjectRequest.builder()
+            .bucket(storageUtils.getBucketNameFromUri(s3Uri))
+            .key(storageUtils.getPathFromUrl(s3Uri))
+            .build();
+
+    return s3AsyncClientProvider
+        .getS3AsyncClient()
+        .getObject(getObjectRequest, AsyncResponseTransformer.toBlockingInputStream())
+        .thenApply(resp -> Pair.of((InputStream) resp, resp.response().contentLength()));
+  }
+
+  @Override
   public CompletableFuture<byte[]> readFileAsBytes(String s3Uri) {
     return readFileFromS3(s3Uri).thenApplyAsync(BytesWrapper::asByteArray);
   }
