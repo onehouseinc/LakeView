@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 import com.onehouse.storage.models.File;
+import com.onehouse.storage.models.FileStreamData;
 import com.onehouse.storage.providers.S3AsyncClientProvider;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
@@ -102,15 +105,18 @@ class S3AsyncStorageClientTest {
   }
 
   @Test
-  void testReadFileAsInputStream() throws ExecutionException, InterruptedException, IOException {
+  void testStreamFileAsync() throws ExecutionException, InterruptedException, IOException {
     byte[] fileContent = "file content".getBytes(StandardCharsets.UTF_8);
+    long contentLength = fileContent.length;
 
-    stubReadFileFromS3(fileContent);
+    stubStreamFileFromS3(fileContent, contentLength);
 
-    InputStream result = s3AsyncStorageClient.streamFileAsync(S3_URI).get().getInputStream();
+    FileStreamData result = s3AsyncStorageClient.streamFileAsync(S3_URI).get();
+    InputStream resultInputStream = result.getInputStream();
 
-    byte[] resultBytes = toByteArray(result);
+    byte[] resultBytes = toByteArray(resultInputStream);
     assertArrayEquals(fileContent, resultBytes);
+    assertEquals(contentLength, result.getFileSize());
   }
 
   @Test
@@ -122,6 +128,20 @@ class S3AsyncStorageClientTest {
     byte[] resultBytes = s3AsyncStorageClient.readFileAsBytes(S3_URI).get();
 
     assertArrayEquals(fileContent, resultBytes);
+  }
+
+  private void stubStreamFileFromS3(byte[] fileContent, long contentLength) throws IOException {
+    GetObjectRequest expectedRequest =
+        GetObjectRequest.builder().bucket(TEST_BUCKET).key(TEST_KEY).build();
+
+    GetObjectResponse getObjectResponse =
+        GetObjectResponse.builder().contentLength(contentLength).build();
+    InputStream inputStream = new ByteArrayInputStream(fileContent);
+    ResponseInputStream<GetObjectResponse> responseInputStream =
+        new ResponseInputStream<>(getObjectResponse, inputStream);
+
+    when(mockS3AsyncClient.getObject(eq(expectedRequest), any(AsyncResponseTransformer.class)))
+        .thenReturn(CompletableFuture.completedFuture(responseInputStream));
   }
 
   private void stubReadFileFromS3(byte[] fileContent) {
