@@ -294,9 +294,12 @@ Onehouse will NOT see your column stats. While column stats are present in the [
  
 When using the metadata extractor tool, it's important to be aware of certain limitations that can affect its functionality and the accuracy of the metrics provided.
 
-**Issues with Tables with same name in a (lake, database)**
-- Scenario: If two tables with the same name are present in the same (lake, database) pair, the tool will not be able to distinguish between them.
-- Implication: This will lead to failure in table initialization, and you would see an error something like `Table with lake: <lakeId>, database: <db-name>, table: <table-name> already exists` in the metadata extractor logs.
+**Issues with Tables having same name in a (lake, database)**
+- Scenario: If two tables having the same name are present in the same (lake, database) pair, the tool will not be able to distinguish between them.
+- Implication: This will lead to failure in table initialization, and you would see an error something like below in the metadata extractor logs.
+    ```
+    A table already exists in Lake: <lake-id> database: <db-name> with this name: <table-name>. Please consider ingesting this table under a different lake or database to avoid conflicts
+    ```
 - Resolution: Users should ensure that tables have unique names within a (lake, database) pair. If there are multiple tables with the same name, consider moving them to different databases.
 
 **Issues with Re-created Tables in the Same Path**
