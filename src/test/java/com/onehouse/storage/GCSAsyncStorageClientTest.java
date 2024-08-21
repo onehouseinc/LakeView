@@ -40,7 +40,6 @@ class GCSAsyncStorageClientTest {
   @Mock private Blob mockBlob2;
   @Mock private Page<Blob> mockPage1;
   @Mock private Page<Blob> mockPage2;
-  @Mock private ReadChannel mockReadChannel;
   private GCSAsyncStorageClient gcsAsyncStorageClient;
   private static final String GCS_URI = "gs://test-bucket/test-key";
   private static final String TEST_BUCKET = "test-bucket";
