@@ -1,24 +1,27 @@
 package com.onehouse.storage;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metrics.LakeViewExtractorMetrics;
+import com.onehouse.storage.models.FileStreamData;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import okhttp3.MediaType;
 import okhttp3.Protocol;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -27,16 +30,20 @@ class PresignedUrlFileUploaderTest {
   @Mock private AsyncHttpClientWithRetry asyncHttpClientWithRetry;
   @Mock AsyncStorageClient mockAsyncStorageClient;
   @Mock private LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
+  @Mock private InputStream inputStream;
+
   private static final int FAILURE_STATUS_CODE = 500;
   private static final String FAILURE_ERROR = "call failed";
   private static final String FILE_URI = "s3://bucket/file";
   private static final String PRESIGNED_URL = "https://presigned-url";
-  private static final byte[] FILE_CONTENT = new byte[] {};
+  private static final long LARGE_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
   @BeforeEach
   void setup() {
-    when(mockAsyncStorageClient.readFileAsBytes(FILE_URI))
-        .thenReturn(CompletableFuture.completedFuture(FILE_CONTENT));
+    when(mockAsyncStorageClient.streamFileAsync(FILE_URI))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                FileStreamData.builder().inputStream(inputStream).fileSize(0).build()));
   }
 
   @Test
@@ -49,13 +56,12 @@ class PresignedUrlFileUploaderTest {
 
     uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI).get();
 
-    verify(mockAsyncStorageClient).readFileAsBytes(FILE_URI);
+    verify(mockAsyncStorageClient).streamFileAsync(FILE_URI);
     verify(asyncHttpClientWithRetry).makeRequestWithRetry(any());
   }
 
   @Test
   void testUploadFileToPresignedUrlFailure() {
-
     mockOkHttpCall(PRESIGNED_URL, true);
 
     PresignedUrlFileUploader uploader =
@@ -68,12 +74,55 @@ class PresignedUrlFileUploaderTest {
             () -> uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI).get());
     assertEquals(
         String.format(
-            "java.lang.RuntimeException: file upload failed failed: response code: %d error message: %s",
+            "java.lang.RuntimeException: File upload failed: response code: %s error message: %s",
             FAILURE_STATUS_CODE, FAILURE_ERROR),
         exception.getMessage());
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
             MetricsConstants.MetadataUploadFailureReasons.PRESIGNED_URL_UPLOAD_FAILURE);
+  }
+
+  @Test
+  void testUploadLargeFile() throws ExecutionException, InterruptedException, IOException {
+    when(mockAsyncStorageClient.streamFileAsync(FILE_URI))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                FileStreamData.builder()
+                    .inputStream(inputStream)
+                    .fileSize(LARGE_FILE_SIZE)
+                    .build()));
+
+    mockOkHttpCall(PRESIGNED_URL, false);
+
+    PresignedUrlFileUploader uploader =
+        new PresignedUrlFileUploader(
+            mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
+
+    uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI).get();
+
+    verify(mockAsyncStorageClient).streamFileAsync(FILE_URI);
+    verify(asyncHttpClientWithRetry).makeRequestWithRetry(any());
+  }
+
+  @Test
+  void testRequestBodyConstruction() throws IOException, ExecutionException, InterruptedException {
+    ArgumentCaptor<Request> requestCaptor = ArgumentCaptor.forClass(Request.class);
+    mockOkHttpCall(PRESIGNED_URL, false);
+
+    PresignedUrlFileUploader uploader =
+        new PresignedUrlFileUploader(
+            mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
+
+    uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI).get();
+
+    verify(asyncHttpClientWithRetry).makeRequestWithRetry(requestCaptor.capture());
+
+    Request capturedRequest = requestCaptor.getValue();
+    RequestBody capturedRequestBody = capturedRequest.body();
+
+    assertNotNull(capturedRequestBody);
+    assertEquals(MediaType.parse("application/octet-stream"), capturedRequestBody.contentType());
+    assertEquals(0, capturedRequestBody.contentLength());
   }
 
   private void mockOkHttpCall(String url, boolean failure) {

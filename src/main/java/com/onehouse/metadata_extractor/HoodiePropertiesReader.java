@@ -10,6 +10,7 @@ import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
 import com.onehouse.metrics.LakeViewExtractorMetrics;
 import com.onehouse.storage.AsyncStorageClient;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
@@ -30,13 +31,12 @@ public class HoodiePropertiesReader {
   public CompletableFuture<ParsedHudiProperties> readHoodieProperties(String path) {
     log.debug("parsing {} file", path);
     return asyncStorageClient
-        .readFileAsInputStream(path)
+        .streamFileAsync(path)
         .thenApplyAsync(
-            inputStream -> {
+            fileStreamData -> {
               Properties properties = new Properties();
-              try {
-                properties.load(inputStream);
-                inputStream.close();
+              try (InputStream is = fileStreamData.getInputStream()) {
+                properties.load(is);
               } catch (IOException e) {
                 throw new RuntimeException("Failed to load properties file", e);
               }
