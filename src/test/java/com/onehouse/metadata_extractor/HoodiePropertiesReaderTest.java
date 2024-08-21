@@ -9,7 +9,9 @@ import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metadata_extractor.models.ParsedHudiProperties;
 import com.onehouse.metrics.LakeViewExtractorMetrics;
 import com.onehouse.storage.AsyncStorageClient;
+import com.onehouse.storage.models.FileStreamData;
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.Test;
@@ -35,8 +37,8 @@ class HoodiePropertiesReaderTest {
         String.format("hoodie.table.name=test_table%nhoodie.table.type=%s", tableType.toString());
     ByteArrayInputStream inputStream = new ByteArrayInputStream(propertiesContent.getBytes());
 
-    when(asyncStorageClient.readFileAsInputStream(path))
-        .thenReturn(CompletableFuture.completedFuture(inputStream));
+    when(asyncStorageClient.streamFileAsync(path))
+        .thenReturn(CompletableFuture.completedFuture(getFileStreamData(inputStream)));
 
     CompletableFuture<ParsedHudiProperties> futureResult =
         hoodiePropertiesReader.readHoodieProperties(path);
@@ -54,8 +56,8 @@ class HoodiePropertiesReaderTest {
         "hoodie.table.identifier=test_table\nhoodie.table.type=COPY_ON_WRITE";
     ByteArrayInputStream inputStream = new ByteArrayInputStream(propertiesContent.getBytes());
 
-    when(asyncStorageClient.readFileAsInputStream(path))
-        .thenReturn(CompletableFuture.completedFuture(inputStream));
+    when(asyncStorageClient.streamFileAsync(path))
+        .thenReturn(CompletableFuture.completedFuture(getFileStreamData(inputStream)));
 
     CompletableFuture<ParsedHudiProperties> futureResult =
         hoodiePropertiesReader.readHoodieProperties(path);
@@ -68,7 +70,7 @@ class HoodiePropertiesReaderTest {
   void testReadHoodiePropertiesEncountersError() {
     String path = "some/path/to/properties/file";
 
-    when(asyncStorageClient.readFileAsInputStream(path))
+    when(asyncStorageClient.streamFileAsync(path))
         .thenReturn(failedFuture(new Exception("File not found")));
     CompletableFuture<ParsedHudiProperties> futureResult =
         hoodiePropertiesReader.readHoodieProperties(path);
@@ -83,5 +85,9 @@ class HoodiePropertiesReaderTest {
     CompletableFuture<R> future = new CompletableFuture<>();
     future.completeExceptionally(error);
     return future;
+  }
+
+  private static FileStreamData getFileStreamData(InputStream is) {
+    return FileStreamData.builder().inputStream(is).fileSize(0).build();
   }
 }

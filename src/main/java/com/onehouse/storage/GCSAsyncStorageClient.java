@@ -7,8 +7,8 @@ import com.google.cloud.storage.Storage;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.onehouse.storage.models.File;
+import com.onehouse.storage.models.FileStreamData;
 import com.onehouse.storage.providers.GcsClientProvider;
-import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -97,13 +97,14 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
   }
 
   @Override
-  public CompletableFuture<InputStream> readFileAsInputStream(String gcsUri) {
-    return readBlob(gcsUri).thenApply(blob -> Channels.newInputStream(blob.reader()));
-  }
-
-  @Override
-  public CompletableFuture<Pair<InputStream, Long>> readFileAsInputStream2(String path) {
-    return null;
+  public CompletableFuture<FileStreamData> streamFileAsync(String gcsUri) {
+    return readBlob(gcsUri)
+        .thenApply(
+            blob ->
+                FileStreamData.builder()
+                    .inputStream(Channels.newInputStream(blob.reader()))
+                    .fileSize(blob.getSize())
+                    .build());
   }
 
   @Override

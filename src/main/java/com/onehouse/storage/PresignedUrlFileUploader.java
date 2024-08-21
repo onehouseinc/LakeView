@@ -30,49 +30,14 @@ public class PresignedUrlFileUploader {
     this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
   }
 
-  //  public CompletableFuture<Void> uploadFileToPresignedUrl(String presignedUrl, String fileUrl) {
-  //    log.debug("Uploading {} to retrieved presigned url", fileUrl);
-  //    return asyncStorageClient
-  //        .readFileAsBytes(fileUrl)
-  //        .thenComposeAsync(
-  //            response -> {
-  //              RequestBody requestBody = RequestBody.create(response);
-  //              Request request = new
-  // Request.Builder().url(presignedUrl).put(requestBody).build();
-  //
-  //              return asyncHttpClientWithRetry
-  //                  .makeRequestWithRetry(request)
-  //                  .thenApply(
-  //                      uploadResponse -> {
-  //                        if (!uploadResponse.isSuccessful()) {
-  //                          int statusCode = uploadResponse.code();
-  //                          String message = uploadResponse.message();
-  //                          uploadResponse.close();
-  //                          hudiMetadataExtractorMetrics
-  //                              .incrementTableMetadataProcessingFailureCounter(
-  //                                  MetricsConstants.MetadataUploadFailureReasons
-  //                                      .PRESIGNED_URL_UPLOAD_FAILURE);
-  //                          throw new RuntimeException(
-  //                              String.format(
-  //                                  "file upload failed failed: response code: %s error message:
-  // %s",
-  //                                  statusCode, message));
-  //                        }
-  //                        uploadResponse.close();
-  //                        return null; // Successfully uploaded
-  //                      });
-  //            });
-  //  }
-
   public CompletableFuture<Void> uploadFileToPresignedUrl(String presignedUrl, String fileUrl) {
-    log.info("trying to upload to presigned url");
+    log.debug("Uploading {} to retrieved presigned url", fileUrl);
     return asyncStorageClient
-        .readFileAsInputStream2(fileUrl)
+        .streamFileAsync(fileUrl)
         .thenCompose(
-            pair ->
+            fileStreamData ->
                 CompletableFuture.runAsync(
                     () -> {
-                      log.info("read object as input stream");
                       Request request =
                           new Request.Builder()
                               .url(presignedUrl)
@@ -87,12 +52,12 @@ public class PresignedUrlFileUploader {
 
                                     @Override
                                     public long contentLength() {
-                                      return pair.getRight();
+                                      return fileStreamData.getFileSize();
                                     }
 
                                     @Override
                                     public void writeTo(BufferedSink sink) throws IOException {
-                                      try (InputStream is = pair.getLeft()) {
+                                      try (InputStream is = fileStreamData.getInputStream()) {
                                         byte[] buffer = new byte[5 * 1024 * 1024]; // 5MB buffer
                                         int bytesRead;
                                         while ((bytesRead = is.read(buffer)) != -1) {
@@ -120,7 +85,6 @@ public class PresignedUrlFileUploader {
                                             "File upload failed: response code: %s error message: %s",
                                             statusCode, message));
                                   }
-                                  log.info("Successfully uploaded to presigned URL");
                                 } finally {
                                   response.close();
                                 }

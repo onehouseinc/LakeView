@@ -107,7 +107,7 @@ class S3AsyncStorageClientTest {
 
     stubReadFileFromS3(fileContent);
 
-    InputStream result = s3AsyncStorageClient.readFileAsInputStream(S3_URI).get();
+    InputStream result = s3AsyncStorageClient.streamFileAsync(S3_URI).get().getInputStream();
 
     byte[] resultBytes = toByteArray(result);
     assertArrayEquals(fileContent, resultBytes);

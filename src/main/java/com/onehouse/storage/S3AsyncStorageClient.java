@@ -2,8 +2,8 @@ package com.onehouse.storage;
 
 import com.google.inject.Inject;
 import com.onehouse.storage.models.File;
+import com.onehouse.storage.models.FileStreamData;
 import com.onehouse.storage.providers.S3AsyncClientProvider;
-import java.io.InputStream;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,10 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import software.amazon.awssdk.core.BytesWrapper;
-import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 
@@ -99,56 +97,35 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
     return files;
   }
 
-  //  @Override
-  //  public CompletableFuture<InputStream> readFileAsInputStream(String s3Uri) {
-  //    return readFileFromS3(s3Uri).thenApplyAsync(BytesWrapper::asInputStream);
-  //  }
-
   @Override
-  public CompletableFuture<InputStream> readFileAsInputStream(String s3Uri) {
+  public CompletableFuture<FileStreamData> streamFileAsync(String s3Uri) {
     log.debug("Reading S3 file as InputStream: {}", s3Uri);
-    GetObjectRequest getObjectRequest =
-        GetObjectRequest.builder()
-            .bucket(storageUtils.getBucketNameFromUri(s3Uri))
-            .key(storageUtils.getPathFromUrl(s3Uri))
-            .build();
-
+    GetObjectRequest getObjectRequest = getObjectRequest(s3Uri);
     return s3AsyncClientProvider
         .getS3AsyncClient()
         .getObject(getObjectRequest, AsyncResponseTransformer.toBlockingInputStream())
-        .thenApply(resp -> (InputStream) resp);
-  }
-
-  @Override
-  public CompletableFuture<Pair<InputStream, Long>> readFileAsInputStream2(String s3Uri) {
-    log.debug("Reading S3 file as InputStream: {}", s3Uri);
-    GetObjectRequest getObjectRequest =
-        GetObjectRequest.builder()
-            .bucket(storageUtils.getBucketNameFromUri(s3Uri))
-            .key(storageUtils.getPathFromUrl(s3Uri))
-            .build();
-
-    return s3AsyncClientProvider
-        .getS3AsyncClient()
-        .getObject(getObjectRequest, AsyncResponseTransformer.toBlockingInputStream())
-        .thenApply(resp -> Pair.of((InputStream) resp, resp.response().contentLength()));
+        .thenApply(
+            responseResponseInputStream ->
+                FileStreamData.builder()
+                    .inputStream(responseResponseInputStream)
+                    .fileSize(responseResponseInputStream.response().contentLength())
+                    .build());
   }
 
   @Override
   public CompletableFuture<byte[]> readFileAsBytes(String s3Uri) {
-    return readFileFromS3(s3Uri).thenApplyAsync(BytesWrapper::asByteArray);
-  }
-
-  private CompletableFuture<ResponseBytes<GetObjectResponse>> readFileFromS3(String s3Uri) {
     log.debug("Reading S3 file:  {}", s3Uri);
-    GetObjectRequest getObjectRequest =
-        GetObjectRequest.builder()
-            .bucket(storageUtils.getBucketNameFromUri(s3Uri))
-            .key(storageUtils.getPathFromUrl(s3Uri))
-            .build();
-
+    GetObjectRequest getObjectRequest = getObjectRequest(s3Uri);
     return s3AsyncClientProvider
         .getS3AsyncClient()
-        .getObject(getObjectRequest, AsyncResponseTransformer.toBytes());
+        .getObject(getObjectRequest, AsyncResponseTransformer.toBytes())
+        .thenApplyAsync(BytesWrapper::asByteArray);
+  }
+
+  private GetObjectRequest getObjectRequest(String s3Uri) {
+    return GetObjectRequest.builder()
+        .bucket(storageUtils.getBucketNameFromUri(s3Uri))
+        .key(storageUtils.getPathFromUrl(s3Uri))
+        .build();
   }
 }

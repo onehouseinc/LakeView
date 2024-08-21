@@ -6,6 +6,4 @@ RUN useradd -u 1001 onehouse
 USER onehouse
 
 ENV FAT_JAR LakeView-1.0-SNAPSHOT-all.jar
-ENTRYPOINT ["sh", "-c", "java \
-  -XX:MaxRAMPercentage=75.0 \
-  -jar $FAT_JAR \"$@\"", "--"]
+ENTRYPOINT ["sh", "-c", "java -XX:MaxRAMPercentage=75.0 -jar $FAT_JAR \"$@\"", "--"]
