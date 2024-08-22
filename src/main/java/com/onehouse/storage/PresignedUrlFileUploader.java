@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import okhttp3.Response;
 import okio.BufferedSink;
 
 @Slf4j
@@ -72,7 +73,7 @@ public class PresignedUrlFileUploader {
                           .makeRequestWithRetry(request)
                           .thenAccept(
                               response -> {
-                                try {
+                                try (Response ignored = response) {
                                   if (!response.isSuccessful()) {
                                     int statusCode = response.code();
                                     String message = response.message();
@@ -85,8 +86,6 @@ public class PresignedUrlFileUploader {
                                             "File upload failed: response code: %s error message: %s",
                                             statusCode, message));
                                   }
-                                } finally {
-                                  response.close();
                                 }
                               })
                           .join(); // Wait for the upload to complete
