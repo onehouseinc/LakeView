@@ -1,5 +1,10 @@
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
         <layout class="ch.qos.logback.contrib.json.classic.JsonLayout">
             <jsonFormatter class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter" />
             <timestampFormat>yyyy-MM-dd' 'HH:mm:ss.SSS</timestampFormat>
@@ -12,6 +17,6 @@
     <logger name="io.netty" level="info"/>
 
     <root level="info">
-        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="${LOGBACK_APPENDER:-STDOUT}"/>
     </root>
 </configuration>
