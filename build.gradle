@@ -95,6 +95,8 @@ repositories {
 dependencies {
     implementation 'com.google.inject:guice:5.0.1'
     implementation "ch.qos.logback:logback-classic:1.2.6"
+    implementation "ch.qos.logback.contrib:logback-json-classic:0.1.5"
+    implementation "ch.qos.logback.contrib:logback-jackson:0.1.5"
     implementation 'com.squareup.okhttp3:okhttp:4.11.0'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.12.3'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.3'
