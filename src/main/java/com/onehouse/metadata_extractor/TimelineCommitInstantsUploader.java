@@ -360,7 +360,8 @@ public class TimelineCommitInstantsUploader {
                 uploadFutures.add(
                     presignedUrlFileUploader.uploadFileToPresignedUrl(
                         generateCommitMetadataUploadUrlResponse.getUploadUrls().get(i),
-                        constructStorageUri(directoryUri, batch.get(i).getFilename())));
+                        constructStorageUri(directoryUri, batch.get(i).getFilename()),
+                        extractorConfig.getFileUploadStreamBatchSize()));
               }
 
               return CompletableFuture.allOf(uploadFutures.toArray(new CompletableFuture[0]));
