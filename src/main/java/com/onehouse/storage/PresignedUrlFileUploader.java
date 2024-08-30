@@ -31,7 +31,8 @@ public class PresignedUrlFileUploader {
     this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
   }
 
-  public CompletableFuture<Void> uploadFileToPresignedUrl(String presignedUrl, String fileUrl) {
+  public CompletableFuture<Void> uploadFileToPresignedUrl(
+      String presignedUrl, String fileUrl, int fileUploadStreamBatchSize) {
     log.debug("Uploading {} to retrieved presigned url", fileUrl);
     return asyncStorageClient
         .streamFileAsync(fileUrl)
@@ -59,7 +60,8 @@ public class PresignedUrlFileUploader {
                                     @Override
                                     public void writeTo(BufferedSink sink) throws IOException {
                                       try (InputStream is = fileStreamData.getInputStream()) {
-                                        byte[] buffer = new byte[5 * 1024 * 1024]; // 5MB buffer
+                                        byte[] buffer =
+                                            new byte[fileUploadStreamBatchSize]; // 5MB buffer
                                         int bytesRead;
                                         while ((bytesRead = is.read(buffer)) != -1) {
                                           sink.write(buffer, 0, bytesRead);
