@@ -650,7 +650,8 @@ class TimelineCommitInstantsUploaderTest {
   @Test
   @SneakyThrows
   void testUploadInstantFailureWhenUpdatingCheckpoint() {
-    when(metadataExtractorConfig.getFileUploadStreamBatchSize()).thenReturn(DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE);
+    when(metadataExtractorConfig.getFileUploadStreamBatchSize())
+        .thenReturn(DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE);
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
         spy(timelineCommitInstantsUploader);
 
@@ -712,7 +713,8 @@ class TimelineCommitInstantsUploaderTest {
     // update checkpoint api call will fail and no more batches will be processed
     verify(asyncStorageClient, times(1)).listAllFilesInDir(anyString());
     verify(onehouseApiClient, times(1)).generateCommitMetadataUploadUrl(expectedRequest);
-    verify(presignedUrlFileUploader, times(1)).uploadFileToPresignedUrl(anyString(), anyString(), anyInt());
+    verify(presignedUrlFileUploader, times(1))
+        .uploadFileToPresignedUrl(anyString(), anyString(), anyInt());
     verify(onehouseApiClient, times(1)).upsertTableMetricsCheckpoint(any());
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(

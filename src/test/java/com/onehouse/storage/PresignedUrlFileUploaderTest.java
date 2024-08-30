@@ -55,7 +55,9 @@ class PresignedUrlFileUploaderTest {
         new PresignedUrlFileUploader(
             mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
 
-    uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI, DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE).get();
+    uploader
+        .uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI, DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE)
+        .get();
 
     verify(mockAsyncStorageClient).streamFileAsync(FILE_URI);
     verify(asyncHttpClientWithRetry).makeRequestWithRetry(any());
@@ -74,7 +76,8 @@ class PresignedUrlFileUploaderTest {
             ExecutionException.class,
             () ->
                 uploader
-                    .uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI, DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE)
+                    .uploadFileToPresignedUrl(
+                        PRESIGNED_URL, FILE_URI, DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE)
                     .get());
     assertEquals(
         String.format(
@@ -102,7 +105,9 @@ class PresignedUrlFileUploaderTest {
         new PresignedUrlFileUploader(
             mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
 
-    uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI, DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE).get();
+    uploader
+        .uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI, DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE)
+        .get();
 
     verify(mockAsyncStorageClient).streamFileAsync(FILE_URI);
     verify(asyncHttpClientWithRetry).makeRequestWithRetry(any());
@@ -117,7 +122,9 @@ class PresignedUrlFileUploaderTest {
         new PresignedUrlFileUploader(
             mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
 
-    uploader.uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI, DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE).get();
+    uploader
+        .uploadFileToPresignedUrl(PRESIGNED_URL, FILE_URI, DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE)
+        .get();
 
     verify(asyncHttpClientWithRetry).makeRequestWithRetry(requestCaptor.capture());
 
