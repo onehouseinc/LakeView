@@ -45,7 +45,7 @@ class PresignedUrlFileUploaderTest {
           .writeTimeout(2, TimeUnit.SECONDS)
           .build();
   private final AsyncHttpClientWithRetry asyncHttpClientWithRetry =
-      new AsyncHttpClientWithRetry(3, 1000L, client);
+      new AsyncHttpClientWithRetry(1, 1000L, client);
   @Mock AsyncStorageClient mockAsyncStorageClient;
   @Mock private LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
   private final String fileContent = "some-file-content";
@@ -141,14 +141,6 @@ class PresignedUrlFileUploaderTest {
 
   @Test
   void testUploadLargeFile() {
-    when(mockAsyncStorageClient.streamFileAsync(FILE_URI))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                FileStreamData.builder()
-                    .inputStream(inputStream)
-                    .fileSize(fileContent.length())
-                    .build()));
-
     setupMockWebServer(false);
 
     PresignedUrlFileUploader uploader =
@@ -160,24 +152,6 @@ class PresignedUrlFileUploaderTest {
         .join();
 
     verify(mockAsyncStorageClient).streamFileAsync(FILE_URI);
-    verifyRequestPayload();
-  }
-
-  @Test
-  void testRequestBodyConstruction() {
-    setupMockWebServer(false);
-
-    PresignedUrlFileUploader uploader =
-        new PresignedUrlFileUploader(
-            mockAsyncStorageClient, asyncHttpClientWithRetry, hudiMetadataExtractorMetrics);
-
-    uploader
-        .uploadFileToPresignedUrl(
-            mockWebServer.url("/upload").url().toString(),
-            FILE_URI,
-            DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE)
-        .join();
-
     verifyRequestPayload();
   }
 

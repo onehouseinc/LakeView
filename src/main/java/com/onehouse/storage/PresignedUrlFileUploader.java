@@ -53,13 +53,17 @@ public class PresignedUrlFileUploader {
                                     }
 
                                     @Override
+                                    public long contentLength() {
+                                      return fileStreamData.getFileSize();
+                                    }
+
+                                    @Override
                                     public void writeTo(BufferedSink sink) throws IOException {
                                       try (InputStream is = fileStreamData.getInputStream()) {
                                         byte[] buffer = new byte[fileUploadStreamBatchSize];
                                         int bytesRead;
                                         while ((bytesRead = is.read(buffer)) != -1) {
                                           sink.write(buffer, 0, bytesRead);
-                                          sink.flush();
                                         }
                                       }
                                     }
