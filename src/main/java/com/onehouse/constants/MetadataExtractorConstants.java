@@ -32,7 +32,9 @@ public class MetadataExtractorConstants {
               System.getenv().getOrDefault("EXTRACTOR_TABLE_PROCESSING_BATCH_SIZE", "20")));
   public static final int TABLE_DISCOVERY_INTERVAL_MINUTES = 30;
   public static final int TABLE_METADATA_UPLOAD_INTERVAL_MINUTES = 5;
-  public static final int DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE = 5 * 1024 * 1024;
+  // Default batch size will be 5 MB
+  public static final int DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE =
+      Integer.parseInt(System.getenv().getOrDefault("FILE_UPLOAD_STREAM_BATCH_SIZE", "5242880"));
   public static final Pattern ARCHIVED_COMMIT_INSTANT_PATTERN =
       Pattern.compile("\\.commits_\\.archive\\.\\d+_\\d+-\\d+-\\d+");
   public static final Pattern ACTIVE_COMMIT_INSTANT_PATTERN =
