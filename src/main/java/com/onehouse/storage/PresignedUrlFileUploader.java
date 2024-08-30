@@ -4,10 +4,13 @@ import com.google.inject.Inject;
 import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.constants.MetricsConstants;
 import com.onehouse.metrics.LakeViewExtractorMetrics;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
+
 import javax.annotation.Nonnull;
+
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -61,7 +64,7 @@ public class PresignedUrlFileUploader {
                                     public void writeTo(BufferedSink sink) throws IOException {
                                       try (InputStream is = fileStreamData.getInputStream()) {
                                         byte[] buffer =
-                                            new byte[fileUploadStreamBatchSize]; // 5MB buffer
+                                            new byte[fileUploadStreamBatchSize];
                                         int bytesRead;
                                         while ((bytesRead = is.read(buffer)) != -1) {
                                           sink.write(buffer, 0, bytesRead);
