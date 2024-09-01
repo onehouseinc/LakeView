@@ -3,6 +3,7 @@ package com.onehouse.storage;
 import com.google.inject.Inject;
 import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.constants.MetricsConstants;
+import com.onehouse.exceptions.FileUploadException;
 import com.onehouse.metrics.LakeViewExtractorMetrics;
 
 import java.io.IOException;
@@ -46,8 +47,7 @@ public class PresignedUrlFileUploader {
             fileStreamData ->
                 CompletableFuture.runAsync(
                     () -> {
-                      Request request;
-                      request = getRequest(presignedUrl, fileUploadStreamBatchSize, fileStreamData);
+                      Request request = getRequest(presignedUrl, fileUploadStreamBatchSize, fileStreamData);
 
                       asyncHttpClientWithRetry
                           .makeRequestWithRetry(request)
@@ -61,7 +61,7 @@ public class PresignedUrlFileUploader {
                                         .incrementTableMetadataProcessingFailureCounter(
                                             MetricsConstants.MetadataUploadFailureReasons
                                                 .PRESIGNED_URL_UPLOAD_FAILURE);
-                                    throw new RuntimeException(
+                                    throw new FileUploadException(
                                         String.format(
                                             "File upload failed: response code: %s error message: %s",
                                             statusCode, message));
@@ -81,7 +81,7 @@ public class PresignedUrlFileUploader {
         requestBody = RequestBody.create(IOUtils.toByteArray(fileStreamData.getInputStream()));
         request = new Request.Builder().url(presignedUrl).put(requestBody).build();
       } catch (IOException e) {
-        throw new RuntimeException(e);
+        throw new FileUploadException(e);
       }
     } else {
       request =

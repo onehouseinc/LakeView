@@ -130,7 +130,7 @@ class PresignedUrlFileUploaderTest {
                     .get());
     assertEquals(
         String.format(
-            "java.lang.RuntimeException: File upload failed: response code: %s error message: Server Error",
+            "com.onehouse.exceptions.FileUploadException: File upload failed: response code: %s error message: Server Error",
             FAILURE_STATUS_CODE),
         exception.getMessage());
     verify(hudiMetadataExtractorMetrics)
