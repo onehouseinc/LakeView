@@ -107,7 +107,7 @@ class PresignedUrlFileUploaderTest {
         .join();
 
     verify(mockAsyncStorageClient).streamFileAsync(FILE_URI);
-    verifyRequestPayload();
+    verifyRequestPayloadForSmallerFiles();
   }
 
   @Test
@@ -136,7 +136,7 @@ class PresignedUrlFileUploaderTest {
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
             MetricsConstants.MetadataUploadFailureReasons.PRESIGNED_URL_UPLOAD_FAILURE);
-    verifyRequestPayload();
+    verifyRequestPayloadForSmallerFiles();
   }
 
   @Test
@@ -162,5 +162,15 @@ class PresignedUrlFileUploaderTest {
     assertNotNull(capturedRequest);
     assertEquals("application/octet-stream", capturedRequest.getHeader("content-type"));
     assertEquals(fileContent, capturedRequest.getBody().readUtf8());
+    assertEquals("PUT", capturedRequest.getMethod());
+  }
+
+  @SneakyThrows
+  private void verifyRequestPayloadForSmallerFiles() {
+    RecordedRequest capturedRequest = mockWebServer.takeRequest(5, TimeUnit.SECONDS);
+
+    assertNotNull(capturedRequest);
+    assertEquals(fileContent, capturedRequest.getBody().readUtf8());
+    assertEquals("PUT", capturedRequest.getMethod());
   }
 }
