@@ -5,14 +5,11 @@ import com.onehouse.api.AsyncHttpClientWithRetry;
 import com.onehouse.constants.MetricsConstants;
 import com.onehouse.exceptions.FileUploadException;
 import com.onehouse.metrics.LakeViewExtractorMetrics;
-
+import com.onehouse.storage.models.FileStreamData;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
-
 import javax.annotation.Nonnull;
-
-import com.onehouse.storage.models.FileStreamData;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
@@ -47,7 +44,8 @@ public class PresignedUrlFileUploader {
             fileStreamData ->
                 CompletableFuture.runAsync(
                     () -> {
-                      Request request = getRequest(presignedUrl, fileUploadStreamBatchSize, fileStreamData);
+                      Request request =
+                          getRequest(presignedUrl, fileUploadStreamBatchSize, fileStreamData);
 
                       asyncHttpClientWithRetry
                           .makeRequestWithRetry(request)
@@ -72,7 +70,8 @@ public class PresignedUrlFileUploader {
                     }));
   }
 
-  private @NotNull Request getRequest(String presignedUrl, int fileUploadStreamBatchSize, FileStreamData fileStreamData) {
+  private @NotNull Request getRequest(
+      String presignedUrl, int fileUploadStreamBatchSize, FileStreamData fileStreamData) {
     Request request;
     if (fileStreamData.getFileSize() <= fileUploadStreamBatchSize) {
       // if the file size is less than the stream batch size, upload it directly
