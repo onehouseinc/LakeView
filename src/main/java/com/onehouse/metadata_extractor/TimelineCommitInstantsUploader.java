@@ -29,6 +29,7 @@ import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.PresignedUrlFileUploader;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -490,7 +491,8 @@ public class TimelineCommitInstantsUploader {
     if (checkpoint.getBatchId() != 0 && isInstantFile(checkpoint.getLastUploadedFile())) {
       if (commitTimelineType.equals(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)) {
         return getCommitIdFromActiveTimelineInstant(file.getFilename())
-            <= getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile());
+                .compareTo(getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile()))
+            <= 0;
       } else {
         return getNumericPartFromArchivedCommit(file.getFilename())
             <= getNumericPartFromArchivedCommit(checkpoint.getLastUploadedFile());
@@ -531,12 +533,8 @@ public class TimelineCommitInstantsUploader {
         : file.getFilename();
   }
 
-  private Long getCommitIdFromActiveTimelineInstant(String activeTimeLineInstant) {
-    String commitTimestampString = activeTimeLineInstant.split("\\.")[0];
-    // take only first 17 characters which gives us the commit id/timestamp in milliseconds level.
-    // eg: YYYYMMddHHmmSSsss
-    return Long.parseLong(
-        commitTimestampString.substring(0, Math.min(17, commitTimestampString.length())));
+  private BigDecimal getCommitIdFromActiveTimelineInstant(String activeTimeLineInstant) {
+    return new BigDecimal(activeTimeLineInstant.split("\\.")[0]);
   }
 
   private int getNumericPartFromArchivedCommit(String archivedCommitFileName) {
