@@ -533,7 +533,8 @@ public class TimelineCommitInstantsUploader {
 
   private Long getCommitIdFromActiveTimelineInstant(String activeTimeLineInstant) {
     String commitTimestampString = activeTimeLineInstant.split("\\.")[0];
-    // take only first 17 characters which gives us the commit id/timestamp in milliseconds level
+    // take only first 17 characters which gives us the commit id/timestamp in milliseconds level.
+    // eg: YYYYMMddHHmmSSsss
     return Long.parseLong(
         commitTimestampString.substring(0, Math.min(17, commitTimestampString.length())));
   }
