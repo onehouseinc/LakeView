@@ -29,6 +29,8 @@ import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.PresignedUrlFileUploader;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
+
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -532,7 +534,8 @@ public class TimelineCommitInstantsUploader {
   }
 
   private Long getCommitIdFromActiveTimelineInstant(String activeTimeLineInstant) {
-    return Long.parseLong(activeTimeLineInstant.split("\\.")[0]);
+    // take only first 17 characters which gives us the commit id/timestamp in milliseconds level
+    return Long.parseLong(activeTimeLineInstant.split("\\.")[0].substring(0, 17));
   }
 
   private int getNumericPartFromArchivedCommit(String archivedCommitFileName) {
