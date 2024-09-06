@@ -512,18 +512,19 @@ class TimelineCommitInstantsUploaderTest {
 
     // only active_instant_4 needs to be processed
     Checkpoint previousCheckpoint =
-        generateCheckpointObj(2, currentTime.minus(10, ChronoUnit.SECONDS), true, "222.action");
+        generateCheckpointObj(
+            2, currentTime.minus(10, ChronoUnit.SECONDS), true, "20240905134154469222.action");
 
     mockListPage(
         TABLE_PREFIX + "/.hoodie/",
         null,
         TABLE_PREFIX + "/.hoodie/" + previousCheckpoint.getLastUploadedFile(),
         Arrays.asList(
-            generateFileObj("222.action.inflight", false),
-            generateFileObj("222.action.requested", false),
-            generateFileObj("333.action", false, currentTime),
-            generateFileObj("333.action.inflight", false),
-            generateFileObj("333.action.requested", false),
+            generateFileObj("20240905134154469222.action.inflight", false),
+            generateFileObj("20240905134154469222.action.requested", false),
+            generateFileObj("20240905134154469333.action", false, currentTime),
+            generateFileObj("20240905134154469333.action.inflight", false),
+            generateFileObj("20240905134154469333.action.requested", false),
             generateFileObj(HOODIE_PROPERTIES_FILE, false)));
 
     Checkpoint checkpoint3 =
@@ -531,19 +532,19 @@ class TimelineCommitInstantsUploaderTest {
             3,
             currentTime, // testing to makesure checkpoint timestamp has updated
             true,
-            "333.action");
+            "20240905134154469333.action");
 
     List<File> batch3 =
         Arrays.asList(
-            generateFileObj("333.action", false, currentTime),
-            generateFileObj("333.action.inflight", false),
-            generateFileObj("333.action.requested", false));
+            generateFileObj("20240905134154469333.action", false, currentTime),
+            generateFileObj("20240905134154469333.action.inflight", false),
+            generateFileObj("20240905134154469333.action.requested", false));
 
     stubCreateBatches(
         Arrays.asList(
-            generateFileObj("333.action", false, currentTime),
-            generateFileObj("333.action.inflight", false),
-            generateFileObj("333.action.requested", false)),
+            generateFileObj("20240905134154469333.action", false, currentTime),
+            generateFileObj("20240905134154469333.action.inflight", false),
+            generateFileObj("20240905134154469333.action.requested", false)),
         Collections.singletonList(batch3));
 
     stubUploadInstantsCalls(
