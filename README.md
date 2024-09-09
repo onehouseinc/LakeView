@@ -117,7 +117,7 @@ Key functionality of the metadata extractor tool:
 - Data Security: The tool interacts exclusively with metadata.
   - It does not access, move, or control actual data files, ensuring the integrity and confidentiality of your data. This significantly reduces the security impact of the platform.
   - Any information sent back and forth is encrypted at rest and in transit.
-  - While lakeview does not have native SSO integrations, any SSO that you already have in place for Google or Microsoft authentication will still take effect. For example, at Onehouse, our Google auth is backed by Okta - so we still go through Okta SSO when we use Google auth for Onehouse Lakeview. 
+  - While lakeview does not have native SSO integrations, any SSO that you already have in place for Google or Microsoft authentication will still take effect. 
 - Operational Modes:
   - `CONTINUOUS` - The tool periodically discovers and uploads metadata for tables found in the configured path. Table discovery happens every 30minutes and new commit instants for the files are discovered and extracted every 5minutes (provided the previous run has completed).
   - `ONCE` - Allows users to trigger the discovery and extraction flow on demand, the tool picks up from where it left off on the last run. This can be useful if you want to run the metadata extractor tool as a recurring job that you manage.
