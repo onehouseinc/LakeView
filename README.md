@@ -102,10 +102,10 @@ No action is required to set up weekly review emails – you will receive them a
 
 ## Sign Up
 
-1. Contact gtm@onehouse.ai to get allowlisted, then visit https://cloud.onehouse.ai/signup/community-edition to create your account.
-1. Upon signing up, you will create a new LakeView project.
+1. Visit the [LakeView website](https://www.onehouse.ai/product/lakeview) to request access. You will receive an email when you are approved.
+1. Sign up at https://cloud.onehouse.ai/lakeview/signup.
 1. In the sidebar, open Settings > API Settings, then generate a new token. You will use this token in the next step.
-1. Return to the homepage, where you will be prompted to push your Hudi metadata to the project. LakeView works with just your .hoodie metadata. Base data never leaves your cloud. 
+1. Return to the homepage, where you will be prompted to push your Hudi metadata to the project. LakeView works with just your .hoodie metadata. Base data never leaves your cloud.
 
 <img width="1207" alt="Screenshot 2024-06-17 at 6 04 02 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/9005db67-e96f-439b-b223-81e0150d40d5">
 
@@ -114,7 +114,10 @@ No action is required to set up weekly review emails – you will receive them a
 Onehouse provides a metadata extractor tool that you can run within your AWS or Google Cloud environment to continuously push metadata from specified file storage path(s) to LakeView. 
 
 Key functionality of the metadata extractor tool:
-- Data Security: The tool interacts exclusively with metadata. It does not access, move, or control actual data files, ensuring the integrity and confidentiality of your data.
+- Data Security: The tool interacts exclusively with metadata.
+  - It does not access, move, or control actual data files, ensuring the integrity and confidentiality of your data. This significantly reduces the security impact of the platform.
+  - Any information sent back and forth is encrypted at rest and in transit.
+  - While lakeview does not have native SSO integrations, any SSO that you already have in place for Google or Microsoft authentication will still take effect. 
 - Operational Modes:
   - `CONTINUOUS` - The tool periodically discovers and uploads metadata for tables found in the configured path. Table discovery happens every 30minutes and new commit instants for the files are discovered and extracted every 5minutes (provided the previous run has completed).
   - `ONCE` - Allows users to trigger the discovery and extraction flow on demand, the tool picks up from where it left off on the last run. This can be useful if you want to run the metadata extractor tool as a recurring job that you manage.
@@ -293,6 +296,14 @@ Onehouse will NOT see your column stats. While column stats are present in the [
 # Known Limitations
  
 When using the metadata extractor tool, it's important to be aware of certain limitations that can affect its functionality and the accuracy of the metrics provided.
+
+**Issues with Tables having same name in a (lake, database)**
+- Scenario: If two tables having the same name are present in the same (lake, database) pair, the tool will not be able to distinguish between them.
+- Implication: This will lead to failure in table initialization, and you would see an error something like below in the metadata extractor logs.
+    ```
+    A table already exists in Lake: <lake-id> database: <db-name> with this name: <table-name>. Please consider ingesting this table under a different lake or database to avoid conflicts
+    ```
+- Resolution: Users should ensure that tables have unique names within a (lake, database) pair. If there are multiple tables with the same name, consider moving them to different databases.
 
 **Issues with Re-created Tables in the Same Path**
 - Scenario: If a Hudi table is deleted and a new table is created in the same path, the tool assigns the same table ID as the previous one.

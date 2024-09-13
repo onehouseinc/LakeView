@@ -1,5 +1,6 @@
 package com.onehouse.config.models.configv1;
 
+import static com.onehouse.constants.MetadataExtractorConstants.DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE;
 import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ACTIVE_TIMELINE;
 import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ARCHIVED_TIMELINE;
 import static com.onehouse.constants.MetadataExtractorConstants.PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS;
@@ -39,6 +40,8 @@ public class MetadataExtractorConfig {
 
   @Builder.Default
   private int tableMetadataUploadIntervalMinutes = TABLE_METADATA_UPLOAD_INTERVAL_MINUTES;
+
+  @Builder.Default private int fileUploadStreamBatchSize = DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE;
 
   public enum JobRunMode {
     CONTINUOUS,

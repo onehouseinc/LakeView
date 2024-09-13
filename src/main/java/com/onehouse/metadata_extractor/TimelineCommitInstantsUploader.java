@@ -29,6 +29,7 @@ import com.onehouse.storage.AsyncStorageClient;
 import com.onehouse.storage.PresignedUrlFileUploader;
 import com.onehouse.storage.StorageUtils;
 import com.onehouse.storage.models.File;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -360,7 +361,8 @@ public class TimelineCommitInstantsUploader {
                 uploadFutures.add(
                     presignedUrlFileUploader.uploadFileToPresignedUrl(
                         generateCommitMetadataUploadUrlResponse.getUploadUrls().get(i),
-                        constructStorageUri(directoryUri, batch.get(i).getFilename())));
+                        constructStorageUri(directoryUri, batch.get(i).getFilename()),
+                        extractorConfig.getFileUploadStreamBatchSize()));
               }
 
               return CompletableFuture.allOf(uploadFutures.toArray(new CompletableFuture[0]));
@@ -489,7 +491,8 @@ public class TimelineCommitInstantsUploader {
     if (checkpoint.getBatchId() != 0 && isInstantFile(checkpoint.getLastUploadedFile())) {
       if (commitTimelineType.equals(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)) {
         return getCommitIdFromActiveTimelineInstant(file.getFilename())
-            <= getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile());
+                .compareTo(getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile()))
+            <= 0;
       } else {
         return getNumericPartFromArchivedCommit(file.getFilename())
             <= getNumericPartFromArchivedCommit(checkpoint.getLastUploadedFile());
@@ -530,8 +533,8 @@ public class TimelineCommitInstantsUploader {
         : file.getFilename();
   }
 
-  private Long getCommitIdFromActiveTimelineInstant(String activeTimeLineInstant) {
-    return Long.parseLong(activeTimeLineInstant.split("\\.")[0]);
+  private BigDecimal getCommitIdFromActiveTimelineInstant(String activeTimeLineInstant) {
+    return new BigDecimal(activeTimeLineInstant.split("\\.")[0]);
   }
 
   private int getNumericPartFromArchivedCommit(String archivedCommitFileName) {

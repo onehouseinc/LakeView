@@ -30,4 +30,7 @@ public class ApiConstants {
   // https://chromium.googlesource.com/external/github.com/grpc/grpc/+/refs/tags/v1.21.4-pre1/doc/statuscodes.md
   public static final List<Integer> ACCEPTABLE_HTTP_FAILURE_STATUS_CODES =
       Collections.unmodifiableList(new ArrayList<>(Arrays.asList(404, 400, 403, 401, 409)));
+
+  public static final String UNAUTHORIZED_ERROR_MESSAGE =
+      "Confirm that your API token is valid and has not expired.";
 }

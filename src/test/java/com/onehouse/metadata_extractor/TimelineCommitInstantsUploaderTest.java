@@ -1,5 +1,6 @@
 package com.onehouse.metadata_extractor;
 
+import static com.onehouse.constants.MetadataExtractorConstants.DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static com.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE_OBJ;
 import static com.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
@@ -7,12 +8,13 @@ import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_RE
 import static com.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQUEST_BATCH_SIZE_ARCHIVED_TIMELINE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -510,18 +512,19 @@ class TimelineCommitInstantsUploaderTest {
 
     // only active_instant_4 needs to be processed
     Checkpoint previousCheckpoint =
-        generateCheckpointObj(2, currentTime.minus(10, ChronoUnit.SECONDS), true, "222.action");
+        generateCheckpointObj(
+            2, currentTime.minus(10, ChronoUnit.SECONDS), true, "20240905134154469222.action");
 
     mockListPage(
         TABLE_PREFIX + "/.hoodie/",
         null,
         TABLE_PREFIX + "/.hoodie/" + previousCheckpoint.getLastUploadedFile(),
         Arrays.asList(
-            generateFileObj("222.action.inflight", false),
-            generateFileObj("222.action.requested", false),
-            generateFileObj("333.action", false, currentTime),
-            generateFileObj("333.action.inflight", false),
-            generateFileObj("333.action.requested", false),
+            generateFileObj("20240905134154469222.action.inflight", false),
+            generateFileObj("20240905134154469222.action.requested", false),
+            generateFileObj("20240905134154469333.action", false, currentTime),
+            generateFileObj("20240905134154469333.action.inflight", false),
+            generateFileObj("20240905134154469333.action.requested", false),
             generateFileObj(HOODIE_PROPERTIES_FILE, false)));
 
     Checkpoint checkpoint3 =
@@ -529,19 +532,19 @@ class TimelineCommitInstantsUploaderTest {
             3,
             currentTime, // testing to makesure checkpoint timestamp has updated
             true,
-            "333.action");
+            "20240905134154469333.action");
 
     List<File> batch3 =
         Arrays.asList(
-            generateFileObj("333.action", false, currentTime),
-            generateFileObj("333.action.inflight", false),
-            generateFileObj("333.action.requested", false));
+            generateFileObj("20240905134154469333.action", false, currentTime),
+            generateFileObj("20240905134154469333.action.inflight", false),
+            generateFileObj("20240905134154469333.action.requested", false));
 
     stubCreateBatches(
         Arrays.asList(
-            generateFileObj("333.action", false, currentTime),
-            generateFileObj("333.action.inflight", false),
-            generateFileObj("333.action.requested", false)),
+            generateFileObj("20240905134154469333.action", false, currentTime),
+            generateFileObj("20240905134154469333.action.inflight", false),
+            generateFileObj("20240905134154469333.action.requested", false)),
         Collections.singletonList(batch3));
 
     stubUploadInstantsCalls(
@@ -639,7 +642,7 @@ class TimelineCommitInstantsUploaderTest {
     // generate commit metadata api call will fail and no more batches will be processed
     verify(asyncStorageClient, times(1)).listAllFilesInDir(anyString());
     verify(onehouseApiClient, times(1)).generateCommitMetadataUploadUrl(expectedRequest);
-    verify(presignedUrlFileUploader, times(0)).uploadFileToPresignedUrl(any(), any());
+    verifyNoMoreInteractions(presignedUrlFileUploader);
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
             MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
@@ -648,6 +651,8 @@ class TimelineCommitInstantsUploaderTest {
   @Test
   @SneakyThrows
   void testUploadInstantFailureWhenUpdatingCheckpoint() {
+    when(metadataExtractorConfig.getFileUploadStreamBatchSize())
+        .thenReturn(DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE);
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
         spy(timelineCommitInstantsUploader);
 
@@ -682,7 +687,7 @@ class TimelineCommitInstantsUploaderTest {
                             .map(file -> PRESIGNED_URL_PREFIX + file)
                             .collect(Collectors.toList()))
                     .build()));
-    when(presignedUrlFileUploader.uploadFileToPresignedUrl(any(), any()))
+    when(presignedUrlFileUploader.uploadFileToPresignedUrl(anyString(), anyString(), anyInt()))
         .thenReturn(CompletableFuture.completedFuture(null));
 
     when(onehouseApiClient.upsertTableMetricsCheckpoint(
@@ -709,7 +714,8 @@ class TimelineCommitInstantsUploaderTest {
     // update checkpoint api call will fail and no more batches will be processed
     verify(asyncStorageClient, times(1)).listAllFilesInDir(anyString());
     verify(onehouseApiClient, times(1)).generateCommitMetadataUploadUrl(expectedRequest);
-    verify(presignedUrlFileUploader, times(1)).uploadFileToPresignedUrl(any(), any());
+    verify(presignedUrlFileUploader, times(1))
+        .uploadFileToPresignedUrl(anyString(), anyString(), anyInt());
     verify(onehouseApiClient, times(1)).upsertTableMetricsCheckpoint(any());
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
@@ -804,7 +810,8 @@ class TimelineCommitInstantsUploaderTest {
     for (String presignedUrl : presignedUrls) {
       String fileUri =
           S3_TABLE_URI + ".hoodie/" + presignedUrl.substring(PRESIGNED_URL_PREFIX.length());
-      when(presignedUrlFileUploader.uploadFileToPresignedUrl(presignedUrl, fileUri))
+      when(presignedUrlFileUploader.uploadFileToPresignedUrl(
+              presignedUrl, fileUri, metadataExtractorConfig.getFileUploadStreamBatchSize()))
           .thenReturn(CompletableFuture.completedFuture(null));
     }
     when(onehouseApiClient.upsertTableMetricsCheckpoint(
@@ -851,7 +858,8 @@ class TimelineCommitInstantsUploaderTest {
       String fileUri =
           S3_TABLE_URI + ".hoodie/" + presignedUrl.substring(PRESIGNED_URL_PREFIX.length());
       verify(presignedUrlFileUploader, times(1))
-          .uploadFileToPresignedUrl(eq(presignedUrl), eq(fileUri));
+          .uploadFileToPresignedUrl(
+              presignedUrl, fileUri, metadataExtractorConfig.getFileUploadStreamBatchSize());
     }
     verify(onehouseApiClient, times(1))
         .upsertTableMetricsCheckpoint(
