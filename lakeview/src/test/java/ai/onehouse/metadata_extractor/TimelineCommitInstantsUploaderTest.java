@@ -90,6 +90,7 @@ class TimelineCommitInstantsUploaderTest {
 
   private TimelineCommitInstantsUploader getTimelineCommitInstantsUploader() {
     when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
+    // when(metadataExtractorConfig.getUploadStrategy()).thenReturn(MetadataExtractorConfig.UploadStrategy.BLOCKING);
     return new TimelineCommitInstantsUploader(
         asyncStorageClient,
         presignedUrlFileUploader,
@@ -888,7 +889,10 @@ class TimelineCommitInstantsUploaderTest {
                       }
                     }))
             .collect(Collectors.toList());
-    when(activeTimelineInstantBatcher.createBatches(sortedFiles, 4)).thenReturn(expectedBatches);
+    when(activeTimelineInstantBatcher
+            .createBatches(sortedFiles, 4, Checkpoint.builder().build())
+            .getRight())
+        .thenReturn(expectedBatches);
   }
 
   private String addPrefixToFileName(String fileName, CommitTimelineType commitTimelineType) {

@@ -1,27 +1,58 @@
 package ai.onehouse.metadata_extractor;
 
-import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
-import ai.onehouse.storage.models.File;
+import com.onehouse.config.Config;
+import com.onehouse.config.models.configv1.MetadataExtractorConfig;
+import com.onehouse.metadata_extractor.models.Checkpoint;
+import com.onehouse.storage.models.File;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class ActiveTimelineInstantBatcherTest {
 
   private ActiveTimelineInstantBatcher activeTimelineInstantBatcher;
 
+  @Mock private Config config;
+
+  @Mock private MetadataExtractorConfig extractorConfig;
+
   @BeforeEach
-  void setup() {
-    activeTimelineInstantBatcher = new ActiveTimelineInstantBatcher();
+  void setup(TestInfo testInfo) {
+    if (testInfo.getDisplayName().equals("testWithInvalidBatchSize()")) {
+      activeTimelineInstantBatcher = new ActiveTimelineInstantBatcher(config);
+      return;
+    }
+    when(config.getMetadataExtractorConfig()).thenReturn(extractorConfig);
+    // when(extractorConfig.getUploadStrategy()).thenReturn(MetadataExtractorConfig.UploadStrategy.NON_BLOCKING);
+    if (testInfo.getTags().contains("NonBlocking")) {
+      when(extractorConfig.getUploadStrategy())
+          .thenReturn(MetadataExtractorConfig.UploadStrategy.NON_BLOCKING);
+    } else {
+      when(extractorConfig.getUploadStrategy())
+          .thenReturn(MetadataExtractorConfig.UploadStrategy.BLOCKING);
+    }
+
+    activeTimelineInstantBatcher = new ActiveTimelineInstantBatcher(config);
   }
 
   @Test
@@ -31,7 +62,8 @@ class ActiveTimelineInstantBatcherTest {
     List<List<File>> expectedBatches =
         Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -48,7 +80,26 @@ class ActiveTimelineInstantBatcherTest {
     List<List<File>> expectedBatches =
         Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
+  @Tag("NonBlocking")
+  void testIncompleteInitialCommitNonBlocking() {
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("111.deltacommit.requested"),
+            generateFileObj("111.deltacommit.inflight"),
+            generateFileObj("hoodie.properties"));
+
+    // If instants are incomplete at the end of file, they are simply ignored by non blocking mode
+    List<List<File>> expectedBatches =
+        Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
+
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -83,7 +134,8 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("333.clean.inflight"),
                 generateFileObj("333.clean.requested")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -115,7 +167,8 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.compaction.inflight"),
                 generateFileObj("222.compaction.requested")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -143,7 +196,8 @@ class ActiveTimelineInstantBatcherTest {
             Arrays.asList(
                 generateFileObj("222.savepoint"), generateFileObj("222.savepoint.inflight")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -173,7 +227,8 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.clean.inflight"),
                 generateFileObj("222.clean.requested")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -206,7 +261,8 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.clean.inflight"),
                 generateFileObj("222.clean.requested")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -239,7 +295,8 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.clean.inflight"),
                 generateFileObj("222.clean.requested")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -272,7 +329,8 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("555.rollback.inflight"),
                 generateFileObj("555.rollback.requested")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -305,7 +363,8 @@ class ActiveTimelineInstantBatcherTest {
             Arrays.asList(
                 generateFileObj("444.savepoint"), generateFileObj("444.savepoint.inflight")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -338,7 +397,8 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("555.commit.requested"),
                 generateFileObj("555.inflight")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -370,7 +430,8 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("333.clean.inflight"),
                 generateFileObj("333.clean.requested")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -399,7 +460,8 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("333.clean.inflight"),
                 generateFileObj("333.clean.requested")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -422,7 +484,8 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("111.commit.requested"),
                 generateFileObj("111.inflight")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -444,7 +507,8 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("111.commit.requested"),
                 generateFileObj("111.inflight")));
 
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(files, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -465,7 +529,8 @@ class ActiveTimelineInstantBatcherTest {
   @ParameterizedTest
   @MethodSource("createBatchTestCases")
   void testCreateBatchJustHoodieProperties(List<File> instants, List<List<File>> expectedBatches) {
-    List<List<File>> actualBatches = activeTimelineInstantBatcher.createBatches(instants, 4);
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(instants, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -473,14 +538,112 @@ class ActiveTimelineInstantBatcherTest {
   void testWithInvalidBatchSize() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> activeTimelineInstantBatcher.createBatches(Collections.emptyList(), 2));
+        () ->
+            activeTimelineInstantBatcher.createBatches(
+                Collections.emptyList(), 2, getCheckpoint()));
   }
 
-  private static File generateFileObj(String fileName) {
-    return File.builder()
-        .filename(fileName)
-        .isDirectory(false)
-        .lastModifiedAt(Instant.EPOCH)
+  @Tag("NonBlocking")
+  @ParameterizedTest
+  @MethodSource("createNonBlockingModeTestCases")
+  void testNonBlockingMode(
+      List<File> inputFiles,
+      List<List<File>> expectedBatches,
+      Checkpoint inputCheckpoint,
+      String expectedFirstCommitFile) {
+    Pair<Checkpoint, List<List<File>>> checkpointBatchFilesPair =
+        activeTimelineInstantBatcher.createBatches(inputFiles, 4, inputCheckpoint);
+    assertEquals(expectedBatches, checkpointBatchFilesPair.getRight());
+    assertEquals(
+        expectedFirstCommitFile, checkpointBatchFilesPair.getLeft().getFirstIncompleteCommitFile());
+  }
+
+  static Stream<Arguments> createNonBlockingModeTestCases() {
+    return Stream.of(
+        Arguments.of(
+            Arrays.asList(
+                generateFileObj("111.deltacommit.requested"), // incomplete commit
+                generateFileObj("111.deltacommit.inflight"),
+                generateFileObj("333.clean"),
+                generateFileObj("444.rollback.requested"), // incomplete in the end
+                generateFileObj("333.clean.requested"),
+                generateFileObj("222.unknown.inflight"), // invalid commit
+                generateFileObj("333.clean.inflight"),
+                generateFileObj("222.unknown.requested"),
+                generateFileObj("444.rollback.inflight"),
+                generateFileObj("222.unknown"),
+                generateFileObj("hoodie.properties")),
+            List.of(
+                Arrays.asList(
+                    generateFileObj("hoodie.properties"),
+                    generateFileObj("333.clean"),
+                    generateFileObj("333.clean.inflight"),
+                    generateFileObj("333.clean.requested"))), // iteration is not blocked
+            getCheckpoint(),
+            "110" // next processing will start from the first missed incomplete commit
+            ),
+        Arguments.of(
+            Arrays.asList(
+                // 111 is incomplete commit
+                generateFileObj("111.deltacommit.requested"),
+                generateFileObj("111.deltacommit.inflight"),
+                generateFileObj("111.deltacommit"),
+                generateFileObj("333.clean"),
+                generateFileObj("444.rollback.requested"), // Incomplete commit
+                generateFileObj("333.clean.requested"),
+                generateFileObj(
+                    "222.clean.inflight",
+                    "21-07-2024"), // incomplete commit skipped but not completed in subsequent run
+                generateFileObj("333.clean.inflight"),
+                generateFileObj("222.clean.requested", "21-07-2024"),
+                generateFileObj("444.rollback.inflight"),
+                generateFileObj("666.rollback.requested"), // Incomplete commit
+                generateFileObj("777.rollback.requested"),
+                generateFileObj("777.rollback.inflight"),
+                generateFileObj("777.rollback")),
+            List.of(
+                Arrays.asList(
+                    generateFileObj("111.deltacommit"),
+                    generateFileObj("111.deltacommit.inflight"),
+                    generateFileObj("111.deltacommit.requested")),
+                Arrays.asList(
+                    generateFileObj("333.clean"),
+                    generateFileObj("333.clean.inflight"),
+                    generateFileObj("333.clean.requested")),
+                Arrays.asList(
+                    generateFileObj("777.rollback"),
+                    generateFileObj("777.rollback.inflight"),
+                    generateFileObj("777.rollback.requested"))),
+            getCheckpoint().toBuilder().firstIncompleteCommitFile("500").build(),
+            "443"));
+  }
+
+  static File generateFileObj(String fileName) {
+    return generateFileObj(fileName, "23-07-2024");
+  }
+
+  static File generateFileObj(String fileName, String dateString) {
+    Instant instant =
+        LocalDate.parse(dateString, DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+            .atStartOfDay()
+            .toInstant(java.time.ZoneOffset.UTC);
+    return File.builder().filename(fileName).isDirectory(false).lastModifiedAt(instant).build();
+  }
+
+  static Checkpoint getCheckpoint() {
+    return getCheckpoint("22-07-2024");
+  }
+
+  static Checkpoint getCheckpoint(String dateString) {
+    Instant instant =
+        LocalDate.parse(dateString, DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+            .atStartOfDay()
+            .toInstant(java.time.ZoneOffset.UTC);
+    return Checkpoint.builder()
+        .checkpointTimestamp(instant)
+        .batchId(0)
+        .lastUploadedFile("12")
+        .archivedCommitsProcessed(true)
         .build();
   }
 }
