@@ -5,7 +5,13 @@ import static ai.onehouse.constants.MetadataExtractorConstants.ROLLBACK_ACTION;
 import static ai.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
 import static ai.onehouse.constants.MetadataExtractorConstants.WHITELISTED_ACTION_TYPES;
 
-import ai.onehouse.storage.models.File;
+import com.google.inject.Inject;
+import com.onehouse.config.Config;
+import com.onehouse.config.models.configv1.MetadataExtractorConfig;
+import com.onehouse.metadata_extractor.models.Checkpoint;
+import com.onehouse.storage.models.File;
+import java.math.BigInteger;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -13,10 +19,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import lombok.Builder;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class ActiveTimelineInstantBatcher {
+  private final MetadataExtractorConfig extractorConfig;
+
+  @Inject
+  ActiveTimelineInstantBatcher(@Nonnull Config config) {
+    this.extractorConfig = config.getMetadataExtractorConfig();
+  }
+
   /**
    * Creates batches of Hudi instants, ensuring related instants are grouped together.
    *
@@ -24,12 +40,24 @@ public class ActiveTimelineInstantBatcher {
    * @param maxBatchSize the maximum number of instants per batch.
    * @return A list of batches, each batch being a list of instants.
    */
-  public List<List<File>> createBatches(List<File> instants, int maxBatchSize) {
+  public Pair<Checkpoint, List<List<File>>> createBatches(
+      List<File> instants, int maxBatchSize, Checkpoint checkpoint) {
     if (maxBatchSize < 3) {
       throw new IllegalArgumentException("max batch size cannot be less than 3");
     }
 
-    List<File> sortedInstants = sortAndFilterInstants(instants);
+    List<File> sortedInstants;
+    if (extractorConfig
+        .getUploadStrategy()
+        .equals(MetadataExtractorConfig.UploadStrategy.NON_BLOCKING)) {
+      // Get sorted instants by grouping them if they belong to the same commit and any of the files
+      // has a last modified which is greater than the lastModified of the last checkpoint that was
+      // uploaded
+      sortedInstants = sortAndFilterInstants(instants, checkpoint.getCheckpointTimestamp());
+    } else {
+      sortedInstants = sortAndFilterInstants(instants);
+    }
+
     List<List<File>> batches = new ArrayList<>();
     List<File> currentBatch = new ArrayList<>();
 
@@ -59,6 +87,7 @@ public class ActiveTimelineInstantBatcher {
           // end.
           // For the second case, we can upload in the following batch as rollback doesn't affect
           // metrics.
+          // always better to come in next iteration
           areInstantsInGrpRelated = false;
           shouldStopIteration = true;
         } else {
@@ -107,9 +136,23 @@ public class ActiveTimelineInstantBatcher {
           currentBatch.clear();
           currentBatch.addAll(sortedInstants.subList(index, index + groupSize));
         }
-      } else {
-        // Instants are not related; add what we have and stop processing
-        shouldStopIteration = true;
+      } else if (!shouldStopIteration) {
+        if (extractorConfig
+            .getUploadStrategy()
+            .equals(MetadataExtractorConfig.UploadStrategy.NON_BLOCKING)) {
+          // Instead of blocking the creation of batches, skipping the incomplete commit file and
+          // updating the
+          // checkpoint so that the next processing can start from where the first incomplete commit
+          // was encountered
+          String previousInstant = decrementNumericString(instant1.getTimestamp());
+          if (StringUtils.isBlank(checkpoint.getFirstIncompleteCommitFile())
+              || previousInstant.compareTo(checkpoint.getFirstIncompleteCommitFile()) < 0) {
+            checkpoint = checkpoint.toBuilder().firstIncompleteCommitFile(previousInstant).build();
+          }
+          groupSize = 1;
+        } else {
+          shouldStopIteration = true;
+        }
       }
 
       if (shouldStopIteration) {
@@ -128,28 +171,62 @@ public class ActiveTimelineInstantBatcher {
       batches.add(currentBatch);
     }
 
-    return batches;
+    return Pair.of(checkpoint, batches);
+  }
+
+  private static String decrementNumericString(String numericString) {
+    // Convert the string to a BigInteger
+    BigInteger number = new BigInteger(numericString);
+
+    // Decrement the value by 1
+    BigInteger decrementedNumber = number.subtract(BigInteger.ONE);
+
+    // Convert the decremented value back to a string and return
+    return decrementedNumber.toString();
   }
 
   private List<File> sortAndFilterInstants(List<File> instants) {
     return instants.stream()
-        .filter(
-            file ->
-                file.getFilename().equals(HOODIE_PROPERTIES_FILE)
-                    || WHITELISTED_ACTION_TYPES.contains(
-                        getActiveTimeLineInstant(file.getFilename()).action))
-        .sorted(
-            Comparator.comparing(
-                File::getFilename,
-                (name1, name2) -> {
-                  if (HOODIE_PROPERTIES_FILE.equals(name1)) {
-                    return -1;
-                  } else if (HOODIE_PROPERTIES_FILE.equals(name2)) {
-                    return 1;
-                  }
-                  return name1.compareTo(name2);
-                }))
+        .filter(this::filterFile)
+        .sorted(getFileComparator())
         .collect(Collectors.toList());
+  }
+
+  private List<File> sortAndFilterInstants(List<File> instants, Instant lastModifiedFilter) {
+    return instants.stream()
+        .filter(this::filterFile)
+        .collect(Collectors.groupingBy(file -> file.getFilename().split("\\.", 3)[0]))
+        .values()
+        .stream()
+        .filter(
+            group ->
+                group.stream()
+                    .anyMatch(
+                        file ->
+                            file.getFilename().equals(HOODIE_PROPERTIES_FILE)
+                                || lastModifiedFilter.isBefore(file.getLastModifiedAt())))
+        .flatMap(List::stream)
+        .sorted(getFileComparator())
+        .collect(Collectors.toList());
+  }
+
+  private boolean filterFile(File file) {
+    return file.getFilename().equals(HOODIE_PROPERTIES_FILE)
+        || WHITELISTED_ACTION_TYPES.contains(
+            getActiveTimeLineInstant(file.getFilename()).getAction());
+  }
+
+  private Comparator<File> getFileComparator() {
+    return Comparator.comparing(
+        File::getFilename,
+        (name1, name2) -> {
+          if (HOODIE_PROPERTIES_FILE.equals(name1)) {
+            return -1;
+          } else if (HOODIE_PROPERTIES_FILE.equals(name2)) {
+            return 1;
+          }
+          return name1.compareTo(name2);
+        });
   }
 
   private static boolean areRelatedInstants(
