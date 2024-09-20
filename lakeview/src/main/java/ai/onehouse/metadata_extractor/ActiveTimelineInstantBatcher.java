@@ -87,7 +87,6 @@ public class ActiveTimelineInstantBatcher {
           // end.
           // For the second case, we can upload in the following batch as rollback doesn't affect
           // metrics.
-          // always better to come in next iteration
           areInstantsInGrpRelated = false;
           shouldStopIteration = true;
         } else {
