@@ -573,7 +573,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("444.rollback.inflight"),
                 generateFileObj("222.unknown"),
                 generateFileObj("hoodie.properties")),
-            List.of(
+            Arrays.asList(
                 Arrays.asList(
                     generateFileObj("hoodie.properties"),
                     generateFileObj("333.clean"),
@@ -601,7 +601,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("777.rollback.requested"),
                 generateFileObj("777.rollback.inflight"),
                 generateFileObj("777.rollback")),
-            List.of(
+            Arrays.asList(
                 Arrays.asList(
                     generateFileObj("111.deltacommit"),
                     generateFileObj("111.deltacommit.inflight"),
