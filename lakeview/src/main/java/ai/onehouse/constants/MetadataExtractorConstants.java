@@ -44,6 +44,7 @@ public class MetadataExtractorConstants {
           .batchId(0)
           .checkpointTimestamp(Instant.EPOCH)
           .lastUploadedFile("")
+          .firstIncompleteCommitFile("")
           .archivedCommitsProcessed(false)
           .build();
 
