@@ -134,7 +134,7 @@ public class TimelineCommitInstantsUploader {
     // again. Additionally,
     // for even the blocking run, start after is used only while fetching the objects for the first
     // time and it is overriden
-    // by continuation token on subsequent runs. TODO: add it in clickup page
+    // by continuation token on subsequent runs.
     String startAfter = getStartAfterString(prefix, checkpoint);
     return executePaginatedBatchUpload(
         tableId,
@@ -220,7 +220,7 @@ public class TimelineCommitInstantsUploader {
                               prefix,
                               updatedCheckpoint,
                               commitTimelineType,
-                              startAfter);
+                              getStartAfterString(prefix, updatedCheckpoint));
                         },
                         executorService);
               } else {
