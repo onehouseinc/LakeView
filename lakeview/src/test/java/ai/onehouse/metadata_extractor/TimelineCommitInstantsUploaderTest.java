@@ -384,6 +384,193 @@ class TimelineCommitInstantsUploaderTest {
     assertEquals(checkpoint2, response);
   }
 
+  @Tag("NonBlocking")
+  @ParameterizedTest
+  @MethodSource("getActiveTimeLineIngestCases")
+  void testUploadInstantsInActiveTimelineNonBlocking(
+      boolean archivedTimeLinePresent, boolean isCOW) {
+    TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
+        spy(timelineCommitInstantsUploader);
+
+    doReturn(4)
+        .when(timelineCommitInstantsUploaderSpy)
+        .getUploadBatchSize(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE); // 1 file will be processed at a time
+
+    Checkpoint previousCheckpoint = INITIAL_CHECKPOINT;
+    if (archivedTimeLinePresent) {
+      // timestamp and lastUploaded file name is reset as we are moving from archived to active
+      // timeline processing
+      previousCheckpoint = generateCheckpointObj(3, Instant.EPOCH, false, "");
+    }
+
+    String inFlightSuffix = isCOW ? ".inflight" : ".action.inflight";
+
+    // Page 1
+    mockListPage(
+        TABLE_PREFIX + "/.hoodie/",
+        CONTINUATION_TOKEN_PREFIX + "1",
+        null,
+        Arrays.asList(
+            generateFileObj("should_be_ignored", false),
+            generateFileObj("111.action", false),
+            generateFileObj("111" + inFlightSuffix, false),
+            generateFileObj("111.action.requested", false),
+            generateFileObj("222.action", false, currentTime)));
+
+    // page 2
+    mockListPage(
+        TABLE_PREFIX + "/.hoodie/",
+        CONTINUATION_TOKEN_PREFIX + "2",
+        TABLE_PREFIX
+            + "/.hoodie/"
+            + "111.action", // last successful commit is used for checkpointing
+        Arrays.asList(
+            generateFileObj("111" + inFlightSuffix, false),
+            generateFileObj("111.action.requested", false),
+            generateFileObj("222.action", false, currentTime),
+            generateFileObj("222" + inFlightSuffix, false),
+            generateFileObj("222.action.requested", false),
+            generateFileObj(HOODIE_PROPERTIES_FILE, false) // will be listed
+            ));
+
+    // page 3 (last page)
+    mockListPage(
+        TABLE_PREFIX + "/.hoodie/",
+        null,
+        TABLE_PREFIX
+            + "/.hoodie/"
+            + "111.action.requested", // last successful commit is used for checkpointing
+        Arrays.asList(
+            generateFileObj("222" + inFlightSuffix, false),
+            generateFileObj("222.action.requested", false),
+            generateFileObj("333" + inFlightSuffix, false), // incomplete
+            generateFileObj("333.action.requested", false),
+            generateFileObj(HOODIE_PROPERTIES_FILE, false) // will be listed
+            ));
+
+    List<File> batch1 =
+        Stream.of(
+                archivedTimeLinePresent ? null : generateFileObj(HOODIE_PROPERTIES_FILE, false),
+                generateFileObj("111.action", false),
+                generateFileObj("111" + inFlightSuffix, false),
+                generateFileObj("111.action.requested", false))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+
+    List<File> batch2 =
+        Arrays.asList(
+            generateFileObj("222.action", false, currentTime),
+            generateFileObj("222" + inFlightSuffix, false),
+            generateFileObj("222.action.requested", false));
+
+    Checkpoint checkpoint1 =
+        generateCheckpointObj(
+            previousCheckpoint.getBatchId() + 1, Instant.EPOCH, true, "111.action");
+    Checkpoint returnCheckpoint1 =
+        generateCheckpointObj(
+                previousCheckpoint.getBatchId() + 1, Instant.EPOCH, true, "111.action")
+            .toBuilder()
+            .firstIncompleteCommitFile("111.action.requested")
+            .build();
+    Checkpoint checkpoint2 =
+        generateCheckpointObj(previousCheckpoint.getBatchId() + 2, currentTime, true, "222.action")
+            .toBuilder()
+            .firstIncompleteCommitFile("111.action.requested")
+            .build();
+
+    stubCreateBatches(
+        Stream.of(
+                archivedTimeLinePresent ? null : generateFileObj(HOODIE_PROPERTIES_FILE, false),
+                generateFileObj("111.action", false),
+                generateFileObj("111" + inFlightSuffix, false),
+                generateFileObj("111.action.requested", false),
+                generateFileObj("222.action", false, currentTime))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList()),
+        Collections.singletonList(batch1),
+        previousCheckpoint,
+        previousCheckpoint);
+
+    stubCreateBatches(
+        Arrays.asList(
+            generateFileObj("111" + inFlightSuffix, false),
+            generateFileObj("111.action.requested", false),
+            generateFileObj("222.action", false, currentTime),
+            generateFileObj("222" + inFlightSuffix, false),
+            generateFileObj("222.action.requested", false)),
+        Collections.singletonList(batch2),
+        checkpoint1,
+        returnCheckpoint1);
+
+    stubCreateBatches(
+        Arrays.asList(
+            generateFileObj("222" + inFlightSuffix, false),
+            generateFileObj("222.action.requested", false),
+            generateFileObj("333" + inFlightSuffix, false),
+            generateFileObj("333.action.requested", false)),
+        new ArrayList<>(),
+        checkpoint2,
+        checkpoint2);
+
+    stubUploadInstantsCalls(
+        batch1.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
+        checkpoint1,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    stubUploadInstantsCalls(
+        batch2.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
+        checkpoint2,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+
+    Checkpoint response =
+        timelineCommitInstantsUploaderSpy
+            .paginatedBatchUploadWithCheckpoint(
+                TABLE_ID.toString(),
+                TABLE,
+                previousCheckpoint,
+                CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+            .join();
+
+    verify(asyncStorageClient, times(3)).fetchObjectsByPage(anyString(), anyString(), any(), any());
+    verifyFilesUploaded(
+        batch1.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
+        checkpoint1,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    verifyFilesUploaded(
+        batch2.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
+        checkpoint2,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    assertEquals(checkpoint2, response);
+  }
+
   static Stream<Arguments> getActiveTimeLineIngestCases() {
     return Stream.of(
         Arguments.of(true, false),
