@@ -526,7 +526,7 @@ class ActiveTimelineInstantBatcherTest {
 
   @Tag("NonBlocking")
   @ParameterizedTest
-  @MethodSource("gcreateNonBlockingModeTestCases")
+  @MethodSource("createNonBlockingModeTestCases")
   void testNonBlockingMode(
       List<File> inputFiles,
       List<List<File>> expectedBatches,
