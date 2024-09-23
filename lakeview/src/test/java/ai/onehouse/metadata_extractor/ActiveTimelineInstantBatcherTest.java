@@ -43,7 +43,6 @@ class ActiveTimelineInstantBatcherTest {
       return;
     }
     when(config.getMetadataExtractorConfig()).thenReturn(extractorConfig);
-    // when(extractorConfig.getUploadStrategy()).thenReturn(MetadataExtractorConfig.UploadStrategy.NON_BLOCKING);
     if (testInfo.getTags().contains("NonBlocking")) {
       when(extractorConfig.getUploadStrategy())
           .thenReturn(MetadataExtractorConfig.UploadStrategy.NON_BLOCKING);
@@ -77,24 +76,6 @@ class ActiveTimelineInstantBatcherTest {
 
     // instants with timestamp 222 need to be ignored as the actionType is unknown and
     // instants with timestamp 333 are skipped as the commit is not yet complete
-    List<List<File>> expectedBatches =
-        Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
-
-    List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
-    assertEquals(expectedBatches, actualBatches);
-  }
-
-  @Test
-  @Tag("NonBlocking")
-  void testIncompleteInitialCommitNonBlocking() {
-    List<File> files =
-        Arrays.asList(
-            generateFileObj("111.deltacommit.requested"),
-            generateFileObj("111.deltacommit.inflight"),
-            generateFileObj("hoodie.properties"));
-
-    // If instants are incomplete at the end of file, they are simply ignored by non blocking mode
     List<List<File>> expectedBatches =
         Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
 
@@ -545,7 +526,7 @@ class ActiveTimelineInstantBatcherTest {
 
   @Tag("NonBlocking")
   @ParameterizedTest
-  @MethodSource("createNonBlockingModeTestCases")
+  @MethodSource("gcreateNonBlockingModeTestCases")
   void testNonBlockingMode(
       List<File> inputFiles,
       List<List<File>> expectedBatches,
@@ -560,6 +541,14 @@ class ActiveTimelineInstantBatcherTest {
 
   static Stream<Arguments> createNonBlockingModeTestCases() {
     return Stream.of(
+        Arguments.of(
+            Arrays.asList(
+                generateFileObj("111.deltacommit.requested"),
+                generateFileObj("111.deltacommit.inflight"),
+                generateFileObj("hoodie.properties")),
+            Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties"))),
+            getCheckpoint(),
+            null),
         Arguments.of(
             Arrays.asList(
                 generateFileObj("111.deltacommit.requested"), // incomplete commit
