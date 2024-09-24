@@ -45,10 +45,10 @@ class ActiveTimelineInstantBatcherTest {
     when(config.getMetadataExtractorConfig()).thenReturn(extractorConfig);
     if (testInfo.getTags().contains("NonBlocking")) {
       when(extractorConfig.getUploadStrategy())
-          .thenReturn(MetadataExtractorConfig.UploadStrategy.NON_BLOCKING);
+          .thenReturn(MetadataExtractorConfig.UploadStrategy.CONTINUE_ON_INCOMPLETE_COMMIT);
     } else {
       when(extractorConfig.getUploadStrategy())
-          .thenReturn(MetadataExtractorConfig.UploadStrategy.BLOCKING);
+          .thenReturn(MetadataExtractorConfig.UploadStrategy.BLOCK_ON_INCOMPLETE_COMMIT);
     }
 
     activeTimelineInstantBatcher = new ActiveTimelineInstantBatcher(config);
@@ -531,12 +531,12 @@ class ActiveTimelineInstantBatcherTest {
       List<File> inputFiles,
       List<List<File>> expectedBatches,
       Checkpoint inputCheckpoint,
-      String expectedFirstCommitFile) {
-    Pair<Checkpoint, List<List<File>>> checkpointBatchFilesPair =
+      String expectedFirstIncompleteCommit) {
+    Pair<String, List<List<File>>> incompleteCommitBatchesPair =
         activeTimelineInstantBatcher.createBatches(inputFiles, 4, inputCheckpoint);
-    assertEquals(expectedBatches, checkpointBatchFilesPair.getRight());
+    assertEquals(expectedBatches, incompleteCommitBatchesPair.getRight());
     assertEquals(
-        expectedFirstCommitFile, checkpointBatchFilesPair.getLeft().getFirstIncompleteCommitFile());
+        expectedFirstIncompleteCommit, incompleteCommitBatchesPair.getLeft());
   }
 
   static Stream<Arguments> createNonBlockingModeTestCases() {
@@ -603,7 +603,7 @@ class ActiveTimelineInstantBatcherTest {
                     generateFileObj("777.rollback"),
                     generateFileObj("777.rollback.inflight"),
                     generateFileObj("777.rollback.requested"))),
-            getCheckpoint().toBuilder().firstIncompleteCommitFile("500").build(),
+            getCheckpoint().toBuilder().firstIncompleteCheckpoint("500").build(),
             "443"));
   }
 

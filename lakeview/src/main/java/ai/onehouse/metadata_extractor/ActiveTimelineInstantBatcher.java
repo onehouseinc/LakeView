@@ -40,7 +40,7 @@ public class ActiveTimelineInstantBatcher {
    * @param maxBatchSize the maximum number of instants per batch.
    * @return A list of batches, each batch being a list of instants.
    */
-  public Pair<Checkpoint, List<List<File>>> createBatches(
+  public Pair<String, List<List<File>>> createBatches(
       List<File> instants, int maxBatchSize, Checkpoint checkpoint) {
     if (maxBatchSize < 3) {
       throw new IllegalArgumentException("max batch size cannot be less than 3");
@@ -49,7 +49,7 @@ public class ActiveTimelineInstantBatcher {
     List<File> sortedInstants;
     if (extractorConfig
         .getUploadStrategy()
-        .equals(MetadataExtractorConfig.UploadStrategy.NON_BLOCKING)) {
+        .equals(MetadataExtractorConfig.UploadStrategy.CONTINUE_ON_INCOMPLETE_COMMIT)) {
       // Get sorted instants by grouping them if they belong to the same commit and any of the files
       // has a last modified which is greater than the lastModified of the last checkpoint that was
       // uploaded
@@ -60,6 +60,7 @@ public class ActiveTimelineInstantBatcher {
 
     List<List<File>> batches = new ArrayList<>();
     List<File> currentBatch = new ArrayList<>();
+    String firstIncompleteCheckpoint = checkpoint.getFirstIncompleteCheckpoint();
 
     int startIndex = 0;
     if (!sortedInstants.isEmpty()
@@ -138,15 +139,13 @@ public class ActiveTimelineInstantBatcher {
       } else if (!shouldStopIteration) {
         if (extractorConfig
             .getUploadStrategy()
-            .equals(MetadataExtractorConfig.UploadStrategy.NON_BLOCKING)) {
+            .equals(MetadataExtractorConfig.UploadStrategy.CONTINUE_ON_INCOMPLETE_COMMIT)) {
           // Instead of blocking the creation of batches, skipping the incomplete commit file and
-          // updating the
-          // checkpoint so that the next processing can start from where the first incomplete commit
-          // was encountered
-          String previousInstant = decrementNumericString(instant1.getTimestamp());
-          if (StringUtils.isBlank(checkpoint.getFirstIncompleteCommitFile())
-              || previousInstant.compareTo(checkpoint.getFirstIncompleteCommitFile()) < 0) {
-            checkpoint = checkpoint.toBuilder().firstIncompleteCommitFile(previousInstant).build();
+          // updating the first incomplete checkpoint(startAfter) to be a unit before the incomplete instant
+          String firstIncompleteCheckpointUpdated = getFirstIncompleteCheckpoint(instant1.getTimestamp());
+          if (StringUtils.isBlank(firstIncompleteCheckpoint)
+              || firstIncompleteCheckpointUpdated.compareTo(firstIncompleteCheckpoint) < 0) {
+            firstIncompleteCheckpoint = firstIncompleteCheckpointUpdated;
           }
           groupSize = 1;
         } else {
@@ -170,17 +169,12 @@ public class ActiveTimelineInstantBatcher {
       batches.add(currentBatch);
     }
 
-    return Pair.of(checkpoint, batches);
+    return Pair.of(firstIncompleteCheckpoint, batches);
   }
 
-  private static String decrementNumericString(String numericString) {
-    // Convert the string to a BigInteger
+  private static String getFirstIncompleteCheckpoint(String numericString) {
     BigInteger number = new BigInteger(numericString);
-
-    // Decrement the value by 1
     BigInteger decrementedNumber = number.subtract(BigInteger.ONE);
-
-    // Convert the decremented value back to a string and return
     return decrementedNumber.toString();
   }
 

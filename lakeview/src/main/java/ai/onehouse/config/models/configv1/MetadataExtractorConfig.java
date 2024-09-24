@@ -23,7 +23,7 @@ public class MetadataExtractorConfig {
   @NonNull private List<ParserConfig> parserConfig;
   @Builder.Default private Optional<List<String>> pathExclusionPatterns = Optional.empty();
   @Builder.Default private JobRunMode jobRunMode = JobRunMode.CONTINUOUS;
-  @Builder.Default private UploadStrategy uploadStrategy = UploadStrategy.NON_BLOCKING;
+  @Builder.Default private UploadStrategy uploadStrategy = UploadStrategy.BLOCK_ON_INCOMPLETE_COMMIT;
 
   @Builder.Default
   private int presignedUrlRequestBatchSizeActiveTimeline =
@@ -50,7 +50,7 @@ public class MetadataExtractorConfig {
   }
 
   public enum UploadStrategy {
-    BLOCKING,
-    NON_BLOCKING
+    BLOCK_ON_INCOMPLETE_COMMIT,
+    CONTINUE_ON_INCOMPLETE_COMMIT
   }
 }
