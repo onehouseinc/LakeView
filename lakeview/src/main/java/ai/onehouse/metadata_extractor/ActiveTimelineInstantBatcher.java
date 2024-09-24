@@ -141,8 +141,10 @@ public class ActiveTimelineInstantBatcher {
             .getUploadStrategy()
             .equals(MetadataExtractorConfig.UploadStrategy.CONTINUE_ON_INCOMPLETE_COMMIT)) {
           // Instead of blocking the creation of batches, skipping the incomplete commit file and
-          // updating the first incomplete checkpoint(startAfter) to be a unit before the incomplete instant
-          String firstIncompleteCheckpointUpdated = getFirstIncompleteCheckpoint(instant1.getTimestamp());
+          // updating the first incomplete checkpoint(startAfter) to be a unit before the incomplete
+          // instant
+          String firstIncompleteCheckpointUpdated =
+              getFirstIncompleteCheckpoint(instant1.getTimestamp());
           if (StringUtils.isBlank(firstIncompleteCheckpoint)
               || firstIncompleteCheckpointUpdated.compareTo(firstIncompleteCheckpoint) < 0) {
             firstIncompleteCheckpoint = firstIncompleteCheckpointUpdated;
