@@ -307,7 +307,9 @@ class TimelineCommitInstantsUploaderTest {
             .collect(Collectors.toList()),
         Collections.singletonList(batch1),
         previousCheckpoint,
-        previousCheckpoint.getFirstIncompleteCheckpoint()); // no change in previous and next checkpoint for blocking mode
+        previousCheckpoint
+            .getFirstIncompleteCheckpoint()); // no change in previous and next checkpoint for
+    // blocking mode
 
     stubCreateBatches(
         Arrays.asList(
@@ -440,7 +442,7 @@ class TimelineCommitInstantsUploaderTest {
         null,
         TABLE_PREFIX
             + "/.hoodie/"
-            + "111.action.requested", // last successful commit is used for checkpointing
+            + "222.action", // last successful commit is used for checkpointing
         Arrays.asList(
             generateFileObj("222" + inFlightSuffix, false),
             generateFileObj("222.action.requested", false),

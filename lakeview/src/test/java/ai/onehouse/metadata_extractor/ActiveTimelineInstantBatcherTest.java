@@ -535,8 +535,7 @@ class ActiveTimelineInstantBatcherTest {
     Pair<String, List<List<File>>> incompleteCommitBatchesPair =
         activeTimelineInstantBatcher.createBatches(inputFiles, 4, inputCheckpoint);
     assertEquals(expectedBatches, incompleteCommitBatchesPair.getRight());
-    assertEquals(
-        expectedFirstIncompleteCommit, incompleteCommitBatchesPair.getLeft());
+    assertEquals(expectedFirstIncompleteCommit, incompleteCommitBatchesPair.getLeft());
   }
 
   static Stream<Arguments> createNonBlockingModeTestCases() {

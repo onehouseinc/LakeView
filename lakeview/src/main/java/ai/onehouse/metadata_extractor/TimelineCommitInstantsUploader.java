@@ -128,9 +128,10 @@ public class TimelineCommitInstantsUploader {
             storageUtils.constructFileUri(
                 table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType)));
 
-    // startAfter is used only in the first call to get the objects, post that continuation token is used
+    // startAfter is used only in the first call to get the objects, post that continuation token is
+    // used
     // Resetting the firstIncompleteCommitFile so that we do not process from the same commit again
-    String startAfter = getStartAfterString(prefix, checkpoint);
+    String startAfter = getStartAfterString(prefix, checkpoint, true);
     return executePaginatedBatchUpload(
         tableId,
         table,
@@ -215,7 +216,7 @@ public class TimelineCommitInstantsUploader {
                               prefix,
                               updatedCheckpoint,
                               commitTimelineType,
-                              getStartAfterString(prefix, updatedCheckpoint));
+                              getStartAfterString(prefix, updatedCheckpoint, false));
                         },
                         executorService);
               } else {
@@ -271,7 +272,11 @@ public class TimelineCommitInstantsUploader {
               getUploadBatchSize(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE),
               checkpoint);
       batches = incompleteCheckpointBatchesPair.getRight();
-      checkpoint = checkpoint.toBuilder().firstIncompleteCheckpoint(incompleteCheckpointBatchesPair.getLeft()).build();
+      checkpoint =
+          checkpoint
+              .toBuilder()
+              .firstIncompleteCheckpoint(incompleteCheckpointBatchesPair.getLeft())
+              .build();
     }
     int numBatches = batches.size();
 
@@ -573,7 +578,7 @@ public class TimelineCommitInstantsUploader {
     }
   }
 
-  public String getStartAfterString(String prefix, Checkpoint checkpoint) {
+  public String getStartAfterString(String prefix, Checkpoint checkpoint, boolean isFirstFetch) {
     String lastProcessedFile = checkpoint.getLastUploadedFile();
     // Base case to process from the beginning
     if (lastProcessedFile.equals(HOODIE_PROPERTIES_FILE)
@@ -583,8 +588,9 @@ public class TimelineCommitInstantsUploader {
 
     // Extractor blocks on incomplete commits, startAfter is the last processed file
     if (extractorConfig
-        .getUploadStrategy()
-        .equals(MetadataExtractorConfig.UploadStrategy.BLOCK_ON_INCOMPLETE_COMMIT)) {
+            .getUploadStrategy()
+            .equals(MetadataExtractorConfig.UploadStrategy.BLOCK_ON_INCOMPLETE_COMMIT)
+        || !isFirstFetch) {
       return storageUtils.constructFileUri(prefix, lastProcessedFile);
     }
 
