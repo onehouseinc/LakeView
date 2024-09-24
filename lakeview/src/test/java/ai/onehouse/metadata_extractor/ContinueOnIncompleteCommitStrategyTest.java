@@ -44,13 +44,12 @@ import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class ContinueOnIncompleteCommitStrategyTest {
+class ContinueOnIncompleteCommitStrategyTest {
   @Mock private AsyncStorageClient asyncStorageClient;
   @Mock private PresignedUrlFileUploader presignedUrlFileUploader;
   @Mock private OnehouseApiClient onehouseApiClient;
@@ -73,7 +72,7 @@ public class ContinueOnIncompleteCommitStrategyTest {
 
   private static final String CONTINUATION_TOKEN_PREFIX = "page_";
 
-  private TimelineCommitInstantsUploader getTimelineCommitInstantsUploader(TestInfo testInfo) {
+  private TimelineCommitInstantsUploader getTimelineCommitInstantsUploader() {
     when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
     when(metadataExtractorConfig.getUploadStrategy())
         .thenReturn(MetadataExtractorConfig.UploadStrategy.CONTINUE_ON_INCOMPLETE_COMMIT);
@@ -91,9 +90,9 @@ public class ContinueOnIncompleteCommitStrategyTest {
   }
 
   @BeforeEach
-  void setup(TestInfo testInfo) {
+  void setup() {
     mapper.registerModule(new JavaTimeModule());
-    timelineCommitInstantsUploader = getTimelineCommitInstantsUploader(testInfo);
+    timelineCommitInstantsUploader = getTimelineCommitInstantsUploader();
   }
 
   @Test
