@@ -14,6 +14,6 @@ public class Checkpoint implements Serializable {
   int batchId;
   @NonNull Instant checkpointTimestamp;
   @NonNull String lastUploadedFile;
-  String firstIncompleteCommitFile;
+  String firstIncompleteCheckpoint;
   boolean archivedCommitsProcessed;
 }

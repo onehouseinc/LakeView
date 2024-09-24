@@ -128,20 +128,15 @@ public class TimelineCommitInstantsUploader {
             storageUtils.constructFileUri(
                 table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType)));
 
-    // Compute the start after for the entire paginated batched upload. This handles the case where
-    // incomplete commits
-    // have been processed and extractor does not start from the same incomplete commit again and
-    // again. Additionally,
-    // for even the blocking run, start after is used only while fetching the objects for the first
-    // time and it is overriden
-    // by continuation token on subsequent runs.
+    // startAfter is used only in the first call to get the objects, post that continuation token is used
+    // Resetting the firstIncompleteCommitFile so that we do not process from the same commit again
     String startAfter = getStartAfterString(prefix, checkpoint);
     return executePaginatedBatchUpload(
         tableId,
         table,
         bucketName,
         prefix,
-        checkpoint.toBuilder().firstIncompleteCommitFile("").build(),
+        checkpoint.toBuilder().firstIncompleteCheckpoint("").build(),
         commitTimelineType,
         startAfter);
   }
@@ -270,13 +265,13 @@ public class TimelineCommitInstantsUploader {
           Lists.partition(
               filesToUpload, getUploadBatchSize(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED));
     } else {
-      Pair<Checkpoint, List<List<File>>> checkpointBatchesPair =
+      Pair<String, List<List<File>>> incompleteCheckpointBatchesPair =
           activeTimelineInstantBatcher.createBatches(
               filesToUpload,
               getUploadBatchSize(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE),
               checkpoint);
-      batches = checkpointBatchesPair.getRight();
-      checkpoint = checkpointBatchesPair.getLeft();
+      batches = incompleteCheckpointBatchesPair.getRight();
+      checkpoint = checkpoint.toBuilder().firstIncompleteCheckpoint(incompleteCheckpointBatchesPair.getLeft()).build();
     }
     int numBatches = batches.size();
 
@@ -417,7 +412,7 @@ public class TimelineCommitInstantsUploader {
             .lastUploadedFile(lastUploadedFile.getFilename())
             .checkpointTimestamp(lastUploadedFile.getLastModifiedAt())
             .archivedCommitsProcessed(archivedCommitsProcessed)
-            .firstIncompleteCommitFile(previousCheckpoint.getFirstIncompleteCommitFile())
+            .firstIncompleteCheckpoint(previousCheckpoint.getFirstIncompleteCheckpoint())
             .build();
     try {
       return onehouseApiClient
@@ -515,7 +510,7 @@ public class TimelineCommitInstantsUploader {
       if (commitTimelineType.equals(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)) {
         if (extractorConfig
             .getUploadStrategy()
-            .equals(MetadataExtractorConfig.UploadStrategy.NON_BLOCKING)) {
+            .equals(MetadataExtractorConfig.UploadStrategy.CONTINUE_ON_INCOMPLETE_COMMIT)) {
           // The commits can be incomplete even if below condition is true, hence not ignoring for
           // non-blocking mode
           return false;
@@ -589,13 +584,13 @@ public class TimelineCommitInstantsUploader {
     // Extractor blocks on incomplete commits, startAfter is the last processed file
     if (extractorConfig
         .getUploadStrategy()
-        .equals(MetadataExtractorConfig.UploadStrategy.BLOCKING)) {
+        .equals(MetadataExtractorConfig.UploadStrategy.BLOCK_ON_INCOMPLETE_COMMIT)) {
       return storageUtils.constructFileUri(prefix, lastProcessedFile);
     }
 
     // Extractor does not block on incomplete commits, it resumes from the first incomplete commit
     // file if present else takes the lastProcessedFile as the starting point
-    String firstIncompleteCommitFile = checkpoint.getFirstIncompleteCommitFile();
+    String firstIncompleteCommitFile = checkpoint.getFirstIncompleteCheckpoint();
     return StringUtils.isBlank(firstIncompleteCommitFile)
         ? storageUtils.constructFileUri(prefix, lastProcessedFile)
         : storageUtils.constructFileUri(prefix, firstIncompleteCommitFile);
