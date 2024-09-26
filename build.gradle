@@ -3,6 +3,7 @@ plugins {
     id "io.freefair.lombok" version "8.4"
     id 'com.diffplug.spotless' version '6.13.0'
     id 'com.github.johnrengelman.shadow' version '7.1.0'
+    id 'jacoco'
     id 'org.sonarqube' version '4.0.0.2929'
 }
 
@@ -15,9 +16,6 @@ spotless {
 
 apply plugin: 'jacoco'
 
-jacoco {
-    toolVersion = "0.8.8" //jacoco version
-}
 
 test {
     finalizedBy jacocoTestReport // report is always generated after tests run
@@ -34,22 +32,6 @@ jacocoTestReport {
     reports {
         xml.required = true
         html.required = true
-    }
-}
-
-tasks.register('jacocoRootReport', JacocoReport) {
-
-    description = 'Generates an aggregate report from all subprojects'
-    dependsOn subprojects.test
-
-    additionalSourceDirs.from = files(subprojects.sourceSets.main.allSource.srcDirs)
-    sourceDirectories.from = files(subprojects.sourceSets.main.allSource.srcDirs)
-    classDirectories.from = files(subprojects.sourceSets.main.output)
-    executionData.from = files(subprojects.jacocoTestReport.executionData)
-
-    reports {
-        html.required = true // human readable
-        xml.required = true // required by sonarqube
     }
 }
 
@@ -101,25 +83,8 @@ test {
     }
 }
 
-subprojects {
-    apply plugin: 'java'
-    apply plugin: 'application'
-    apply plugin: 'io.freefair.lombok'
-    apply plugin: 'com.diffplug.spotless'
+allprojects {
     apply plugin: 'jacoco'
-
-    compileJava {
-        options.compilerArgs << '-Xlint:unchecked'
-        options.compilerArgs << '-Xlint:-deprecation'
-    }
-
-    tasks.register('sourceJar', Jar) {
-        archiveClassifier.set('sources')
-        from sourceSets.main.allSource
-    }
-
-    build.dependsOn sourceJar
-
     jacoco {
         toolVersion = "0.8.8" //jacoco version
     }
@@ -132,6 +97,59 @@ subprojects {
         reports {
         }
     }
+}
+
+test {
+    finalizedBy jacocoTestReport // report is always generated after tests run
+}
+
+jacocoTestReport {
+    afterEvaluate {
+        // Excluding constants and models
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/constants/**/*', '**/models/**/*'])
+        }))
+    }
+
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+tasks.register('jacocoRootReport', JacocoReport) {
+
+    description = 'Generates an aggregate report from all subprojects'
+    dependsOn subprojects.test
+
+    additionalSourceDirs.from = files(subprojects.sourceSets.main.allSource.srcDirs)
+    sourceDirectories.from = files(subprojects.sourceSets.main.allSource.srcDirs)
+    classDirectories.from = files(subprojects.sourceSets.main.output)
+    executionData.from = files(subprojects.jacocoTestReport.executionData)
+
+    reports {
+        html.required = true // human readable
+        xml.required = true // required by sonarqube
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'application'
+    apply plugin: 'io.freefair.lombok'
+    apply plugin: 'com.diffplug.spotless'
+
+    compileJava {
+        options.compilerArgs << '-Xlint:unchecked'
+        options.compilerArgs << '-Xlint:-deprecation'
+    }
+
+    tasks.register('sourceJar', Jar) {
+        archiveClassifier.set('sources')
+        from sourceSets.main.allSource
+    }
+
+    build.dependsOn sourceJar
 }
 
 configure([project(':lakeview')]) {
