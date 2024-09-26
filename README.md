@@ -121,6 +121,9 @@ Key functionality of the metadata extractor tool:
 - Operational Modes:
   - `CONTINUOUS` - The tool periodically discovers and uploads metadata for tables found in the configured path. Table discovery happens every 30minutes and new commit instants for the files are discovered and extracted every 5minutes (provided the previous run has completed).
   - `ONCE` - Allows users to trigger the discovery and extraction flow on demand, the tool picks up from where it left off on the last run. This can be useful if you want to run the metadata extractor tool as a recurring job that you manage.
+- Upload Strategies:
+  - `BLOCK_ON_INCOMPLETE_COMMIT` - The job stops when it encounters an incomplete commit. In the next run, the job will start from the incomplete commit.
+  - `CONTINUE_ON_INCOMPLETE_COMMIT` - The job skips incomplete commits to continue processing the complete commits. In the next run, the job will start from the first incomplete commit encountered during the previous job run.
 - Efficient Data Processing: Utilizes checkpoints for incremental metadata extraction, enabling frequent and efficient metric updates.
 
 
@@ -169,6 +172,7 @@ fileSystemConfiguration:
 
 metadataExtractorConfig:
     jobRunMode: CONTINUOUS | ONCE
+    uploadStrategy: BLOCK_ON_INCOMPLETE_COMMIT | CONTINUE_ON_INCOMPLETE_COMMIT
     pathExclusionPatterns: [<pattern1>, <pattern2>, ...]
     parserConfig:
         - lake: <lake1>
@@ -212,6 +216,7 @@ Note: Currently, only version V1 is supported.
 **metadataExtractorConfig**
 - Description: Configuration for the metadata extraction job.
 - **jobRunMode:** Can be CONTINUOUS or ONCE.
+- **uploadStrategy:** Can be BLOCK_ON_INCOMPLETE_COMMIT or CONTINUE_ON_INCOMPLETE_COMMIT. 
 - **pathExclusionPatterns:** List of regex patterns to exclude from scanning. (Java regex patterns are supported)
 - **parserConfig**
   - Description: List of lakes and databases to be parsed.
