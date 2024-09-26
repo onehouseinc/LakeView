@@ -75,3 +75,19 @@ test {
         events "passed", "skipped", "failed"
     }
 }
+
+apply plugin: 'jacoco'
+
+jacocoTestReport {
+    afterEvaluate {
+        // Excluding constants and models
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/constants/**/*', '**/models/**/*'])
+        }))
+    }
+
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}

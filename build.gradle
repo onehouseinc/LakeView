@@ -3,7 +3,6 @@ plugins {
     id "io.freefair.lombok" version "8.4"
     id 'com.diffplug.spotless' version '6.13.0'
     id 'com.github.johnrengelman.shadow' version '7.1.0'
-    id 'jacoco'
     id 'org.sonarqube' version '4.0.0.2929'
 }
 
@@ -15,6 +14,10 @@ spotless {
 }
 
 apply plugin: 'jacoco'
+
+jacoco {
+    toolVersion = "0.8.8" //jacoco version
+}
 
 test {
     finalizedBy jacocoTestReport // report is always generated after tests run
@@ -31,6 +34,22 @@ jacocoTestReport {
     reports {
         xml.required = true
         html.required = true
+    }
+}
+
+tasks.register('jacocoRootReport', JacocoReport) {
+
+    description = 'Generates an aggregate report from all subprojects'
+    dependsOn subprojects.test
+
+    additionalSourceDirs.from = files(subprojects.sourceSets.main.allSource.srcDirs)
+    sourceDirectories.from = files(subprojects.sourceSets.main.allSource.srcDirs)
+    classDirectories.from = files(subprojects.sourceSets.main.output)
+    executionData.from = files(subprojects.jacocoTestReport.executionData)
+
+    reports {
+        html.required = true // human readable
+        xml.required = true // required by sonarqube
     }
 }
 
@@ -75,35 +94,10 @@ repositories {
 dependencies {
 }
 
-allprojects {
-    apply plugin: 'jacoco'
-    jacoco {
-        toolVersion = "0.8.8" //jacoco version
-    }
-
-    test {
-        finalizedBy jacocoTestReport // report is always generated after tests run
-    }
-
-    jacocoTestReport {
-        reports {
-        }
-    }
-}
-
-tasks.register('jacocoRootReport', JacocoReport) {
-
-    description = 'Generates an aggregate report from all subprojects'
-    dependsOn subprojects.test, jacocoTestReport
-
-    additionalSourceDirs.from = files(subprojects.sourceSets.main.allSource.srcDirs)
-    sourceDirectories.from = files(subprojects.sourceSets.main.allSource.srcDirs)
-    classDirectories.from = files(subprojects.sourceSets.main.output)
-    executionData.from = files(subprojects.jacocoTestReport.executionData)
-
-    reports {
-        html.required = true // human readable
-        xml.required = true // required by sonarqube
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
     }
 }
 
@@ -118,6 +112,7 @@ subprojects {
         options.compilerArgs << '-Xlint:-deprecation'
     }
 
+    // other shadow jar config
     tasks.register('sourceJar', Jar) {
         archiveClassifier.set('sources')
         from sourceSets.main.allSource
@@ -126,6 +121,7 @@ subprojects {
     build.dependsOn sourceJar
 }
 
+// Configure Shadow plugin
 configure([project(':lakeview')]) {
     apply plugin: 'com.github.johnrengelman.shadow'
 
