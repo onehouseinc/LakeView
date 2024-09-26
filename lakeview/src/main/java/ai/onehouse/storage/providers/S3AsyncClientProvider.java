@@ -6,7 +6,8 @@ import ai.onehouse.config.models.common.FileSystemConfiguration;
 import ai.onehouse.config.models.common.S3Config;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
-import org.apache.commons.lang.StringUtils;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
