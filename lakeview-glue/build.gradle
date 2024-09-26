@@ -1,0 +1,58 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'ai.onehouse'
+version = '1.0-SNAPSHOT'
+
+def mainClass = 'ai.onehouse.GlueWrapperMain'
+
+application {
+    mainClassName = mainClass
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': mainClass
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(":lakeview")
+    implementation("org.apache.spark:spark-core_2.12:3.2.2") {
+        transitive = false
+    }
+    implementation("org.apache.spark:spark-sql_2.12:3.2.2")
+
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+apply plugin: 'jacoco'
+
+jacocoTestReport {
+    afterEvaluate {
+        // Excluding constants and models
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/constants/**/*', '**/models/**/*'])
+        }))
+    }
+
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+test {
+    finalizedBy jacocoTestReport // report is always generated after tests run
+}
