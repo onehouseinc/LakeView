@@ -2,7 +2,6 @@ package ai.onehouse;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class TestGlueWrapper {
@@ -12,6 +11,6 @@ public class TestGlueWrapper {
     GlueWrapperMain wrapperMain = new GlueWrapperMain();
     String argsJson = "[\"-h\"]";
 
-    Assertions.assertDoesNotThrow(() -> wrapperMain.call(argsJson));
+    assertDoesNotThrow(() -> wrapperMain.call(argsJson));
   }
 }
