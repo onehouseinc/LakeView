@@ -3,11 +3,11 @@ plugins {
     id 'application'
 }
 
-group 'ai.onehouse'
+group 'com.onehouse'
 version = '1.0-SNAPSHOT'
 description = 'lakeview'
 
-def mainClass = 'ai.onehouse.Main'
+def mainClass = 'com.onehouse.Main'
 
 application {
     mainClassName = mainClass
