@@ -101,13 +101,6 @@ test {
     }
 }
 
-task sourceJar(type: Jar) {
-    archiveClassifier.set('sources')
-    from sourceSets.main.allSource
-}
-
-build.dependsOn sourceJar
-
 subprojects {
     apply plugin: 'java'
     apply plugin: 'application'
@@ -119,6 +112,13 @@ subprojects {
         options.compilerArgs << '-Xlint:unchecked'
         options.compilerArgs << '-Xlint:-deprecation'
     }
+
+    tasks.register('sourceJar', Jar) {
+        archiveClassifier.set('sources')
+        from sourceSets.main.allSource
+    }
+
+    build.dependsOn sourceJar
 
     jacoco {
         toolVersion = "0.8.8" //jacoco version

@@ -28,6 +28,10 @@ shadowJar {
     archiveFileName = "LakeView-${project.version}-all.jar"
 }
 
+sourceJar {
+    archiveFileName = "LakeView-${project.version}-sources.jar"
+}
+
 dependencies {
     implementation 'com.google.inject:guice:5.0.1'
     implementation "ch.qos.logback:logback-classic:1.2.6"
