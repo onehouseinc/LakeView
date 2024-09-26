@@ -34,7 +34,7 @@ jacocoTestReport {
     }
 }
 
-sonarqube {
+sonar {
     properties {
         property "sonar.gradle.skipCompile", true
         property "sonar.projectKey", "onehouseinc_hudi-metadata-extractor"
