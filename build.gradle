@@ -13,10 +13,21 @@ spotless {
     }
 }
 
-apply plugin: 'jacoco'
+allprojects {
+    apply plugin: 'jacoco'
 
-jacoco {
-    toolVersion = "0.8.8" //jacoco version
+    jacoco {
+        toolVersion = "0.8.8" //jacoco version
+    }
+
+    test {
+        finalizedBy jacocoTestReport // report is always generated after tests run
+    }
+
+    jacocoTestReport {
+        reports {
+        }
+    }
 }
 
 tasks.register('jacocoMergedReport', JacocoReport) {
