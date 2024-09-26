@@ -66,7 +66,7 @@ tasks.sonar {
 tasks.getByPath('sonar').setDependsOn([])
 tasks.getByPath('sonar').setMustRunAfter([])
 
-group = 'com.onehouse'
+group = 'ai.onehouse'
 version = '1.0-SNAPSHOT'
 
 repositories {
