@@ -16,7 +16,6 @@ spotless {
 
 apply plugin: 'jacoco'
 
-
 test {
     finalizedBy jacocoTestReport // report is always generated after tests run
 }
@@ -76,13 +75,6 @@ repositories {
 dependencies {
 }
 
-test {
-    useJUnitPlatform()
-    testLogging {
-        events "passed", "skipped", "failed"
-    }
-}
-
 allprojects {
     apply plugin: 'jacoco'
     jacoco {
@@ -99,28 +91,10 @@ allprojects {
     }
 }
 
-test {
-    finalizedBy jacocoTestReport // report is always generated after tests run
-}
-
-jacocoTestReport {
-    afterEvaluate {
-        // Excluding constants and models
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: ['**/constants/**/*', '**/models/**/*'])
-        }))
-    }
-
-    reports {
-        xml.required = true
-        html.required = true
-    }
-}
-
 tasks.register('jacocoRootReport', JacocoReport) {
 
     description = 'Generates an aggregate report from all subprojects'
-    dependsOn subprojects.test
+    dependsOn subprojects.test, jacocoTestReport
 
     additionalSourceDirs.from = files(subprojects.sourceSets.main.allSource.srcDirs)
     sourceDirectories.from = files(subprojects.sourceSets.main.allSource.srcDirs)
