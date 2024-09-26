@@ -121,7 +121,7 @@ subprojects {
 }
 
 // Configure Shadow plugin
-configure([project(':lakeview')]) {
+configure([project(':lakeview'), project(':lakeview-glue')]) {
     apply plugin: 'com.github.johnrengelman.shadow'
 
     shadowJar {
