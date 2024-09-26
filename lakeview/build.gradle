@@ -91,3 +91,7 @@ jacocoTestReport {
         html.required = true
     }
 }
+
+test {
+    finalizedBy jacocoTestReport // report is always generated after tests run
+}
