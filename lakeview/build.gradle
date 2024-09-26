@@ -18,9 +18,14 @@ repositories {
 }
 
 jar {
+    archiveFileName = "LakeView-${project.version}.jar"
     manifest {
         attributes 'Main-Class': mainClass
     }
+}
+
+shadowJar {
+    archiveFileName = "LakeView-${project.version}-all.jar"
 }
 
 dependencies {
