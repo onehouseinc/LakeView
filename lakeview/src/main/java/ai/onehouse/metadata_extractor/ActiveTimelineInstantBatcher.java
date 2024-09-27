@@ -5,11 +5,11 @@ import static ai.onehouse.constants.MetadataExtractorConstants.ROLLBACK_ACTION;
 import static ai.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
 import static ai.onehouse.constants.MetadataExtractorConstants.WHITELISTED_ACTION_TYPES;
 
+import ai.onehouse.config.Config;
+import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
+import ai.onehouse.metadata_extractor.models.Checkpoint;
+import ai.onehouse.storage.models.File;
 import com.google.inject.Inject;
-import com.onehouse.config.Config;
-import com.onehouse.config.models.configv1.MetadataExtractorConfig;
-import com.onehouse.metadata_extractor.models.Checkpoint;
-import com.onehouse.storage.models.File;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayList;

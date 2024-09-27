@@ -4,10 +4,9 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
-import com.onehouse.config.Config;
-import com.onehouse.config.models.configv1.MetadataExtractorConfig;
-import com.onehouse.metadata_extractor.models.Checkpoint;
-import com.onehouse.storage.models.File;
+import ai.onehouse.config.Config;
+import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -15,6 +14,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
+
+import ai.onehouse.metadata_extractor.models.Checkpoint;
+import ai.onehouse.storage.models.File;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
