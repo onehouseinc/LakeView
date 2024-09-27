@@ -1,5 +1,6 @@
 # Table of Contents
 1. [Intro to LakeView](#Intro-to-LakeView)
+1. [Architecture](#Architecture)
 1. [Feature Highlights](#Feature-Highlights)
 1. [Setup Guide](#Setup-Guide)
     1. [Sign Up](##Sign-Up)
@@ -24,6 +25,14 @@ LakeView currently supports Apache Hudi tables stored on Amazon S3 and Google Cl
 - Optimization insights for data skew, partition sizing, and file sizing
 - Compaction backlog monitoring for Merge on Read tables
 - Email & Slack updates and notifications for common issues
+
+# Architecture
+
+LakeView analyzes your Hudi metadata, so base data files are never accessed and no business data leaves your private cloud.
+
+This repository provides a tool that you can run within your cloud environment to push the metadata to LakeView. LakeView will then process the metadata on the server-side to generate charts and metrics in the Onehouse console (web app).
+
+<img width="1207" alt="Screenshot 2024-06-17 at 6 04 02 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/9005db67-e96f-439b-b223-81e0150d40d5">
 
 # Product Walkthrough
 
