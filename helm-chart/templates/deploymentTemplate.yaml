@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hudi-metadata-extractor
+  name: lake-view
   labels:
-    app: hudi-metadata-extractor
+    app: lake-view
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: hudi-metadata-extractor
+      app: lake-view
   template:
     metadata:
       labels:
-        app: hudi-metadata-extractor
+        app: lake-view
     spec:
       containers:
-        - name: hudi-metadata-extractor
+        - name: lake-view
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
@@ -34,4 +34,9 @@ spec:
             - name: {{ $key }}
               value: "{{ $value }}"
           {{- end }}
+          securityContext:
+            runAsGroup: "{{ .Values.runAsGroup }}"
+      securityContext:
+        runAsGroup: "{{ .Values.runAsGroup }}"
+        runAsUser: "{{ .Values.runAsUser }}"
 {{- end }}

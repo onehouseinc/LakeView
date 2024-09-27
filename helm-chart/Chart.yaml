@@ -1,6 +1,6 @@
 apiVersion: v2
-name: hudi-metadata-extractor
-description: A Helm chart for Kubernetes to deploy hudi-metadata-extractor
+name: lake-view
+description: A Helm chart for Kubernetes to deploy LakeView
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
