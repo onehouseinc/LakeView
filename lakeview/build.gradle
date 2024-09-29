@@ -47,7 +47,7 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3:3.17.0'
     implementation 'commons-io:commons-io:2.17.0'
 
-    implementation platform('software.amazon.awssdk:bom:2.21.8')
+    implementation platform('software.amazon.awssdk:bom:2.25.69')
     implementation 'software.amazon.awssdk:s3'
     implementation 'software.amazon.awssdk:sso'
     implementation 'software.amazon.awssdk:sts'

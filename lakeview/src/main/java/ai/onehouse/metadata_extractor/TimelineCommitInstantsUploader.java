@@ -58,7 +58,7 @@ public class TimelineCommitInstantsUploader {
   private final MetadataExtractorConfig extractorConfig;
 
   @Inject
-  TimelineCommitInstantsUploader(
+  public TimelineCommitInstantsUploader(
       @Nonnull AsyncStorageClient asyncStorageClient,
       @Nonnull PresignedUrlFileUploader presignedUrlFileUploader,
       @Nonnull OnehouseApiClient onehouseApiClient,
