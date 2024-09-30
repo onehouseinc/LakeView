@@ -25,6 +25,9 @@ public class MetadataExtractorConfig {
   @Builder.Default private JobRunMode jobRunMode = JobRunMode.CONTINUOUS;
 
   @Builder.Default
+  private UploadStrategy uploadStrategy = UploadStrategy.BLOCK_ON_INCOMPLETE_COMMIT;
+
+  @Builder.Default
   private int presignedUrlRequestBatchSizeActiveTimeline =
       PRESIGNED_URL_REQUEST_BATCH_SIZE_ACTIVE_TIMELINE;
 
@@ -46,5 +49,10 @@ public class MetadataExtractorConfig {
   public enum JobRunMode {
     CONTINUOUS,
     ONCE
+  }
+
+  public enum UploadStrategy {
+    BLOCK_ON_INCOMPLETE_COMMIT,
+    CONTINUE_ON_INCOMPLETE_COMMIT
   }
 }
