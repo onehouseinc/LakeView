@@ -1,0 +1,94 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group 'ai.onehouse'
+version = '1.0-SNAPSHOT'
+description = 'lakeview'
+
+def mainClass = 'ai.onehouse.Main'
+
+application {
+    mainClassName = mainClass
+}
+
+repositories {
+    mavenCentral()
+}
+
+jar {
+    archiveFileName = "LakeView-${project.version}.jar"
+    manifest {
+        attributes 'Main-Class': mainClass
+    }
+}
+
+shadowJar {
+    archiveFileName = "LakeView-${project.version}-all.jar"
+}
+
+sourceJar {
+    archiveFileName = "LakeView-${project.version}-sources.jar"
+}
+
+dependencies {
+    implementation 'com.google.inject:guice:5.0.1'
+    implementation "ch.qos.logback:logback-classic:1.2.6"
+    implementation "ch.qos.logback.contrib:logback-json-classic:0.1.5"
+    implementation "ch.qos.logback.contrib:logback-jackson:0.1.5"
+    implementation 'com.squareup.okhttp3:okhttp:4.11.0'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.12.3'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.3'
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.3'
+    implementation 'org.apache.commons:commons-lang3:3.13.0'
+    implementation 'commons-cli:commons-cli:1.6.0'
+    implementation 'org.apache.commons:commons-lang3:3.17.0'
+    implementation 'commons-io:commons-io:2.17.0'
+
+    implementation platform('software.amazon.awssdk:bom:2.25.69')
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:sso'
+    implementation 'software.amazon.awssdk:sts'
+    implementation 'com.google.cloud:google-cloud-storage:2.12.0'
+
+    implementation 'org.springframework:spring-beans:5.3.23'
+
+    testImplementation 'org.mockito:mockito-core:3.11.2'
+    testImplementation "org.mockito:mockito-junit-jupiter:3.11.2"
+    testImplementation "org.mockito:mockito-inline:3.11.2"
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
+    testImplementation(platform('org.junit:junit-bom:5.10.0'))
+    testImplementation('org.junit.jupiter:junit-jupiter')
+
+    implementation group: 'io.prometheus', name: 'simpleclient_httpserver', version: '0.16.0'
+    implementation "io.micrometer:micrometer-registry-prometheus:1.7.0"
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
+
+apply plugin: 'jacoco'
+
+jacocoTestReport {
+    afterEvaluate {
+        // Excluding constants and models
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/constants/**/*', '**/models/**/*'])
+        }))
+    }
+
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+test {
+    finalizedBy jacocoTestReport // report is always generated after tests run
+}

@@ -1,2 +1,4 @@
 rootProject.name = 'LakeView'
+include 'lakeview'
+include 'lakeview-glue'
 
