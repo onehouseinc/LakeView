@@ -137,7 +137,7 @@ public class TimelineCommitInstantsUploader {
         table,
         bucketName,
         prefix,
-        checkpoint.toBuilder().firstIncompleteCheckpoint("").build(),
+        checkpoint.toBuilder().firstIncompleteCommitFile("").build(),
         commitTimelineType,
         startAfter);
   }
@@ -275,7 +275,7 @@ public class TimelineCommitInstantsUploader {
       checkpoint =
           checkpoint
               .toBuilder()
-              .firstIncompleteCheckpoint(incompleteCheckpointBatchesPair.getLeft())
+              .firstIncompleteCommitFile(incompleteCheckpointBatchesPair.getLeft())
               .build();
     }
     int numBatches = batches.size();
@@ -417,7 +417,7 @@ public class TimelineCommitInstantsUploader {
             .lastUploadedFile(lastUploadedFile.getFilename())
             .checkpointTimestamp(lastUploadedFile.getLastModifiedAt())
             .archivedCommitsProcessed(archivedCommitsProcessed)
-            .firstIncompleteCheckpoint(previousCheckpoint.getFirstIncompleteCheckpoint())
+            .firstIncompleteCommitFile(previousCheckpoint.getFirstIncompleteCommitFile())
             .build();
     try {
       return onehouseApiClient
@@ -596,7 +596,7 @@ public class TimelineCommitInstantsUploader {
 
     // Extractor does not block on incomplete commits, it resumes from the first incomplete commit
     // file if present else takes the lastProcessedFile as the starting point
-    String firstIncompleteCommitFile = checkpoint.getFirstIncompleteCheckpoint();
+    String firstIncompleteCommitFile = checkpoint.getFirstIncompleteCommitFile();
     return StringUtils.isBlank(firstIncompleteCommitFile)
         ? storageUtils.constructFileUri(prefix, lastProcessedFile)
         : storageUtils.constructFileUri(prefix, firstIncompleteCommitFile);

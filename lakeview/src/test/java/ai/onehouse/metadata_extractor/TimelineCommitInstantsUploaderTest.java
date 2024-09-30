@@ -308,7 +308,7 @@ class TimelineCommitInstantsUploaderTest {
         Collections.singletonList(batch1),
         previousCheckpoint,
         previousCheckpoint
-            .getFirstIncompleteCheckpoint()); // no change in previous and next checkpoint for
+            .getFirstIncompleteCommitFile()); // no change in previous and next checkpoint for
     // blocking mode
 
     stubCreateBatches(
@@ -318,7 +318,7 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj("222.action.requested", false)),
         Collections.singletonList(batch2),
         checkpoint1,
-        checkpoint1.getFirstIncompleteCheckpoint());
+        checkpoint1.getFirstIncompleteCommitFile());
 
     stubCreateBatches(
         Arrays.asList(
@@ -326,7 +326,7 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj("333.action.requested", false)),
         new ArrayList<>(),
         checkpoint2,
-        checkpoint2.getFirstIncompleteCheckpoint());
+        checkpoint2.getFirstIncompleteCommitFile());
 
     stubUploadInstantsCalls(
         batch1.stream()
@@ -473,12 +473,12 @@ class TimelineCommitInstantsUploaderTest {
         generateCheckpointObj(
                 previousCheckpoint.getBatchId() + 1, Instant.EPOCH, true, "111.action")
             .toBuilder()
-            .firstIncompleteCheckpoint("111.action.requested")
+            .firstIncompleteCommitFile("111.action.requested")
             .build();
     Checkpoint checkpoint2 =
         generateCheckpointObj(previousCheckpoint.getBatchId() + 2, currentTime, true, "222.action")
             .toBuilder()
-            .firstIncompleteCheckpoint("111.action.requested")
+            .firstIncompleteCommitFile("111.action.requested")
             .build();
 
     stubCreateBatches(
@@ -492,7 +492,7 @@ class TimelineCommitInstantsUploaderTest {
             .collect(Collectors.toList()),
         Collections.singletonList(batch1),
         previousCheckpoint,
-        previousCheckpoint.getFirstIncompleteCheckpoint());
+        previousCheckpoint.getFirstIncompleteCommitFile());
 
     stubCreateBatches(
         Arrays.asList(
@@ -503,7 +503,7 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj("222.action.requested", false)),
         Collections.singletonList(batch2),
         checkpoint1,
-        returnCheckpoint1.getFirstIncompleteCheckpoint());
+        returnCheckpoint1.getFirstIncompleteCommitFile());
 
     stubCreateBatches(
         Arrays.asList(
@@ -513,7 +513,7 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj("333.action.requested", false)),
         new ArrayList<>(),
         checkpoint2,
-        checkpoint2.getFirstIncompleteCheckpoint());
+        checkpoint2.getFirstIncompleteCommitFile());
 
     stubUploadInstantsCalls(
         batch1.stream()
@@ -602,7 +602,7 @@ class TimelineCommitInstantsUploaderTest {
         Collections.singletonList(generateFileObj(HOODIE_PROPERTIES_FILE, false)),
         Collections.singletonList(batch1),
         INITIAL_CHECKPOINT,
-        INITIAL_CHECKPOINT.getFirstIncompleteCheckpoint());
+        INITIAL_CHECKPOINT.getFirstIncompleteCommitFile());
 
     Checkpoint checkpoint1 = generateCheckpointObj(1, Instant.EPOCH, true, HOODIE_PROPERTIES_FILE);
 
@@ -675,7 +675,7 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj("222.savepoint.inflight", false)),
         Collections.singletonList(batch1),
         INITIAL_CHECKPOINT,
-        INITIAL_CHECKPOINT.getFirstIncompleteCheckpoint());
+        INITIAL_CHECKPOINT.getFirstIncompleteCommitFile());
 
     stubUploadInstantsCalls(
         batch1.stream()
@@ -764,7 +764,7 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj("20240905134154469333.action.requested", false)),
         Collections.singletonList(batch3),
         previousCheckpoint,
-        previousCheckpoint.getFirstIncompleteCheckpoint());
+        previousCheckpoint.getFirstIncompleteCommitFile());
 
     stubUploadInstantsCalls(
         batch3.stream()
@@ -979,7 +979,7 @@ class TimelineCommitInstantsUploaderTest {
         .batchId(batchId)
         .checkpointTimestamp(checkpointTimestamp)
         .archivedCommitsProcessed(archivedCommitsProcessed)
-        .firstIncompleteCheckpoint("")
+        .firstIncompleteCommitFile("")
         .lastUploadedFile(lastUploadedFile)
         .build();
   }

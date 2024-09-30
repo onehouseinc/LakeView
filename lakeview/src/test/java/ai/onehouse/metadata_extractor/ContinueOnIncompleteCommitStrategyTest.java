@@ -379,7 +379,7 @@ class ContinueOnIncompleteCommitStrategyTest {
         .checkpointTimestamp(instant)
         .batchId(batchId)
         .lastUploadedFile(lastUploadedFile)
-        .firstIncompleteCheckpoint(firstIncompleteCheckpoint)
+        .firstIncompleteCommitFile(firstIncompleteCheckpoint)
         .archivedCommitsProcessed(true)
         .build();
   }

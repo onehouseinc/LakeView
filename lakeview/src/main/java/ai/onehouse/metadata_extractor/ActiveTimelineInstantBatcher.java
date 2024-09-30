@@ -60,7 +60,7 @@ public class ActiveTimelineInstantBatcher {
 
     List<List<File>> batches = new ArrayList<>();
     List<File> currentBatch = new ArrayList<>();
-    String firstIncompleteCheckpoint = checkpoint.getFirstIncompleteCheckpoint();
+    String firstIncompleteCheckpoint = checkpoint.getFirstIncompleteCommitFile();
 
     int startIndex = 0;
     if (!sortedInstants.isEmpty()

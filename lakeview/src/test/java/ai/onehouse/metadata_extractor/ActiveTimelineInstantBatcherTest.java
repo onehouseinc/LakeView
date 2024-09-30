@@ -604,7 +604,7 @@ class ActiveTimelineInstantBatcherTest {
                     generateFileObj("777.rollback"),
                     generateFileObj("777.rollback.inflight"),
                     generateFileObj("777.rollback.requested"))),
-            getCheckpoint().toBuilder().firstIncompleteCheckpoint("500").build(),
+            getCheckpoint().toBuilder().firstIncompleteCommitFile("500").build(),
             "443"));
   }
 
