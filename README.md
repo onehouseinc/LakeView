@@ -254,10 +254,10 @@ Note: Currently, only version V1 is supported.
 
 There are four methods to deploy the metadata extractor tool:
 
-1. Deploy with [LakeView JAR](https://github.com/onehouseinc/LakeView/releases/)
+1. Deploy with [LakeView JAR](https://github.com/onehouseinc/LakeView/releases/) file
 2. Deploy with [MetaData Extractor Docker Image](https://hub.docker.com/r/onehouse/lake-view)
 3. Deploy to Kubernetes with Helm
-4. Deploy with AWS Glue using JAR File
+4. Deploy with AWS Glue using [LakeView JAR](https://github.com/onehouseinc/LakeView/releases/) file
 
 #### Deploy with LakeView JAR
 
@@ -292,7 +292,7 @@ java -jar /tmp/LakeView-release-v0.14.0-all.jar -p /tmp/lakeview_conf.yaml
 
 #### Deploy with MetaData Extractor Docker Image
 
-Step1: Copy the `lakeview_conf.yaml` content (mentioned in step 3.2.1.1), then update all the details accordingly. You can pass this configuration content as string or file to docker command.
+Step1: Copy the `lakeview_conf.yaml` content (mentioned in `YAML Configuration File Structure` step), then update all the details accordingly. You can pass this configuration content as string or file to docker command.
 
 Step2: Run the LakeView using Docker.
 
