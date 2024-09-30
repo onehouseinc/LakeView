@@ -42,7 +42,7 @@ jobs:
           # As sonar scanner analysis should be done by jdk 17
           export JAVA_HOME="${{env.JAVA_HOME_17_X64}}"
           if [ ${{ github.event_name }} == 'pull_request' ]; then
-            ./gradlew -Psonar_token=${{ secrets.SONAR_TOKEN }} -Ppullrequest_key=${{ github.event.number }} -Ppullrequest_branch=${{ github.HEAD_REF }} -Ppullrequest_base=${{ github.BASE_REF }} sonar
+            ./gradlew -d -Psonar_token=${{ secrets.SONAR_TOKEN }} -Ppullrequest_key=${{ github.event.number }} -Ppullrequest_branch=${{ github.HEAD_REF }} -Ppullrequest_base=${{ github.BASE_REF }} sonar
           else
-            ./gradlew -Psonar_token=${{ secrets.SONAR_TOKEN }} -Pbranch_name=${{ github.HEAD_REF }} sonar
+            ./gradlew -d -Psonar_token=${{ secrets.SONAR_TOKEN }} -Pbranch_name=${{ github.HEAD_REF }} sonar
           fi
