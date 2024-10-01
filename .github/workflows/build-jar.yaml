@@ -49,7 +49,7 @@ jobs:
             ./gradlew publish -PbuildRelease=true -Pversion=${version_number}
           else
             echo "Publishing snapshot release"
-            ./gradlew publish -Pversion="0.0.${{ github.run_number }}-SNAPSHOT"
+            ./gradlew publish -Pversion="0.0.${{ github.event.number }}-SNAPSHOT"
           fi
 
       - name: Upload lakeview jar file to Release
