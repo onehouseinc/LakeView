@@ -133,7 +133,7 @@ subprojects {
         }
         publications {
             mavenJava(MavenPublication) {
-                groupId project.group
+                groupId 'ai.onehouse'
                 artifactId project.name
                 version = project.version
             }
