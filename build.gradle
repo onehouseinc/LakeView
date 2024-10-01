@@ -132,9 +132,10 @@ subprojects {
             }
         }
         publications {
-            gpr(MavenPublication) {
-                from(components.java)
-
+            mavenJava(MavenPublication) {
+                groupId project.group
+                artifactId project.name
+                version = project.version
             }
         }
     }
