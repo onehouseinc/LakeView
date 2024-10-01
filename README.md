@@ -1,12 +1,31 @@
 # Table of Contents
-1. [Intro to LakeView](#Intro-to-LakeView)
-1. [Architecture](#Architecture)
-1. [Feature Highlights](#Feature-Highlights)
-1. [Setup Guide](#Setup-Guide)
-    1. [Sign Up](##Sign-Up)
-    1. [Push Metadata to LakeView](##Push-Metadata-to-LakeView)
-1. [FAQ](#FAQ)
-1. [LICENSE](#LICENSE)
+
+- [Intro to LakeView](#intro-to-lakeview)
+- [Architecture](#architecture)
+- [Product Walkthrough](#product-walkthrough)
+  * [Explore your Tables](#explore-your-tables)
+  * [Table Stats](#table-stats)
+  * [Timeline History](#timeline-history)
+  * [Compaction Backlog Monitoring](#compaction-backlog-monitoring)
+  * [Partition Insights](#partition-insights)
+  * [Notifications](#notifications)
+  * [Weekly Review Emails](#weekly-review-emails)
+- [Setup Guide](#setup-guide)
+  * [Sign Up](#sign-up)
+  * [Push Metadata to LakeView](#push-metadata-to-lakeview)
+    + [Configure the Metadata Extractor Tool](#configure-the-metadata-extractor-tool)
+      - [YAML Configuration File Structure](#yaml-configuration-file-structure)
+      - [Understand Configs](#understand-configs)
+    + [Deploy the Metadata Extractor Tool](#deploy-the-metadata-extractor-tool)
+      - [Deploy with LakeView JAR](#deploy-with-lakeview-jar)
+      - [Deploy with MetaData Extractor Docker Image](#deploy-with-metadata-extractor-docker-image)
+      - [Deploy to Kubernetes with Helm](#deploy-to-kubernetes-with-helm)
+      - [Deploy with AWS Glue using JAR File](#deploy-with-aws-glue-using-jar-file)
+- [FAQ](#faq)
+  * [How is LakeView different from Onehouse Cloud?](#how-is-lakeview-different-from-onehouse-cloud)
+  * [Will Onehouse see my column stats if I have enabled the Hudi metadata table?](#will-onehouse-see-my-column-stats-if-i-have-enabled-the-hudi-metadata-table)
+- [Known Limitations](#known-limitations)
+- [LICENSE](#license)
 
 # Intro to LakeView
 
@@ -144,20 +163,15 @@ Metadata Pushed to LakeView:
 - The instant files in the active and archived timeline of the tables
 - The last modification timestamp of the instant files (this is used to incrementally process changes)
 
+### Configure the Metadata Extractor Tool
 
-### Step 1: Install the Metadata Extractor Tool
-
-There are three methods to deploy the metadata extractor tool:
-1. **Download and run a JAR package:** Download the latest JAR from the [release's page](https://github.com/onehouseinc/LakeView/releases/) prefer using the latest stable release
-1. **Download and install a Helm chart in Kubernetes:** Deploy the tool in your Kubernetes cluster using our Helm chart (present in `/helm-chart` directory).
-1. **Pull and run a Docker image:** Pull from [docker hub](https://hub.docker.com/r/onehouse/lake-view) and run in supported environments.**Note:** stable releases start with the prefix `release-v`.
-  (image: `onehouse/hudi-metadata-extractor`)
-
-### Step 2: Configure the Metadata Extractor Tool
-
-The configuration file for the metadata extractor tool is a YAML file that specifies various settings required for the tool's operation. Below is a detailed explanation of each section and its respective fields within the configuration file.
+The configuration file for the metadata extractor tool is a YAML file that specifies various settings required for the tool's operation.
+Below is a detailed explanation of each section and its respective fields within the configuration file.
 
 #### YAML Configuration File Structure
+
+`lakeview_conf.yaml`
+
 ``` YAML
 version: V1
 
@@ -194,6 +208,8 @@ metadataExtractorConfig:
 ```
 
 #### Configs
+
+Let's understand each of the above configs.
 
 **version**
 - **Description:** Specifies the configuration format version.
@@ -234,42 +250,102 @@ Note: Currently, only version V1 is supported.
       - **name:** Database name (optional, defaults to community-db ).
       - **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
 
-### Step 3: Deploy the Metadata Extractor Tool
+### Deploy the Metadata Extractor Tool
 
-#### Deploy with JAR
+There are four methods to deploy the metadata extractor tool:
 
-Use command line arguments for the JAR file:
+1. Deploy with [LakeView JAR](https://github.com/onehouseinc/LakeView/releases/) file
+2. Deploy with [MetaData Extractor Docker Image](https://hub.docker.com/r/onehouse/lake-view)
+3. Deploy to Kubernetes with Helm
+4. Deploy with AWS Glue using [LakeView JAR](https://github.com/onehouseinc/LakeView/releases/) file
+
+#### Deploy with LakeView JAR
+
+Step1: Download the latest stable release JAR from the [release's page](https://github.com/onehouseinc/LakeView/releases/). For example, latest jar version is 0.14.0.
+
 ```BASH
-# Option 1: YAML configuration string
-java -jar <jar_path> -c '<yaml_string>'
-
-# Option 2: YAML configuration file (local filepaths only)
-java -jar <jar_path> -p '<path_to_config_file>'
+curl -o /tmp/LakeView-release-v0.14.0-all.jar \
+  https://github.com/onehouseinc/LakeView/releases/download/prod-34/LakeView-release-v0.14.0-all.jar
 ```
 
-#### Deploy with Docker
+Step2: Copy the `lakeview_conf.yaml` content (mentioned in `YAML Configuration File Structure` step), then update all the details accordingly. You can pass this configuration content as string or file to the jar.
 
-Use command line arguments for the Docker image:
+Step3: Run the LakeView using JAR.
+
+**Syntax:**
+
 ```BASH
 # Option 1: YAML configuration string
-docker run <image_name> -c '<yaml_string>'
+java -jar /tmp/LakeView-release-v0.14.0-all.jar -c '<yaml_string>'
 
 # Option 2: YAML configuration file (local filepaths only)
-docker run <image_name> -p '<path_to_config_file>'
+java -jar /tmp/LakeView-release-v0.14.0-all.jar -p '<path_to_config_file>'
+```
+
+**Example:**
+
+In this example, we are passing the lakeview configuration content as a file.
+
+```BASH
+java -jar /tmp/LakeView-release-v0.14.0-all.jar -p /tmp/lakeview_conf.yaml
+```
+
+#### Deploy with MetaData Extractor Docker Image
+
+Step1: Copy the `lakeview_conf.yaml` content (mentioned in `YAML Configuration File Structure` step), then update all the details accordingly. You can pass this configuration content as string or file to docker command.
+
+Step2: Run the LakeView using Docker.
+
+**Syntax:**
+
+```BASH
+# Option 1: YAML configuration string
+docker run onehouse/lake-view -c '<yaml_string>'
+
+# Option 2: YAML configuration file (local filepaths only)
+docker run onehouse/lake-view -p '<path_to_config_file>'
 ```
 
 Note: When testing Docker locally, use `-v` to mount the volume where the configuration is present.
 
+**Example:**
+
+```BASH
+docker run -v /tmp/lakeview_conf.yaml:/tmp/lakeview_conf.yaml onehouse/lake-view -p /tmp/lakeview_conf.yaml
+```
+
 #### Deploy to Kubernetes with Helm
 
-1. Clone the github repo
-1. Navigate into the helm-chart folder by running: `cd helm-chart`
-1. Create the values.yaml file, refer to the fields in [supported_values](helm-chart/values.yaml)
-1. Install using helm: `helm install lake-view . -f <path to values.yaml>`
+Step1: Clone the LakeView github repo:
+
+```BASH
+git clone https://github.com/onehouseinc/LakeView.git
+```
+
+Step2: Navigate into the helm-chart folder:
+
+```BASH
+cd helm-chart
+```
+
+Step3: Update `values.yaml` file with required field values. You can refer the fields in [supported_values](helm-chart/values.yaml) file.
+
+Step4: Install the lakeview using helm:
+
+```BASH
+helm install lake-view . -f values.yaml
+```
 
 #### Deploy with AWS Glue using JAR File
 
-1. Upload the jar file to a S3 location, this has to be accessible via an IAM role used by the Glue job.
+1. Download the latest stable release JAR from the [release's page](https://github.com/onehouseinc/LakeView/releases/). For example, latest jar version is 0.14.0.
+```BASH
+wget https://github.com/onehouseinc/LakeView/releases/download/prod-34/LakeView-release-v0.14.0-all.jar
+```
+1. Upload the above downloaded LakeView jar file to a S3 location, this has to be accessible via an IAM role used by the Glue job.
+1. Configure the Glue Job details.
+   * Set up the IAM role to be used by glue. **Note**: This role should be able to access the JAR file from S3 and also to the base paths mentioned in the config.
+   * Under `Advanced properties > Libraries`, specify the JAR's S3 location in `Python library path` & `Dependent JARs path` fields.
 1. Create a glue job with a script. Please find a sample script to be used in Glue below. Here, the config.yaml is embedded as part of the script itself. This is a minified version of the same config.yaml file. Please update the parameters like `PROJECT_ID`, `API_KEY`, `API_SECRET`, `USER_ID`, `REGION`, `LAKE_NAME`, `DATABASE_NAME`, `BASE_PATH_1`, `BASE_PATH_2` etc. in the config.
 ```python
 import pyspark
@@ -286,9 +362,6 @@ spark_session = glueContext.spark_session
 spark_session.udf.registerJavaFunction(name="glue_wrapper", javaClassName="ai.onehouse.GlueWrapperMain", returnType=T.StringType())
 spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientConfig: {projectId: ${PROJECT_ID}, apiKey: ${API_KEY}, apiSecret: ${API_SECRET}, userId: ${USER_ID}}, fileSystemConfiguration: {s3Config: {region: ${REGION}}}, metadataExtractorConfig: {jobRunMode: ONCE, parserConfig: [{lake: ${LAKE_NAME}, databases: [{name: ${DATABASE_NAME}, basePaths: [${BASE_PATH_1}, ${BASE_PATH_2}]}]}]}}\"]') as answer").show()
 ```
-3. Configure the Glue Job details.
-   1. Set up the IAM role to be used by glue. **Note**: This role should be able to access the JAR file from S3 and also to the base paths mentioned in the config.
-   1. Under `Advanced properties > Libraries`, specify the JAR's S3 location in `Python library path` & `Dependent JARs path` fields.
 
 # FAQ
 
