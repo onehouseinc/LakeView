@@ -37,16 +37,6 @@ jobs:
       - name: Set input tag
         run: echo "INPUT_TAG=${{ inputs.tags }}" >> $GITHUB_ENV
 
-      - name: Upload JAR files to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: lakeview/build/libs/LakeView-1.0-SNAPSHOT-all.jar
-          asset_name: LakeView-${{ env.INPUT_TAG }}-all.jar
-          asset_content_type: application/java-archive
-
       - name: Publish with Gradle
         env:
           USERNAME_PUBLISH_LAKEVIEW_JARS: nimahajan
@@ -62,7 +52,17 @@ jobs:
             ./gradlew publish
           fi
 
-      - name: Upload JAR files to Release
+      - name: Upload lakeview jar file to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: lakeview/build/libs/LakeView-1.0-SNAPSHOT-all.jar
+          asset_name: LakeView-${{ env.INPUT_TAG }}-all.jar
+          asset_content_type: application/java-archive
+
+      - name: Upload lakeview source jar file to Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -72,7 +72,7 @@ jobs:
           asset_name: LakeView-${{ env.INPUT_TAG }}-sources.jar
           asset_content_type: application/java-archive
 
-      - name: Upload JAR files to Release
+      - name: Upload lakeview-glue jar file to Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -82,7 +82,7 @@ jobs:
           asset_name: lakeview-glue-${{ env.INPUT_TAG }}-all.jar
           asset_content_type: application/java-archive
 
-      - name: Upload JAR files to Release
+      - name: Upload lakeview-glue source jar file to Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
