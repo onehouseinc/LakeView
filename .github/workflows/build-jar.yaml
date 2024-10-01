@@ -39,7 +39,7 @@ jobs:
 
       - name: Publish with Gradle
         env:
-          USERNAME_PUBLISH_LAKEVIEW_JARS: nimahajan
+          USERNAME_PUBLISH_LAKEVIEW_JARS: ${{ github.actor }}
           PAT_PUBLISH_LAKEVIEW_JARS: ${{ secrets.GITHUB_TOKEN }}
         run: |
           branch_name=$(git rev-parse --abbrev-ref HEAD)
