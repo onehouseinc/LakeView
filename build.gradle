@@ -136,6 +136,8 @@ subprojects {
                 groupId 'ai.onehouse'
                 artifactId project.name
                 version = project.version
+
+                from components.java
             }
         }
     }
