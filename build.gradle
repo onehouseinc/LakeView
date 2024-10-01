@@ -64,7 +64,7 @@ sonar {
             property "sonar.pullrequest.key", project.getProperty("pullrequest_key")
             property "sonar.pullrequest.branch", project.getProperty("pullrequest_branch")
             property "sonar.pullrequest.base", project.getProperty("pullrequest_base")
-            property "sonar.pullrequest.github.repository", "https://github.com/onehouseinc/gateway-controller"
+            property "sonar.pullrequest.github.repository", "https://github.com/onehouseinc/LakeView"
         } else {
             property "sonar.branch.name", project.getProperty("branch_name")
         }
@@ -84,7 +84,7 @@ tasks.getByPath('sonar').setDependsOn([])
 tasks.getByPath('sonar').setMustRunAfter([])
 
 group = 'ai.onehouse'
-version = '1.0-SNAPSHOT'
+version = project.hasProperty('version') ? project.version : '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
@@ -105,6 +105,7 @@ subprojects {
     apply plugin: 'application'
     apply plugin: 'io.freefair.lombok'
     apply plugin: 'com.diffplug.spotless'
+    apply plugin: "maven-publish"
 
     compileJava {
         options.compilerArgs << '-Xlint:unchecked'
@@ -118,6 +119,26 @@ subprojects {
     }
 
     build.dependsOn sourceJar
+
+    publishing {
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/onehouseinc/LakeView")
+                credentials {
+                    username = System.getenv("GITHUB_ACTOR")
+                    password = System.getenv("GITHUB_TOKEN")
+                }
+            }
+        }
+        publications {
+            mavenJava(MavenPublication) {
+                groupId 'ai.onehouse'
+                artifactId project.name
+                version = project.version
+            }
+        }
+    }
 }
 
 // Configure Shadow plugin
