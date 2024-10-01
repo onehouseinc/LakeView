@@ -39,8 +39,8 @@ jobs:
 
       - name: Publish with Gradle
         env:
-          USERNAME_PUBLISH_LAKEVIEW_JARS: ${{ github.actor }}
-          PAT_PUBLISH_LAKEVIEW_JARS: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           branch_name=$(git rev-parse --abbrev-ref HEAD)
           if [[ "$branch_name" == "release-v"* ]]; then
