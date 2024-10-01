@@ -64,7 +64,7 @@ sonar {
             property "sonar.pullrequest.key", project.getProperty("pullrequest_key")
             property "sonar.pullrequest.branch", project.getProperty("pullrequest_branch")
             property "sonar.pullrequest.base", project.getProperty("pullrequest_base")
-            property "sonar.pullrequest.github.repository", "https://github.com/onehouseinc/gateway-controller"
+            property "sonar.pullrequest.github.repository", "https://github.com/onehouseinc/LakeView"
         } else {
             property "sonar.branch.name", project.getProperty("branch_name")
         }
