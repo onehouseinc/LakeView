@@ -40,7 +40,7 @@ jobs:
       - name: Publish with Gradle
         env:
           USERNAME_PUBLISH_LAKEVIEW_JARS: nimahajan
-          PAT_PUBLISH_LAKEVIEW_JARS: ${{ secrets.PAT_PUBLISH_LAKEVIEW_JARS }}
+          PAT_PUBLISH_LAKEVIEW_JARS: ${{ secrets.GITHUB_TOKEN }}
         run: |
           branch_name=$(git rev-parse --abbrev-ref HEAD)
           if [[ "$branch_name" == "release-v"* ]]; then

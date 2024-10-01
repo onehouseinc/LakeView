@@ -126,7 +126,7 @@ subprojects {
                 name = "GitHubPackages"
                 url = uri("https://maven.pkg.github.com/onehouseinc/LakeView")
                 credentials {
-                    username = System.getenv("USERNAME_PUBLISH_LAKEVIEW_JARS")
+                    username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
                     password = System.getenv("PAT_PUBLISH_LAKEVIEW_JARS")
                 }
             }
