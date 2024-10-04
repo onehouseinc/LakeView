@@ -39,8 +39,8 @@ jobs:
 
       - name: Publish with Gradle
         env:
-          SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_USER_TOKEN: ${{ secrets.SONATYPE_USER_TOKEN }}
         run: |
           branch_name=$(git rev-parse --abbrev-ref HEAD)
           if [[ "$branch_name" == "release-v"* ]]; then
