@@ -118,19 +118,25 @@ subprojects {
         from sourceSets.main.allSource
     }
 
+    artifacts {
+        archives sourceJar
+    }
+
     build.dependsOn sourceJar
 
     publishing {
         repositories {
             maven {
-                name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/onehouseinc/LakeView")
+                url = project.hasProperty('buildRelease') ?
+                        "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/" :
+                        "https://s01.oss.sonatype.org/content/repositories/snapshots/"
                 credentials {
-                    username = System.getenv("GITHUB_ACTOR")
-                    password = System.getenv("GITHUB_TOKEN")
+                    username = System.getenv("SONATYPE_USER")
+                    password = System.getenv("SONATYPE_PASSWORD")
                 }
             }
         }
+
         publications {
             mavenJava(MavenPublication) {
                 groupId 'ai.onehouse'
@@ -138,6 +144,25 @@ subprojects {
                 version = project.version
 
                 from components.java
+
+                pom {
+                    name.set("LakeView")
+                    description.set("LakeView is a free product provided by Onehouse for the Apache Hudi community. LakeView exposes an interactive interface with pre-built metrics, charts, and alerts to help you monitor, optimize, and debug your data lakehouse tables.")
+                    url.set("https://www.onehouse.ai/product/lakeview")
+                    licenses {
+                        license {
+                            name.set("Apache-2.0")
+                            distribution.set("repo")
+                            url.set("https://github.com/onehouseinc/LakeView/blob/main/LICENSE.txt")
+                        }
+                    }
+
+                    scm {
+                        connection.set("scm:git:ssh://github.com/onehouseinc/LakeView.git")
+                        developerConnection.set("scm:git:ssh://github.com/onehouseinc/LakeView.git")
+                        url.set("https://github.com/onehouseinc/LakeView")
+                    }
+                }
             }
         }
     }
