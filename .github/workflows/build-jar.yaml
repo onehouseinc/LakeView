@@ -41,6 +41,11 @@ jobs:
         env:
           SONARTYPE_USERNAME: ${{ secrets.SONARTYPE_USERNAME }}
           SONARTYPE_USER_TOKEN: ${{ secrets.SONARTYPE_USER_TOKEN }}
+          JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.JRELEASER_GPG_PUBLIC_KEY }}
+          JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
+          JRELEASER_GPG_PASSPHRASE: ${{ secrets.JRELEASER_GPG_PASSPHRASE }}
+          JRELEASER_MAVENCENTRAL_USERNAME: ${{ secrets.SONARTYPE_USERNAME }}
+          JRELEASER_MAVENCENTRAL_TOKEN: ${{ secrets.SONARTYPE_USER_TOKEN }}
         run: |
           branch_name=$(git rev-parse --abbrev-ref HEAD)
           if [[ "$branch_name" == "release-v"* ]]; then
@@ -51,6 +56,7 @@ jobs:
             echo "Publishing snapshot release"
             ./gradlew publish -Pversion="0.0.${{ github.event.pull_request.number }}-SNAPSHOT"
           fi
+          ./gradlew jreleaserFullRelease
 
       - name: Upload lakeview jar file to Release
         uses: actions/upload-release-asset@v1
