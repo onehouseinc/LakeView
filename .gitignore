@@ -30,3 +30,6 @@ bin/
 
 Library
 .java-version
+
+# signature files
+*.asc
