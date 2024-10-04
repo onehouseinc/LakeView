@@ -127,6 +127,7 @@ subprojects {
     publishing {
         repositories {
             maven {
+                name =  "OSSRH"
                 url = project.hasProperty('buildRelease') ?
                         "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/" :
                         "https://s01.oss.sonatype.org/content/repositories/snapshots/"
