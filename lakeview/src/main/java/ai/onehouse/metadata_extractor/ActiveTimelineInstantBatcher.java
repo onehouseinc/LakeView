@@ -29,7 +29,7 @@ public class ActiveTimelineInstantBatcher {
   private final MetadataExtractorConfig extractorConfig;
 
   @Inject
-  ActiveTimelineInstantBatcher(@Nonnull Config config) {
+  public ActiveTimelineInstantBatcher(@Nonnull Config config) {
     this.extractorConfig = config.getMetadataExtractorConfig();
   }
 
