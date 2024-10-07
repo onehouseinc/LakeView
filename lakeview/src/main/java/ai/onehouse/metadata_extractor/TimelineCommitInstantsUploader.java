@@ -91,7 +91,7 @@ public class TimelineCommitInstantsUploader {
    * @param table The table object.
    * @param checkpoint Checkpoint object used to track already processed instants.
    * @param commitTimelineType Type of the commit timeline.
-   * @return CompletableFuture<Checkpoint> A future that completes with a new checkpoint after the
+   * @return A future that completes with a new checkpoint after the
    *     upload is finished.
    */
   public CompletableFuture<Checkpoint> batchUploadWithCheckpoint(
@@ -116,7 +116,7 @@ public class TimelineCommitInstantsUploader {
    * @param table The table object.
    * @param checkpoint Checkpoint object used to track already processed instants.
    * @param commitTimelineType Type of the commit timeline.
-   * @return CompletableFuture<Checkpoint> A future that completes with a new checkpoint after each
+   * @return A future that completes with a new checkpoint after each
    *     paginated upload.
    */
   public CompletableFuture<Checkpoint> paginatedBatchUploadWithCheckpoint(
