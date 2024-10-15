@@ -189,7 +189,9 @@ hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database2>.
 
 ## LakeView Configurations Explained
 
-The LakeView configurations vary slightly in each deployment model. Below is the superset of all configurations across the three deployment models.
+The LakeView configurations vary slightly in each deployment model. Follow the instructions in the previous sections to get the configuration template for your chosen deployment model.
+
+Below are explanations for the superset of all configurations across the three deployment models:
 
 > - **version:** Specifies the configuration format version. Currently, only version V1 is supported.
 > - **onehouseClientConfig:** Contains credentials for communicating with the Onehouse console. these values can be obtained from the Onehouse console
@@ -222,43 +224,6 @@ The LakeView configurations vary slightly in each deployment model. Below is the
 >       - **databases:** List of databases and their respective base paths. This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
 >         - **name:** Database name (optional, defaults to community-db ).
 >         - **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
-
-< TODO - ADD A HEADER THAT THIS IS EXAMPLE YAML >
-
-``` YAML
-version: V1
-
-onehouseClientConfig:
-    # can be obtained from the Onehouse console
-    projectId: <LakeView project id>
-    apiKey: <api key>
-    apiSecret: <api secret>
-    userId: <user id>
-    file: <absolute path of json/yaml file containing onehouse client configuration>
-
-fileSystemConfiguration:
-    # Provide either s3Config or gcsConfig
-    s3Config:
-        region: <aws-region>
-        accessKey: <optional>
-        accessSecret: <optional>
-    gcsConfig:
-        projectId: <optional projectId>
-        gcpServiceAccountKeyPath: <optional path_to_gcp_auth_key>
-
-metadataExtractorConfig:
-    jobRunMode: CONTINUOUS | ONCE
-    uploadStrategy: BLOCK_ON_INCOMPLETE_COMMIT | CONTINUE_ON_INCOMPLETE_COMMIT
-    pathExclusionPatterns: [<pattern1>, <pattern2>, ...]
-    parserConfig:
-        - lake: <lake1>
-          databases:
-            - name: <database1>
-              basePaths: [basepath11, basepath12, ...]
-            - name: <database2>
-              basePaths: [<path1>, <path2>, ...]
-        # Add additional lakes and databases as needed
-```
 
 # Product Walkthrough
 
@@ -397,54 +362,3 @@ When using the metadata extractor tool, it's important to be aware of certain li
 # LICENSE
 
 This repository is licensed under the terms of the Apache 2.0 license
-
-
--------
-
-# TODO - REMOVE
-
-
-
-### Configure the Metadata Extractor Tool
-
-The configuration file for the metadata extractor tool is a YAML file that specifies various settings required for the tool's operation.
-Below is a detailed explanation of each section and its respective fields within the configuration file.
-
-#### YAML Configuration File Structure
-
-`lakeview_conf.yaml`
-
-``` YAML
-version: V1
-
-onehouseClientConfig:
-    # can be obtained from the Onehouse console
-    projectId: <LakeView project id>
-    apiKey: <api key>
-    apiSecret: <api secret>
-    userId: <user id>
-    file: <absolute path of json/yaml file containing onehouse client configuration>
-
-fileSystemConfiguration:
-    # Provide either s3Config or gcsConfig
-    s3Config:
-        region: <aws-region>
-        accessKey: <optional>
-        accessSecret: <optional>
-    gcsConfig:
-        projectId: <optional projectId>
-        gcpServiceAccountKeyPath: <optional path_to_gcp_auth_key>
-
-metadataExtractorConfig:
-    jobRunMode: CONTINUOUS | ONCE
-    uploadStrategy: BLOCK_ON_INCOMPLETE_COMMIT | CONTINUE_ON_INCOMPLETE_COMMIT
-    pathExclusionPatterns: [<pattern1>, <pattern2>, ...]
-    parserConfig:
-        - lake: <lake1>
-          databases:
-            - name: <database1>
-              basePaths: [basepath11, basepath12, ...]
-            - name: <database2>
-              basePaths: [<path1>, <path2>, ...]
-        # Add additional lakes and databases as needed
-```
