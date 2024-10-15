@@ -29,7 +29,7 @@ All of this is possible in just a few steps without sending any table base data 
 2. Sign up at https://cloud.onehouse.ai/lakeview/signup and create an API token in the Onehouse console.
 3. Run the metadata extractor tool in this repo to continuously push table metadata to LakeView (no base data files are pushed).
 
-LakeView currently supports Apache Hudi tables stored on Amazon S3 and Google Cloud Storage. We plan to support additional clouds and table formats in the future.
+LakeView currently supports Apache Hudi tables stored on AWS (in Amazon S3) and GCP (in Google Cloud Storage). We plan to support additional clouds and table formats in the future.
 
 **Feature Highlights:**
 - UI view of all tables with key metrics and charts (table size, updates over time, etc.)
@@ -191,33 +191,74 @@ hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database2>.
 
 The LakeView configurations vary slightly in each deployment model. Below is the superset of all configurations across the three deployment models.
 
-- **version:** Specifies the configuration format version. Currently, only version V1 is supported.
-- **onehouseClientConfig:** Contains credentials for communicating with the Onehouse console. these values can be obtained from the Onehouse console
-  - **projectId:** Your Onehouse project ID. Get this by clicking on your profile in the top right of the Onehouse console.
-  - **userUuid:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse console.
-  - **apiKey:** The API key for authentication. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
-  - **apiSecret:** The corresponding secret for the API key. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
-  - **[Optional] file:** Absolute path of json/yaml file containing onehouseClientConfig details - projectId, userId, apiKey, apiSecret - if you wish to break them out into a separate file.
-- **fileSystemConfiguration:** Authentication configuration to access file system, only one of AWS S3 or Google Cloud Storage (GCS) credentials should be passed.
-  - **s3Config**
-    - **region:** AWS region of the S3 bucket.
-    - **[Optional] accessKey:** AWS access key (not recommended for production).
-    - **[Optional] accessSecret:** AWS secret key (not recommended for production).
-    - Note: If access keys are not provided, we use the default AWS credentials chain. For example, you can run the package in an EC2 instance with IAM access to read from S3.
-  - **gcsConfig**
-    - **[Optional] projectId:** GCP project ID.
-    - **[Optional] gcpServiceAccountKeyPath:** Path to the GCP service account key.
-    - Note: If a service account key is not provided, we use the application default credentials. For example, you can run the package in a Compute Engine instance with IAM access to read from GCS.
-- **metadataExtractorConfig:** Configuration for the metadata extraction job.
-  - **jobRunMode:** Can be CONTINUOUS or ONCE.
-  - **uploadStrategy:** Can be BLOCK_ON_INCOMPLETE_COMMIT or CONTINUE_ON_INCOMPLETE_COMMIT. 
-  - **pathExclusionPatterns:** List of regex patterns to exclude from scanning. (Java regex patterns are supported)
-  - **parserConfig**
-    - Description: List of lakes and databases to be parsed.
-    - **lake:** Name of the lake (optional, defaults to community-lake). This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
-      - **databases:** List of databases and their respective base paths. This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
-        - **name:** Database name (optional, defaults to community-db ).
-        - **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
+> - **version:** Specifies the configuration format version. Currently, only version V1 is supported.
+> - **onehouseClientConfig:** Contains credentials for communicating with the Onehouse console. these values can be obtained from the Onehouse console
+>   - **projectId:** Your Onehouse project ID. Get this by clicking on your profile in the top right of the Onehouse console.
+>   - **userUuid:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse console.
+>   - **apiKey:** The API key for authentication. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
+>   - **apiSecret:** The corresponding secret for the API key. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
+>   - **[Optional] file:** Absolute path of json/yaml file containing onehouseClientConfig details - projectId, userId, apiKey, apiSecret - if you wish to break them out into a separate file.
+> - **fileSystemConfiguration:** Authentication configuration to access file system, only one of AWS S3 or Google Cloud Storage (GCS) credentials should be passed.
+>   - **s3Config**
+>     - **region:** AWS region of the S3 bucket.
+>     - **[Optional] accessKey:** AWS access key (not recommended for production).
+>     - **[Optional] accessSecret:** AWS secret key (not recommended for production).
+>     - Note: If access keys are not provided, we use the default AWS credentials chain. For example, you can run the package in an EC2 instance with IAM access to read from S3.
+>   - **gcsConfig**
+>     - **[Optional] projectId:** GCP project ID.
+>     - **[Optional] gcpServiceAccountKeyPath:** Path to the GCP service account key.
+>     - Note: If a service account key is not provided, we use the application default credentials. For example, you can run the package in a Compute Engine instance with IAM access to read from GCS.
+> - **metadataExtractorConfig:** Configuration for the metadata extraction job.
+>   - **jobRunMode:** Can be CONTINUOUS or ONCE.
+>     - `CONTINUOUS` - The tool periodically discovers and uploads metadata for tables found in the configured path. Table discovery happens every 30minutes and new commit instants for the files are discovered and extracted every 5minutes (provided the previous run has completed).
+>     - `ONCE` - Allows users to trigger the discovery and extraction flow on demand, the tool picks up from where it left off on the last run. This can be useful if you want to run the metadata extractor tool as a recurring job that you manage.
+>   - **uploadStrategy:** Can be BLOCK_ON_INCOMPLETE_COMMIT or CONTINUE_ON_INCOMPLETE_COMMIT. 
+>     - `BLOCK_ON_INCOMPLETE_COMMIT` - The job stops when it encounters an incomplete commit. In the next run, the job will start from the incomplete commit.
+>     - `CONTINUE_ON_INCOMPLETE_COMMIT` - The job skips incomplete commits to continue processing the complete commits. In the next run,
+>   - **pathExclusionPatterns:** List of regex patterns to exclude from scanning. (Java regex patterns are supported)
+>   - **parserConfig**
+>     - Description: List of lakes and databases to be parsed.
+>     - **lake:** Name of the lake (optional, defaults to community-lake). This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
+>       - **databases:** List of databases and their respective base paths. This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
+>         - **name:** Database name (optional, defaults to community-db ).
+>         - **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
+
+< TODO - ADD A HEADER THAT THIS IS EXAMPLE YAML >
+
+``` YAML
+version: V1
+
+onehouseClientConfig:
+    # can be obtained from the Onehouse console
+    projectId: <LakeView project id>
+    apiKey: <api key>
+    apiSecret: <api secret>
+    userId: <user id>
+    file: <absolute path of json/yaml file containing onehouse client configuration>
+
+fileSystemConfiguration:
+    # Provide either s3Config or gcsConfig
+    s3Config:
+        region: <aws-region>
+        accessKey: <optional>
+        accessSecret: <optional>
+    gcsConfig:
+        projectId: <optional projectId>
+        gcpServiceAccountKeyPath: <optional path_to_gcp_auth_key>
+
+metadataExtractorConfig:
+    jobRunMode: CONTINUOUS | ONCE
+    uploadStrategy: BLOCK_ON_INCOMPLETE_COMMIT | CONTINUE_ON_INCOMPLETE_COMMIT
+    pathExclusionPatterns: [<pattern1>, <pattern2>, ...]
+    parserConfig:
+        - lake: <lake1>
+          databases:
+            - name: <database1>
+              basePaths: [basepath11, basepath12, ...]
+            - name: <database2>
+              basePaths: [<path1>, <path2>, ...]
+        # Add additional lakes and databases as needed
+```
 
 # Product Walkthrough
 
@@ -301,6 +342,10 @@ LakeView interacts only your Hudi metadata files. Base data files containing rec
   - Any information sent back and forth is encrypted at rest and in transit.
   - While lakeview does not have native SSO integrations, any SSO that you already have in place for Google or Microsoft authentication will still take effect. 
 
+## How does LakeView process metadata efficiently?
+
+LakeView utilizes checkpoints for incremental metadata extraction, enabling frequent and efficient metric updates.
+
 ## How is LakeView different from Onehouse Cloud?
 
 LakeView is a standalone product offered by Onehouse for free to the Apache Hudi community. These are the core differences between the two products:
@@ -358,30 +403,7 @@ This repository is licensed under the terms of the Apache 2.0 license
 
 # TODO - REMOVE
 
-### Deploy the Metadata Extractor Tool
 
-There are four methods to deploy the metadata extractor tool:
-
-1. Deploy with [LakeView JAR](https://github.com/onehouseinc/LakeView/releases/) file
-2. Deploy with [MetaData Extractor Docker Image](https://hub.docker.com/r/onehouse/lake-view)
-3. Deploy to Kubernetes with Helm
-4. Deploy with AWS Glue using [LakeView JAR](https://github.com/onehouseinc/LakeView/releases/) file
-
-
-Onehouse provides a metadata extractor tool that you can run within your AWS or Google Cloud environment to continuously push metadata from specified file storage path(s) to LakeView. 
-
-Key functionality of the metadata extractor tool:
-- Operational Modes:
-  - `CONTINUOUS` - The tool periodically discovers and uploads metadata for tables found in the configured path. Table discovery happens every 30minutes and new commit instants for the files are discovered and extracted every 5minutes (provided the previous run has completed).
-  - `ONCE` - Allows users to trigger the discovery and extraction flow on demand, the tool picks up from where it left off on the last run. This can be useful if you want to run the metadata extractor tool as a recurring job that you manage.
-- Upload Strategies:
-  - `BLOCK_ON_INCOMPLETE_COMMIT` - The job stops when it encounters an incomplete commit. In the next run, the job will start from the incomplete commit.
-  - `CONTINUE_ON_INCOMPLETE_COMMIT` - The job skips incomplete commits to continue processing the complete commits. In the next run, the job will start from the first incomplete commit encountered during the previous job run.
-- Efficient Data Processing: Utilizes checkpoints for incremental metadata extraction, enabling frequent and efficient metric updates.
-
-Supported Cloud Platforms:
-- Amazon Web Services (AWS)
-- Google Cloud Platform (GCP)
 
 ### Configure the Metadata Extractor Tool
 
