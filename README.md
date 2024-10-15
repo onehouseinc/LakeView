@@ -149,6 +149,35 @@ spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientC
 ## Option 3: Deploy with LakeView SyncTool
 
 Install and run a LakeView SyncTool JAR in your existing Hudi jobs to push metadata to LakeView. This functions similarly to Hudi's catalog integrations, such as the [DataHub SyncTool](https://hudi.apache.org/docs/syncing_datahub/).
+1. Download the latest LakeView SyncTool JAR from the [LakeView Maven repository](https://repo1.maven.org/maven2/ai/onehouse/lakeview/).
+1. < TODO - ADD HERE >
+
+**Class:**
+`org.apache.hudi.sync.LakeViewSyncTool `
+
+**Configurations:**
+```
+hoodie.meta.sync.lakeview.version=V1
+hoodie.meta.sync.lakeview.projectId=<LakeView-project-id>
+hoodie.meta.sync.lakeview.apiKey=<api-key>
+hoodie.meta.sync.lakeview.apiSecret=<api-secret>
+hoodie.meta.sync.lakeview.userId=<user-id>
+
+hoodie.meta.sync.lakeview.s3.region=<aws-region>
+hoodie.meta.sync.lakeview.s3.accessKey=<optional>
+hoodie.meta.sync.lakeview.s3.accessSecret=<optional>
+
+hoodie.meta.sync.lakeview.gcs.projectId=<optional-projectId>
+hoodie.meta.sync.lakeview.gcs.gcpServiceAccountKeyPath=<optional-path_to_gcp_auth_key>
+
+hoodie.meta.sync.lakeview.metadataExtractor.pathExclusionPatterns=<pattern1>,<pattern2>,...
+
+hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database1>.basePaths=<basepath11>,<basepath12>
+hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database2>.basePaths=<path1>,<path2>
+```
+
+**Example:**
+< TODO - ADD HERE >
 
 # Product Walkthrough
 
@@ -287,7 +316,7 @@ This repository is licensed under the terms of the Apache 2.0 license
 
 -------
 
-# APPENDIX - REMOVE
+# TODO - REMOVE
 
 Let's understand each of the above configs.
 
