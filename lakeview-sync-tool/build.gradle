@@ -9,9 +9,28 @@ repositories {
     mavenCentral()
 }
 
+def mainClass = 'ai.onehouse.lakeview.sync.LakeviewSyncTool'
+
+application {
+    mainClassName = mainClass
+}
+
 dependencies {
+    implementation project(":lakeview")
+
+    // apache-hudi dependencies
+    implementation "org.apache.hudi:hudi-common:${versions.hudi}"
+    implementation "org.apache.hudi:hudi-sync-common:${versions.hudi}"
+
+    implementation "com.squareup.okhttp3:okhttp:${versions.okhttp}"
+    implementation 'com.beust:jcommander:1.78'
+
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation "org.mockito:mockito-core:${versions.mockito}"
+    testImplementation "org.mockito:mockito-junit-jupiter:${versions.mockito}"
+    testImplementation "org.mockito:mockito-inline:${versions.mockito}"
+    testImplementation 'org.awaitility:awaitility:4.2.2'
 }
 
 test {
