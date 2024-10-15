@@ -7,6 +7,7 @@
   - [Option 1: Deploy with Pull Model](#option-1-deploy-with-pull-model-recommended)
   - [Option 2: Deploy with Push Model](#option-2-deploy-with-push-model)
   - [Option 3: Deploy with LakeView SyncTool](#option-3-deploy-with-lakeview-synctool)
+  - [LakeView Configurations Explained](#lakeview-configurations-explained)
 - [Product Walkthrough](#product-walkthrough)
   - [Explore your Tables](#explore-your-tables)
   - [Table Stats](#table-stats)
@@ -176,8 +177,47 @@ hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database1>.
 hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database2>.basePaths=<path1>,<path2>
 ```
 
-**Example:**
+**Example: Run in Hudi Streamer**
+```
 < TODO - ADD HERE >
+```
+
+**Example: Run Ad Hoc in Command Line**
+```
+< TODO - ADD HERE >
+```
+
+## LakeView Configurations Explained
+
+The LakeView configurations vary slightly in each deployment model. Below is the superset of all configurations across the three deployment models.
+
+- **version:** Specifies the configuration format version. Currently, only version V1 is supported.
+- **onehouseClientConfig:** Contains credentials for communicating with the Onehouse console. these values can be obtained from the Onehouse console
+  - **projectId:** Your Onehouse project ID. Get this by clicking on your profile in the top right of the Onehouse console.
+  - **userUuid:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse console.
+  - **apiKey:** The API key for authentication. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
+  - **apiSecret:** The corresponding secret for the API key. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
+  - **[Optional] file:** Absolute path of json/yaml file containing onehouseClientConfig details - projectId, userId, apiKey, apiSecret - if you wish to break them out into a separate file.
+- **fileSystemConfiguration:** Authentication configuration to access file system, only one of AWS S3 or Google Cloud Storage (GCS) credentials should be passed.
+  - **s3Config**
+    - **region:** AWS region of the S3 bucket.
+    - **[Optional] accessKey:** AWS access key (not recommended for production).
+    - **[Optional] accessSecret:** AWS secret key (not recommended for production).
+    - Note: If access keys are not provided, we use the default AWS credentials chain. For example, you can run the package in an EC2 instance with IAM access to read from S3.
+  - **gcsConfig**
+    - **[Optional] projectId:** GCP project ID.
+    - **[Optional] gcpServiceAccountKeyPath:** Path to the GCP service account key.
+    - Note: If a service account key is not provided, we use the application default credentials. For example, you can run the package in a Compute Engine instance with IAM access to read from GCS.
+- **metadataExtractorConfig:** Configuration for the metadata extraction job.
+  - **jobRunMode:** Can be CONTINUOUS or ONCE.
+  - **uploadStrategy:** Can be BLOCK_ON_INCOMPLETE_COMMIT or CONTINUE_ON_INCOMPLETE_COMMIT. 
+  - **pathExclusionPatterns:** List of regex patterns to exclude from scanning. (Java regex patterns are supported)
+  - **parserConfig**
+    - Description: List of lakes and databases to be parsed.
+    - **lake:** Name of the lake (optional, defaults to community-lake). This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
+      - **databases:** List of databases and their respective base paths. This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
+        - **name:** Database name (optional, defaults to community-db ).
+        - **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
 
 # Product Walkthrough
 
@@ -317,47 +357,6 @@ This repository is licensed under the terms of the Apache 2.0 license
 -------
 
 # TODO - REMOVE
-
-Let's understand each of the above configs.
-
-**version**
-- **Description:** Specifies the configuration format version.
-- **Format:** String
-- **Example:** version: V1
-
-Note: Currently, only version V1 is supported.
-
-**onehouseClientConfig**
-- Description: Contains credentials for communicating with the Onehouse console. these values can be obtained from the Onehouse console
-- **projectId:** Your Onehouse project ID. Get this by clicking on your profile in the top right of the Onehouse console.
-- **userUuid:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse console.
-- **apiKey:** The API key for authentication. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
-- **apiSecret:** The corresponding secret for the API key. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
-- **[Optional] file:** Absolute path of json/yaml file containing onehouseClientConfig details - projectId, userId, apiKey, apiSecret - if you wish to break them out into a separate file.
-
-**fileSystemConfiguration**
-- Description: Authentication configuration to access file system, only one of AWS S3 or Google Cloud Storage (GCS) credentials should be passed.
-- **s3Config**
-  - **region:** AWS region of the S3 bucket.
-  - **[Optional] accessKey:** AWS access key (not recommended for production).
-  - **[Optional] accessSecret:** AWS secret key (not recommended for production).
-  - Note: If access keys are not provided, we use the default AWS credentials chain. For example, you can run the package in an EC2 instance with IAM access to read from S3.
-- **gcsConfig**
-  - **[Optional] projectId:** GCP project ID.
-  - **[Optional] gcpServiceAccountKeyPath:** Path to the GCP service account key.
-  - Note: If a service account key is not provided, we use the application default credentials. For example, you can run the package in a Compute Engine instance with IAM access to read from GCS.
-
-**metadataExtractorConfig**
-- Description: Configuration for the metadata extraction job.
-- **jobRunMode:** Can be CONTINUOUS or ONCE.
-- **uploadStrategy:** Can be BLOCK_ON_INCOMPLETE_COMMIT or CONTINUE_ON_INCOMPLETE_COMMIT. 
-- **pathExclusionPatterns:** List of regex patterns to exclude from scanning. (Java regex patterns are supported)
-- **parserConfig**
-  - Description: List of lakes and databases to be parsed.
-  - **lake:** Name of the lake (optional, defaults to community-lake). This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
-    - **databases:** List of databases and their respective base paths. This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
-      - **name:** Database name (optional, defaults to community-db ).
-      - **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
 
 ### Deploy the Metadata Extractor Tool
 
