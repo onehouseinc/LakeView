@@ -4,7 +4,7 @@
 - [Deployment Models](#deployment-models)
 - [Setup Guide](#setup-guide)
   - [Sign Up](#sign-up)
-  - [Option 1: Deploy with Pull Model](#option-1-deploy-with-pull-model)
+  - [Option 1: Deploy with Pull Model](#option-1-deploy-with-pull-model-recommended)
   - [Option 2: Deploy with Push Model](#option-2-deploy-with-push-model)
   - [Option 3: Deploy with LakeView SyncTool](#option-3-deploy-with-lakeview-synctool)
 - [Product Walkthrough](#product-walkthrough)
@@ -42,7 +42,7 @@ LakeView currently supports Apache Hudi tables stored on Amazon S3 and Google Cl
 # Deployment Models
 
 LakeView supports three deployment models:
-- **Pull Model:** Grant LakeView access to your Hudi metadata files with an IAM role template. LakeView will continuously pull the latest metadata.
+- **Pull Model (Recommended):** Grant LakeView access to your Hudi metadata files with an IAM role template. LakeView will continuously pull the latest metadata.
 - **Push Model:** Install and run the metadata extractor software within your cloud environment to push metadata to LakeView.
 - **LakeView SyncTool:** Install and run a LakeView SyncTool JAR in your existing Hudi jobs to push metadata to LakeView. This functions similarly to Hudi's catalog integrations, such as the [DataHub SyncTool](https://hudi.apache.org/docs/syncing_datahub/).
 
@@ -61,7 +61,7 @@ LakeView analyzes the following metadata:
 1. Visit the [LakeView website](https://www.onehouse.ai/product/lakeview) to request access.
 1. You will receive an email when you are approved. Then sign up at https://cloud.onehouse.ai/lakeview/signup.
 
-## Option 1: Deploy with Pull Model
+## Option 1: Deploy with Pull Model (Recommended)
 
 With the Pull Model, you will grant LakeView access to your Hudi metadata files with an IAM role template. LakeView will continuously pull the latest metadata.
 1. Open the [LakeView console](https://cloud.onehouse.ai/lakeview/signup).
