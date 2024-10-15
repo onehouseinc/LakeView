@@ -90,6 +90,7 @@ With the Push Model, you will install and run the metadata extractor software wi
     https://github.com/onehouseinc/LakeView/releases/download/prod-34/LakeView-release-v0.14.0-all.jar
   ```
 1. Copy the `lakeview_conf.yaml` content (mentioned in `YAML Configuration File Structure` step), then update all the details accordingly. You can pass this configuration content as string or file to the jar.
+< TODO - FIX THIS ^ >
 1. Run the LakeView using JAR.
 
 Example running in AWS Glue:
