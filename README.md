@@ -1,29 +1,21 @@
 # Table of Contents
 
 - [Intro to LakeView](#intro-to-lakeview)
-- [Architecture](#architecture)
-- [Product Walkthrough](#product-walkthrough)
-  * [Explore your Tables](#explore-your-tables)
-  * [Table Stats](#table-stats)
-  * [Timeline History](#timeline-history)
-  * [Compaction Backlog Monitoring](#compaction-backlog-monitoring)
-  * [Partition Insights](#partition-insights)
-  * [Notifications](#notifications)
-  * [Weekly Review Emails](#weekly-review-emails)
+- [Deployment Models](#deployment-models)
 - [Setup Guide](#setup-guide)
-  * [Sign Up](#sign-up)
-  * [Push Metadata to LakeView](#push-metadata-to-lakeview)
-    + [Configure the Metadata Extractor Tool](#configure-the-metadata-extractor-tool)
-      - [YAML Configuration File Structure](#yaml-configuration-file-structure)
-      - [Understand Configs](#understand-configs)
-    + [Deploy the Metadata Extractor Tool](#deploy-the-metadata-extractor-tool)
-      - [Deploy with LakeView JAR](#deploy-with-lakeview-jar)
-      - [Deploy with MetaData Extractor Docker Image](#deploy-with-metadata-extractor-docker-image)
-      - [Deploy to Kubernetes with Helm](#deploy-to-kubernetes-with-helm)
-      - [Deploy with AWS Glue using JAR File](#deploy-with-aws-glue-using-jar-file)
+  - [Sign Up](#sign-up)
+  - [Option 1: Deploy with Pull Model](#option-1-deploy-with-pull-model)
+  - [Option 2: Deploy with Push Model](#option-2-deploy-with-push-model)
+  - [Option 3: Deploy with LakeView SyncTool](#option-3-deploy-with-lakeview-synctool)
+- [Product Walkthrough](#product-walkthrough)
+  - [Explore your Tables](#explore-your-tables)
+  - [Table Stats](#table-stats)
+  - [Timeline History](#timeline-history)
+  - [Compaction Backlog Monitoring](#compaction-backlog-monitoring)
+  - [Partition Insights](#partition-insights)
+  - [Notifications](#notifications)
+  - [Weekly Review Emails](#weekly-review-emails)
 - [FAQ](#faq)
-  * [How is LakeView different from Onehouse Cloud?](#how-is-lakeview-different-from-onehouse-cloud)
-  * [Will Onehouse see my column stats if I have enabled the Hudi metadata table?](#will-onehouse-see-my-column-stats-if-i-have-enabled-the-hudi-metadata-table)
 - [Known Limitations](#known-limitations)
 - [LICENSE](#license)
 
@@ -45,13 +37,118 @@ LakeView currently supports Apache Hudi tables stored on Amazon S3 and Google Cl
 - Compaction backlog monitoring for Merge on Read tables
 - Email & Slack updates and notifications for common issues
 
-# Architecture
+> Visit the [LakeView website](https://www.onehouse.ai/product/lakeview) to request access. You will receive an email when you are approved.
 
-LakeView analyzes your Hudi metadata, so base data files are never accessed and no business data leaves your private cloud.
+# Deployment Models
 
-This repository provides a tool that you can run within your cloud environment to push the metadata to LakeView. LakeView will then process the metadata on the server-side to generate charts and metrics in the Onehouse console (web app).
+LakeView supports three deployment models:
+- **Pull Model:** Grant LakeView access to your Hudi metadata files with an IAM role template. LakeView will continuously pull the latest metadata.
+- **Push Model:** Install and run the metadata extractor software within your cloud environment to push metadata to LakeView.
+- **LakeView SyncTool:** Install and run a LakeView SyncTool JAR in your existing Hudi jobs to push metadata to LakeView. This functions similarly to Hudi's catalog integrations, such as the [DataHub SyncTool](https://hudi.apache.org/docs/syncing_datahub/).
+
+LakeView analyzes the following metadata:
+- The instant files in the active and archived timeline of the tables
+- The last modification timestamp of the instant files (this is used to incrementally process changes)
+
+**In all deployment models, LakeView analyzes only your Hudi metadata files. Base data files containing records are never accessed and never leave your private cloud.**
 
 <img width="1207" alt="Screenshot 2024-06-17 at 6 04 02 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/9005db67-e96f-439b-b223-81e0150d40d5">
+
+# Setup Guide
+
+## Sign Up
+
+1. Visit the [LakeView website](https://www.onehouse.ai/product/lakeview) to request access.
+1. You will receive an email when you are approved. Then sign up at https://cloud.onehouse.ai/lakeview/signup.
+
+## Option 1: Deploy with Pull Model
+
+With the Pull Model, you will grant LakeView access to your Hudi metadata files with an IAM role template. LakeView will continuously pull the latest metadata.
+1. Open the [LakeView console](https://cloud.onehouse.ai/lakeview/signup).
+1. Download the configuration file from the LakeView console and fill in all configurations.
+1. Upload the filled-in configuration file to the LakeView console.
+1. LakeView will automatically generate an IAM template from the configuration file you uploaded. Download this IAM template from the LakeView console and apply the permissions in your cloud account.
+
+After you complete these steps, LakeView will continuously pull metadata for your tables to generate dashboards and insights.
+
+## Option 2: Deploy with Push Model
+
+With the Push Model, you will install and run the metadata extractor software within your cloud environment to push metadata to LakeView.
+1. Open the [LakeView console](https://cloud.onehouse.ai/lakeview/signup).
+1. Create an API Key in the LakeView console. In the sidebar, open Settings > API Settings, then generate a new token.
+1. Download the configuration file from the LakeView console and fill in all configurations.
+1. Deploy the metadata extractor tool to push metadata.
+
+**To deploy the metadata extractor tool, use one of the options below for (2a) JAR, (2b) Docker, or (2c) Kubernetes.**
+
+### Option 2a: Download JAR to Push Metadata
+
+1. Download the latest stable release JAR from the [release's page](https://github.com/onehouseinc/LakeView/releases/). For example, latest jar version is 0.14.0.
+  ```BASH
+  curl -o /tmp/LakeView-release-v0.14.0-all.jar \
+    https://github.com/onehouseinc/LakeView/releases/download/prod-34/LakeView-release-v0.14.0-all.jar
+  ```
+1. Copy the `lakeview_conf.yaml` content (mentioned in `YAML Configuration File Structure` step), then update all the details accordingly. You can pass this configuration content as string or file to the jar.
+1. Run the LakeView using JAR.
+
+Example running in AWS Glue:
+1. Upload the above downloaded LakeView jar file to a S3 location, this has to be accessible via an IAM role used by the Glue job.
+1. Configure the Glue Job details.
+   * Set up the IAM role to be used by glue. **Note**: This role should be able to access the JAR file from S3 and also to the base paths mentioned in the config.
+   * Under `Advanced properties > Libraries`, specify the JAR's S3 location in `Python library path` & `Dependent JARs path` fields.
+1. Create a glue job with a script. Please find a sample script to be used in Glue below. Here, the config.yaml is embedded as part of the script itself. This is a minified version of the same config.yaml file. Please update the parameters like `PROJECT_ID`, `API_KEY`, `API_SECRET`, `USER_ID`, `REGION`, `LAKE_NAME`, `DATABASE_NAME`, `BASE_PATH_1`, `BASE_PATH_2` etc. in the config.
+```python
+import pyspark
+import pyspark.sql.types as T
+from awsglue.transforms import *
+from awsglue.context import GlueContext
+from pyspark.context import SparkContext
+
+conf = pyspark.SparkConf()
+
+glueContext = GlueContext(SparkContext.getOrCreate(conf=conf))
+
+spark_session = glueContext.spark_session
+spark_session.udf.registerJavaFunction(name="glue_wrapper", javaClassName="ai.onehouse.GlueWrapperMain", returnType=T.StringType())
+spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientConfig: {projectId: ${PROJECT_ID}, apiKey: ${API_KEY}, apiSecret: ${API_SECRET}, userId: ${USER_ID}}, fileSystemConfiguration: {s3Config: {region: ${REGION}}}, metadataExtractorConfig: {jobRunMode: ONCE, parserConfig: [{lake: ${LAKE_NAME}, databases: [{name: ${DATABASE_NAME}, basePaths: [${BASE_PATH_1}, ${BASE_PATH_2}]}]}]}}\"]') as answer").show()
+```
+
+### Option 2b: Install Docker Image to Push Metadata
+
+1. Copy the `lakeview_conf.yaml` content (mentioned in `YAML Configuration File Structure` step), then update all the details accordingly. You can pass this configuration content as string or file to docker command.
+1. Run the LakeView using Docker.
+  ```BASH
+  # Deploy with YAML configuration string
+  docker run onehouse/lake-view -c '<yaml_string>'
+
+  # Deploy with YAML configuration file (local filepaths only)
+  docker run onehouse/lake-view -p '<path_to_config_file>'
+  ```
+  Note: When testing Docker locally, use `-v` to mount the volume where the configuration is present.
+  ```BASH
+  # Example running Docker locally
+  docker run -v /tmp/lakeview_conf.yaml:/tmp/lakeview_conf.yaml onehouse/lake-view -p /tmp/lakeview_conf.yaml
+  ```
+
+### Option 2c: Install Kubernetes Helm Chart to Push Metadata
+
+1. Clone the LakeView github repo:
+  ```BASH
+  git clone https://github.com/onehouseinc/LakeView.git
+  ```
+1. Navigate into the helm-chart folder:
+  ```BASH
+  cd helm-chart
+  ```
+1. Update `values.yaml` file with required field values. You can refer the fields in [supported_values](helm-chart/values.yaml) file.
+1. Install the lakeview using helm:
+  ```BASH
+  helm install lake-view . -f values.yaml
+  ```
+
+## Option 3: Deploy with LakeView SyncTool
+
+Install and run a LakeView SyncTool JAR in your existing Hudi jobs to push metadata to LakeView. This functions similarly to Hudi's catalog integrations, such as the [DataHub SyncTool](https://hudi.apache.org/docs/syncing_datahub/).
 
 # Product Walkthrough
 
@@ -126,88 +223,71 @@ No action is required to set up weekly review emails – you will receive them a
 
 <img width="552" alt="Screenshot 2024-06-17 at 6 00 42 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/30f15f8c-1795-4568-ae87-26ece172327e">
 
-# Setup Guide
+# FAQ
 
-## Sign Up
+## How does LakeView keep my data secure?
 
-1. Visit the [LakeView website](https://www.onehouse.ai/product/lakeview) to request access. You will receive an email when you are approved.
-1. Sign up at https://cloud.onehouse.ai/lakeview/signup.
-1. In the sidebar, open Settings > API Settings, then generate a new token. You will use this token in the next step.
-1. Return to the homepage, where you will be prompted to push your Hudi metadata to the project. LakeView works with just your .hoodie metadata. Base data never leaves your cloud.
-
-<img width="1207" alt="Screenshot 2024-06-17 at 6 04 02 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/9005db67-e96f-439b-b223-81e0150d40d5">
-
-## Push Metadata to LakeView
-
-Onehouse provides a metadata extractor tool that you can run within your AWS or Google Cloud environment to continuously push metadata from specified file storage path(s) to LakeView. 
-
-Key functionality of the metadata extractor tool:
-- Data Security: The tool interacts exclusively with metadata.
-  - It does not access, move, or control actual data files, ensuring the integrity and confidentiality of your data. This significantly reduces the security impact of the platform.
+LakeView interacts only your Hudi metadata files. Base data files containing records are never accessed and never leave your private cloud.
+  - It does not access, move, or control actual data files, ensuring the integrity and confidentiality of your data. This significantly reduces the security impact.
   - Any information sent back and forth is encrypted at rest and in transit.
   - While lakeview does not have native SSO integrations, any SSO that you already have in place for Google or Microsoft authentication will still take effect. 
-- Operational Modes:
-  - `CONTINUOUS` - The tool periodically discovers and uploads metadata for tables found in the configured path. Table discovery happens every 30minutes and new commit instants for the files are discovered and extracted every 5minutes (provided the previous run has completed).
-  - `ONCE` - Allows users to trigger the discovery and extraction flow on demand, the tool picks up from where it left off on the last run. This can be useful if you want to run the metadata extractor tool as a recurring job that you manage.
-- Upload Strategies:
-  - `BLOCK_ON_INCOMPLETE_COMMIT` - The job stops when it encounters an incomplete commit. In the next run, the job will start from the incomplete commit.
-  - `CONTINUE_ON_INCOMPLETE_COMMIT` - The job skips incomplete commits to continue processing the complete commits. In the next run, the job will start from the first incomplete commit encountered during the previous job run.
-- Efficient Data Processing: Utilizes checkpoints for incremental metadata extraction, enabling frequent and efficient metric updates.
+
+## How is LakeView different from Onehouse Cloud?
+
+LakeView is a standalone product offered by Onehouse for free to the Apache Hudi community. These are the core differences between the two products:
+
+| | LakeView | Onehouse Cloud |
+|-|-|-|
+| **Description** | Observability tools to help you analyze, debug, and optimize Apache Hudi tables | Fully managed ingestion and incremental ETL pipelines, managed table services, and interoperability with Apache Hudi, Apache Iceberg, and Delta Lake. [Learn more.](https://www.onehouse.ai/product) |
+| **Cost** | Free | Free for 30 days, then compute-based pricing |
+| **Deployment** | You send Onehouse your Hudi metadata. Onehouse processes the metadata and exposes metrics and charts on the Onehouse console. | Onehouse deploys an agent in your Cloud account to manage clusters and jobs without sending data out of your VPC. Only the Hudi metadata is sent to Onehouse to populate the Onehouse console. |
+| **Who's it for** | Apache Hudi users with existing data lakes | 1) Anyone looking to build new ingestion or ETL pipelines with Apache Hudi, Apache Iceberg, and/or Delta Lake OR 2) Apache Hudi users who want managed table services |
+
+## Will LakeView see my column stats if I have enabled the Hudi metadata table?
+
+Onehouse will NOT see your column stats. While column stats are present in the [metadata table](https://hudi.apache.org/docs/metadata) under the .hoodie folder, the metadata extractor tool does not send the metadata table to the Onehouse endpoint. We only copy the commit files in .hoodie and .hoodie/archived. We do not copy the content of any other folders in the .hoodie directory. 
+
+# Known Limitations
+ 
+When using the metadata extractor tool, it's important to be aware of certain limitations that can affect its functionality and the accuracy of the metrics provided.
+
+**Issues with Tables having same name in a (lake, database)**
+- Scenario: If two tables having the same name are present in the same (lake, database) pair, the tool will not be able to distinguish between them.
+- Implication: This will lead to failure in table initialization, and you would see an error something like below in the metadata extractor logs.
+    ```
+    A table already exists in Lake: <lake-id> database: <db-name> with this name: <table-name>. Please consider ingesting this table under a different lake or database to avoid conflicts
+    ```
+- Resolution: Users should ensure that tables have unique names within a (lake, database) pair. If there are multiple tables with the same name, consider moving them to different databases.
+
+**Issues with Re-created Tables in the Same Path**
+- Scenario: If a Hudi table is deleted and a new table is created in the same path, the tool assigns the same table ID as the previous one.
+- Implication: This can lead to inaccuracies in the metrics calculation.
+- Resolution: Users should delete such tables from the Onehouse console to avoid metric calculation issues.
+
+**Changing Lake or Database Names After Metric Ingestion**
+- Scenario: If the lake or database name for a given base path is changed after metrics have already been ingested, the tool will not use the new names.
+- Implication: Continuity in metric tracking may be lost due to the change in identifiers.
+- Resolution: Users should delete the table from the Onehouse console before making such changes.
+
+**Changing Table Type After Metric Ingestion**
+- Scenario: If the table type is changed after metrics have already been ingested, the tool will not use the new table_type.
+- Implication: Some metric calculations could be wrong.
+- Resolution: Users should delete the table from the Onehouse console before making such changes.
+
+**Pausing and Resuming Metadata Ingestion**
+- Scenario: If metadata ingestion for a table is paused and then resumed after a few days, there's a risk that the metrics displayed may be inaccurate (mainly depends on archival configs).
+- Reason: The tool processes the archived timeline only once when the table is first discovered. If new instants are committed and moved to the archived timeline while the tool is not running, these instants will not be uploaded upon resumption, leading to potential data loss.
+- Implication: There can be a mismatch between the actual table state and the metrics shown.
+- Resolution: Users should delete the table from the Onehouse console before running the tool again in case of long wait times.
+
+# LICENSE
+
+This repository is licensed under the terms of the Apache 2.0 license
 
 
-Supported Cloud Platforms:
-- Amazon Web Services (AWS)
-- Google Cloud Platform (GCP)
+-------
 
-Metadata Pushed to LakeView:
-- The instant files in the active and archived timeline of the tables
-- The last modification timestamp of the instant files (this is used to incrementally process changes)
-
-### Configure the Metadata Extractor Tool
-
-The configuration file for the metadata extractor tool is a YAML file that specifies various settings required for the tool's operation.
-Below is a detailed explanation of each section and its respective fields within the configuration file.
-
-#### YAML Configuration File Structure
-
-`lakeview_conf.yaml`
-
-``` YAML
-version: V1
-
-onehouseClientConfig:
-    # can be obtained from the Onehouse console
-    projectId: <LakeView project id>
-    apiKey: <api key>
-    apiSecret: <api secret>
-    userId: <user id>
-    file: <absolute path of json/yaml file containing onehouse client configuration>
-
-fileSystemConfiguration:
-    # Provide either s3Config or gcsConfig
-    s3Config:
-        region: <aws-region>
-        accessKey: <optional>
-        accessSecret: <optional>
-    gcsConfig:
-        projectId: <optional projectId>
-        gcpServiceAccountKeyPath: <optional path_to_gcp_auth_key>
-
-metadataExtractorConfig:
-    jobRunMode: CONTINUOUS | ONCE
-    uploadStrategy: BLOCK_ON_INCOMPLETE_COMMIT | CONTINUE_ON_INCOMPLETE_COMMIT
-    pathExclusionPatterns: [<pattern1>, <pattern2>, ...]
-    parserConfig:
-        - lake: <lake1>
-          databases:
-            - name: <database1>
-              basePaths: [basepath11, basepath12, ...]
-            - name: <database2>
-              basePaths: [<path1>, <path2>, ...]
-        # Add additional lakes and databases as needed
-```
-
-#### Configs
+# APPENDIX - REMOVE
 
 Let's understand each of the above configs.
 
@@ -259,161 +339,62 @@ There are four methods to deploy the metadata extractor tool:
 3. Deploy to Kubernetes with Helm
 4. Deploy with AWS Glue using [LakeView JAR](https://github.com/onehouseinc/LakeView/releases/) file
 
-#### Deploy with LakeView JAR
 
-Step1: Download the latest stable release JAR from the [release's page](https://github.com/onehouseinc/LakeView/releases/). For example, latest jar version is 0.14.0.
+Onehouse provides a metadata extractor tool that you can run within your AWS or Google Cloud environment to continuously push metadata from specified file storage path(s) to LakeView. 
 
-```BASH
-curl -o /tmp/LakeView-release-v0.14.0-all.jar \
-  https://github.com/onehouseinc/LakeView/releases/download/prod-34/LakeView-release-v0.14.0-all.jar
+Key functionality of the metadata extractor tool:
+- Operational Modes:
+  - `CONTINUOUS` - The tool periodically discovers and uploads metadata for tables found in the configured path. Table discovery happens every 30minutes and new commit instants for the files are discovered and extracted every 5minutes (provided the previous run has completed).
+  - `ONCE` - Allows users to trigger the discovery and extraction flow on demand, the tool picks up from where it left off on the last run. This can be useful if you want to run the metadata extractor tool as a recurring job that you manage.
+- Upload Strategies:
+  - `BLOCK_ON_INCOMPLETE_COMMIT` - The job stops when it encounters an incomplete commit. In the next run, the job will start from the incomplete commit.
+  - `CONTINUE_ON_INCOMPLETE_COMMIT` - The job skips incomplete commits to continue processing the complete commits. In the next run, the job will start from the first incomplete commit encountered during the previous job run.
+- Efficient Data Processing: Utilizes checkpoints for incremental metadata extraction, enabling frequent and efficient metric updates.
+
+Supported Cloud Platforms:
+- Amazon Web Services (AWS)
+- Google Cloud Platform (GCP)
+
+### Configure the Metadata Extractor Tool
+
+The configuration file for the metadata extractor tool is a YAML file that specifies various settings required for the tool's operation.
+Below is a detailed explanation of each section and its respective fields within the configuration file.
+
+#### YAML Configuration File Structure
+
+`lakeview_conf.yaml`
+
+``` YAML
+version: V1
+
+onehouseClientConfig:
+    # can be obtained from the Onehouse console
+    projectId: <LakeView project id>
+    apiKey: <api key>
+    apiSecret: <api secret>
+    userId: <user id>
+    file: <absolute path of json/yaml file containing onehouse client configuration>
+
+fileSystemConfiguration:
+    # Provide either s3Config or gcsConfig
+    s3Config:
+        region: <aws-region>
+        accessKey: <optional>
+        accessSecret: <optional>
+    gcsConfig:
+        projectId: <optional projectId>
+        gcpServiceAccountKeyPath: <optional path_to_gcp_auth_key>
+
+metadataExtractorConfig:
+    jobRunMode: CONTINUOUS | ONCE
+    uploadStrategy: BLOCK_ON_INCOMPLETE_COMMIT | CONTINUE_ON_INCOMPLETE_COMMIT
+    pathExclusionPatterns: [<pattern1>, <pattern2>, ...]
+    parserConfig:
+        - lake: <lake1>
+          databases:
+            - name: <database1>
+              basePaths: [basepath11, basepath12, ...]
+            - name: <database2>
+              basePaths: [<path1>, <path2>, ...]
+        # Add additional lakes and databases as needed
 ```
-
-Step2: Copy the `lakeview_conf.yaml` content (mentioned in `YAML Configuration File Structure` step), then update all the details accordingly. You can pass this configuration content as string or file to the jar.
-
-Step3: Run the LakeView using JAR.
-
-**Syntax:**
-
-```BASH
-# Option 1: YAML configuration string
-java -jar /tmp/LakeView-release-v0.14.0-all.jar -c '<yaml_string>'
-
-# Option 2: YAML configuration file (local filepaths only)
-java -jar /tmp/LakeView-release-v0.14.0-all.jar -p '<path_to_config_file>'
-```
-
-**Example:**
-
-In this example, we are passing the lakeview configuration content as a file.
-
-```BASH
-java -jar /tmp/LakeView-release-v0.14.0-all.jar -p /tmp/lakeview_conf.yaml
-```
-
-#### Deploy with MetaData Extractor Docker Image
-
-Step1: Copy the `lakeview_conf.yaml` content (mentioned in `YAML Configuration File Structure` step), then update all the details accordingly. You can pass this configuration content as string or file to docker command.
-
-Step2: Run the LakeView using Docker.
-
-**Syntax:**
-
-```BASH
-# Option 1: YAML configuration string
-docker run onehouse/lake-view -c '<yaml_string>'
-
-# Option 2: YAML configuration file (local filepaths only)
-docker run onehouse/lake-view -p '<path_to_config_file>'
-```
-
-Note: When testing Docker locally, use `-v` to mount the volume where the configuration is present.
-
-**Example:**
-
-```BASH
-docker run -v /tmp/lakeview_conf.yaml:/tmp/lakeview_conf.yaml onehouse/lake-view -p /tmp/lakeview_conf.yaml
-```
-
-#### Deploy to Kubernetes with Helm
-
-Step1: Clone the LakeView github repo:
-
-```BASH
-git clone https://github.com/onehouseinc/LakeView.git
-```
-
-Step2: Navigate into the helm-chart folder:
-
-```BASH
-cd helm-chart
-```
-
-Step3: Update `values.yaml` file with required field values. You can refer the fields in [supported_values](helm-chart/values.yaml) file.
-
-Step4: Install the lakeview using helm:
-
-```BASH
-helm install lake-view . -f values.yaml
-```
-
-#### Deploy with AWS Glue using JAR File
-
-1. Download the latest stable release JAR from the [release's page](https://github.com/onehouseinc/LakeView/releases/). For example, latest jar version is 0.14.0.
-```BASH
-wget https://github.com/onehouseinc/LakeView/releases/download/prod-34/LakeView-release-v0.14.0-all.jar
-```
-1. Upload the above downloaded LakeView jar file to a S3 location, this has to be accessible via an IAM role used by the Glue job.
-1. Configure the Glue Job details.
-   * Set up the IAM role to be used by glue. **Note**: This role should be able to access the JAR file from S3 and also to the base paths mentioned in the config.
-   * Under `Advanced properties > Libraries`, specify the JAR's S3 location in `Python library path` & `Dependent JARs path` fields.
-1. Create a glue job with a script. Please find a sample script to be used in Glue below. Here, the config.yaml is embedded as part of the script itself. This is a minified version of the same config.yaml file. Please update the parameters like `PROJECT_ID`, `API_KEY`, `API_SECRET`, `USER_ID`, `REGION`, `LAKE_NAME`, `DATABASE_NAME`, `BASE_PATH_1`, `BASE_PATH_2` etc. in the config.
-```python
-import pyspark
-import pyspark.sql.types as T
-from awsglue.transforms import *
-from awsglue.context import GlueContext
-from pyspark.context import SparkContext
-
-conf = pyspark.SparkConf()
-
-glueContext = GlueContext(SparkContext.getOrCreate(conf=conf))
-
-spark_session = glueContext.spark_session
-spark_session.udf.registerJavaFunction(name="glue_wrapper", javaClassName="ai.onehouse.GlueWrapperMain", returnType=T.StringType())
-spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientConfig: {projectId: ${PROJECT_ID}, apiKey: ${API_KEY}, apiSecret: ${API_SECRET}, userId: ${USER_ID}}, fileSystemConfiguration: {s3Config: {region: ${REGION}}}, metadataExtractorConfig: {jobRunMode: ONCE, parserConfig: [{lake: ${LAKE_NAME}, databases: [{name: ${DATABASE_NAME}, basePaths: [${BASE_PATH_1}, ${BASE_PATH_2}]}]}]}}\"]') as answer").show()
-```
-
-# FAQ
-
-## How is LakeView different from Onehouse Cloud?
-
-LakeView is a standalone product offered by Onehouse for free to the Apache Hudi community. These are the core differences between the two products:
-
-| | LakeView | Onehouse Cloud |
-|-|-|-|
-| **Description** | Observability tools to help you analyze, debug, and optimize Apache Hudi tables | Fully managed ingestion and incremental ETL pipelines, managed table services, and interoperability with Apache Hudi, Apache Iceberg, and Delta Lake. [Learn more.](https://www.onehouse.ai/product) |
-| **Cost** | Free | Free for 30 days, then compute-based pricing |
-| **Deployment** | You send Onehouse your Hudi metadata. Onehouse processes the metadata and exposes metrics and charts on the Onehouse console. | Onehouse deploys an agent in your Cloud account to manage clusters and jobs without sending data out of your VPC. Only the Hudi metadata is sent to Onehouse to populate the Onehouse console. |
-| **Who's it for** | Apache Hudi users with existing data lakes | 1) Anyone looking to build new ingestion or ETL pipelines with Apache Hudi, Apache Iceberg, and/or Delta Lake OR 2) Apache Hudi users who want managed table services |
-
-## Will Onehouse see my column stats if I have enabled the Hudi metadata table?
-
-Onehouse will NOT see your column stats. While column stats are present in the [metadata table](https://hudi.apache.org/docs/metadata) under the .hoodie folder, the metadata extractor tool does not send the metadata table to the Onehouse endpoint. We only copy the commit files in .hoodie and .hoodie/archived. We do not copy the content of any other folders in the .hoodie directory. 
-
-# Known Limitations
- 
-When using the metadata extractor tool, it's important to be aware of certain limitations that can affect its functionality and the accuracy of the metrics provided.
-
-**Issues with Tables having same name in a (lake, database)**
-- Scenario: If two tables having the same name are present in the same (lake, database) pair, the tool will not be able to distinguish between them.
-- Implication: This will lead to failure in table initialization, and you would see an error something like below in the metadata extractor logs.
-    ```
-    A table already exists in Lake: <lake-id> database: <db-name> with this name: <table-name>. Please consider ingesting this table under a different lake or database to avoid conflicts
-    ```
-- Resolution: Users should ensure that tables have unique names within a (lake, database) pair. If there are multiple tables with the same name, consider moving them to different databases.
-
-**Issues with Re-created Tables in the Same Path**
-- Scenario: If a Hudi table is deleted and a new table is created in the same path, the tool assigns the same table ID as the previous one.
-- Implication: This can lead to inaccuracies in the metrics calculation.
-- Resolution: Users should delete such tables from the Onehouse console to avoid metric calculation issues.
-
-**Changing Lake or Database Names After Metric Ingestion**
-- Scenario: If the lake or database name for a given base path is changed after metrics have already been ingested, the tool will not use the new names.
-- Implication: Continuity in metric tracking may be lost due to the change in identifiers.
-- Resolution: Users should delete the table from the Onehouse console before making such changes.
-
-**Changing Table Type After Metric Ingestion**
-- Scenario: If the table type is changed after metrics have already been ingested, the tool will not use the new table_type.
-- Implication: Some metric calculations could be wrong.
-- Resolution: Users should delete the table from the Onehouse console before making such changes.
-
-**Pausing and Resuming Metadata Ingestion**
-- Scenario: If metadata ingestion for a table is paused and then resumed after a few days, there's a risk that the metrics displayed may be inaccurate (mainly depends on archival configs).
-- Reason: The tool processes the archived timeline only once when the table is first discovered. If new instants are committed and moved to the archived timeline while the tool is not running, these instants will not be uploaded upon resumption, leading to potential data loss.
-- Implication: There can be a mismatch between the actual table state and the metrics shown.
-- Resolution: Users should delete the table from the Onehouse console before running the tool again in case of long wait times.
-
-# LICENSE
-
-This repository is licensed under the terms of the Apache 2.0 license
-
