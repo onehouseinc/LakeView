@@ -87,6 +87,14 @@ tasks.getByPath('sonar').setMustRunAfter([])
 group = 'ai.onehouse'
 version = project.hasProperty('version') ? project.version : '1.0-SNAPSHOT'
 
+ext {
+    versions = [
+            hudi: '0.15.0',
+            okhttp: '4.11.0',
+            mockito: '3.11.2'
+    ]
+}
+
 repositories {
     mavenCentral()
 }
@@ -186,7 +194,7 @@ subprojects {
 }
 
 // Configure Shadow plugin
-configure([project(':lakeview'), project(':lakeview-glue')]) {
+configure([project(':lakeview'), project(':lakeview-glue'), project(':lakeview-sync-tool')]) {
     apply plugin: 'com.github.johnrengelman.shadow'
 
     shadowJar {

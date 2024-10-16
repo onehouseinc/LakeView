@@ -37,7 +37,7 @@ dependencies {
     implementation "ch.qos.logback:logback-classic:1.2.6"
     implementation "ch.qos.logback.contrib:logback-json-classic:0.1.5"
     implementation "ch.qos.logback.contrib:logback-jackson:0.1.5"
-    implementation 'com.squareup.okhttp3:okhttp:4.11.0'
+    implementation "com.squareup.okhttp3:okhttp:${versions.okhttp}"
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.12.3'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.3'
     implementation 'com.google.code.findbugs:jsr305:3.0.2'
@@ -55,9 +55,9 @@ dependencies {
 
     implementation 'org.springframework:spring-beans:5.3.23'
 
-    testImplementation 'org.mockito:mockito-core:3.11.2'
-    testImplementation "org.mockito:mockito-junit-jupiter:3.11.2"
-    testImplementation "org.mockito:mockito-inline:3.11.2"
+    testImplementation "org.mockito:mockito-core:${versions.mockito}"
+    testImplementation "org.mockito:mockito-junit-jupiter:${versions.mockito}"
+    testImplementation "org.mockito:mockito-inline:${versions.mockito}"
     testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
     testImplementation(platform('org.junit:junit-bom:5.10.0'))
     testImplementation('org.junit.jupiter:junit-jupiter')
