@@ -60,13 +60,13 @@ public class LakeviewSyncConfigHolder {
       .key("hoodie.meta.sync.lakeview.s3.accessKey")
       .noDefaultValue()
       .markAdvanced()
-      .withDocumentation("Access key required to access table base paths present in S3");
+      .withDocumentation("[Optional]: Access key required to access table base paths present in S3");
 
   public static final ConfigProperty<String> LAKEVIEW_S3_ACCESS_SECRET = ConfigProperty
       .key("hoodie.meta.sync.lakeview.s3.accessSecret")
       .noDefaultValue()
       .markAdvanced()
-      .withDocumentation("Access secret required to access table base paths present in S3");
+      .withDocumentation("[Optional]: Access secret required to access table base paths present in S3");
 
   public static final ConfigProperty<String> LAKEVIEW_GCS_PROJECT_ID = ConfigProperty
       .key("hoodie.meta.sync.lakeview.gcs.projectId")
@@ -78,7 +78,7 @@ public class LakeviewSyncConfigHolder {
       .key("hoodie.meta.sync.lakeview.gcs.gcpServiceAccountKeyPath")
       .noDefaultValue()
       .markAdvanced()
-      .withDocumentation("GCS Service account key path to access the table base path present in GCS");
+      .withDocumentation("[Optional]: GCS Service account key path to access the table base path present in GCS");
 
   public static final ConfigProperty<String> LAKEVIEW_METADATA_EXTRACTOR_PATH_EXCLUSION_PATTERNS = ConfigProperty
       .key("hoodie.meta.sync.lakeview.metadataExtractor.pathExclusionPatterns")
