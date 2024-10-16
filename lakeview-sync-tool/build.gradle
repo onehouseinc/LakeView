@@ -29,25 +29,12 @@ dependencies {
     implementation "org.apache.hudi:hudi-io:${versions.hudi}"
     implementation "org.apache.hudi:hudi-sync-common:${versions.hudi}"
     implementation "org.apache.hudi:hudi-hive-sync:${versions.hudi}"
+    implementation "org.apache.hudi:hudi-aws:${versions.hudi}"
 
     implementation "org.apache.parquet:parquet-avro:1.13.1"
 
     implementation "com.squareup.okhttp3:okhttp:${versions.okhttp}"
     implementation 'com.beust:jcommander:1.78'
-
-    testImplementation("org.apache.hive:hive-service:${versions.hive}") {
-        exclude group: 'org.apache.parquet', module: 'parquet-common'
-        exclude group: 'org.pentaho', module: 'pentaho-aggdesigner-algorithm'
-    }
-    testImplementation "org.apache.hive:hive-common:${versions.hive}"
-
-    testImplementation "org.apache.hudi:hudi-common:${versions.hudi}:tests"
-    testImplementation("org.apache.hudi:hudi-hive-sync:${versions.hudi}:tests") {
-        transitive false
-    }
-    testImplementation "org.apache.hudi:hudi-io:${versions.hudi}:tests"
-
-    testImplementation "com.esotericsoftware:kryo-shaded:4.0.2"
 
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'

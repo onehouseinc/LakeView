@@ -1,10 +1,9 @@
 package ai.onehouse.lakeview.sync;
 
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hudi.aws.sync.AwsGlueCatalogSyncTool;
 import org.apache.hudi.hadoop.fs.HadoopFSUtils;
-import org.apache.hudi.hive.HiveSyncTool;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
@@ -17,8 +16,7 @@ import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-class LakeviewHiveSyncToolTest {
-
+class LakeviewGlueSyncToolTest {
   private static final String BASE_PATH = "/tmp/test";
 
   private Configuration hadoopConf;
@@ -30,7 +28,7 @@ class LakeviewHiveSyncToolTest {
   }
 
   @Test
-  void testLakeViewHiveSyncTool() {
+  void testLakeViewGlueSyncTool() {
     Properties properties = new Properties();
     try (MockedConstruction<LakeviewSyncTool> lakeviewSyncToolMockedConstruction = mockConstruction(LakeviewSyncTool.class,
         (lakeviewSyncTool, context) -> {
@@ -38,20 +36,20 @@ class LakeviewHiveSyncToolTest {
           assertEquals(2, arguments.size());
           assertEquals(properties, arguments.get(0));
           assertEquals(hadoopConf, arguments.get(1));
-        }); MockedConstruction<HiveSyncTool> hiveSyncToolMockedConstruction = mockConstruction(HiveSyncTool.class,
-        (hiveSyncTool, context) -> {
+        }); MockedConstruction<AwsGlueCatalogSyncTool> glueSyncToolMockedConstruction = mockConstruction(AwsGlueCatalogSyncTool.class,
+        (glueSyncTool, context) -> {
           List<?> arguments = context.arguments();
           assertEquals(2, arguments.size());
           assertEquals(properties, arguments.get(0));
           assertEquals(hadoopConf, arguments.get(1));
         });
-         LakeviewHiveSyncTool lakeviewHiveSyncTool = new LakeviewHiveSyncTool(properties, hadoopConf)) {
-      lakeviewHiveSyncTool.syncHoodieTable();
+         LakeviewGlueSyncTool lakeviewGlueSyncTool = new LakeviewGlueSyncTool(properties, hadoopConf)) {
+      lakeviewGlueSyncTool.syncHoodieTable();
 
-      List<HiveSyncTool> hiveSyncToolsConstructed = hiveSyncToolMockedConstruction.constructed();
-      assertEquals(1, hiveSyncToolsConstructed.size());
-      HiveSyncTool hiveSyncTool = hiveSyncToolsConstructed.get(0);
-      verify(hiveSyncTool, times(1)).syncHoodieTable();
+      List<AwsGlueCatalogSyncTool> glueSyncToolsConstructed = glueSyncToolMockedConstruction.constructed();
+      assertEquals(1, glueSyncToolsConstructed.size());
+      AwsGlueCatalogSyncTool awsGlueCatalogSyncTool = glueSyncToolsConstructed.get(0);
+      verify(awsGlueCatalogSyncTool, times(1)).syncHoodieTable();
 
 
       List<LakeviewSyncTool> lakeviewSyncToolsConstructed = lakeviewSyncToolMockedConstruction.constructed();
