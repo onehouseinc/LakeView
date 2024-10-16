@@ -33,6 +33,15 @@ dependencies {
     testImplementation 'org.awaitility:awaitility:4.2.2'
 }
 
+apply plugin: 'jacoco'
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
 test {
-    useJUnitPlatform()
+    finalizedBy jacocoTestReport // report is always generated after tests run
 }
