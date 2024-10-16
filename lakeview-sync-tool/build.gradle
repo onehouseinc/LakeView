@@ -37,6 +37,7 @@ dependencies {
 
     testImplementation("org.apache.hive:hive-service:${versions.hive}") {
         exclude group: 'org.apache.parquet', module: 'parquet-common'
+        exclude group: 'org.pentaho', module: 'pentaho-aggdesigner-algorithm'
     }
     testImplementation "org.apache.hive:hive-common:${versions.hive}"
 
