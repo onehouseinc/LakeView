@@ -117,7 +117,7 @@ public class LakeviewSyncConfigHolder {
 
   public static final ConfigProperty<Integer> LAKEVIEW_SYNC_TOOL_TIMEOUT_SECONDS = ConfigProperty
       .key("hoodie.datasource.lakeview_sync.timeout.seconds")
-      .defaultValue(-1)
+      .defaultValue(1800) // default timeout of 30 minutes
       .withDocumentation("Timeout in seconds for each sync in lakeview. Set to -1 to have no timeout");
 
   public static class LakeviewSyncConfigParams {
