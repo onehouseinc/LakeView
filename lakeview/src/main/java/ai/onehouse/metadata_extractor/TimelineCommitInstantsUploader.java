@@ -29,6 +29,7 @@ import ai.onehouse.storage.AsyncStorageClient;
 import ai.onehouse.storage.PresignedUrlFileUploader;
 import ai.onehouse.storage.StorageUtils;
 import ai.onehouse.storage.models.File;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -39,6 +40,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -92,7 +94,7 @@ public class TimelineCommitInstantsUploader {
    * @param checkpoint Checkpoint object used to track already processed instants.
    * @param commitTimelineType Type of the commit timeline.
    * @return A future that completes with a new checkpoint after the
-   *     upload is finished.
+   * upload is finished.
    */
   public CompletableFuture<Checkpoint> batchUploadWithCheckpoint(
       String tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
@@ -117,7 +119,7 @@ public class TimelineCommitInstantsUploader {
    * @param checkpoint Checkpoint object used to track already processed instants.
    * @param commitTimelineType Type of the commit timeline.
    * @return A future that completes with a new checkpoint after each
-   *     paginated upload.
+   * paginated upload.
    */
   public CompletableFuture<Checkpoint> paginatedBatchUploadWithCheckpoint(
       String tableId, Table table, Checkpoint checkpoint, CommitTimelineType commitTimelineType) {
@@ -159,7 +161,7 @@ public class TimelineCommitInstantsUploader {
               return filesToUpload.isEmpty()
                   ? CompletableFuture.completedFuture(checkpoint)
                   : uploadInstantsInSequentialBatches(
-                      tableId, table, filesToUpload, checkpoint, commitTimelineType);
+                  tableId, table, filesToUpload, checkpoint, commitTimelineType);
             },
             executorService)
         .exceptionally(
@@ -195,7 +197,7 @@ public class TimelineCommitInstantsUploader {
 
               if (!filesToUpload.isEmpty()) {
                 return uploadInstantsInSequentialBatches(
-                        tableId, table, filesToUpload, checkpoint, commitTimelineType)
+                    tableId, table, filesToUpload, checkpoint, commitTimelineType)
                     .thenComposeAsync(
                         updatedCheckpoint -> {
                           if (updatedCheckpoint == null) {
@@ -252,7 +254,7 @@ public class TimelineCommitInstantsUploader {
    * @param checkpoint Checkpoint object used to track already processed instants.
    * @param commitTimelineType Type of the commit timeline.
    * @return CompletableFuture<Checkpoint> A future that completes with a new checkpoint after each
-   *     paginated upload. if upload fails for the batch then the function returns null instead
+   * paginated upload. if upload fails for the batch then the function returns null instead
    */
   private CompletableFuture<Checkpoint> uploadInstantsInSequentialBatches(
       String tableId,
@@ -312,12 +314,12 @@ public class TimelineCommitInstantsUploader {
                     table,
                     commitTimelineType);
                 return uploadBatch(
-                        tableId,
-                        batch,
-                        commitTimelineType,
-                        storageUtils.constructFileUri(
-                            table.getAbsoluteTableUri(),
-                            getPathSuffixForTimeline(commitTimelineType)))
+                    tableId,
+                    batch,
+                    commitTimelineType,
+                    storageUtils.constructFileUri(
+                        table.getAbsoluteTableUri(),
+                        getPathSuffixForTimeline(commitTimelineType)))
                     .thenComposeAsync(
                         ignored2 ->
                             updateCheckpointAfterProcessingBatch(
@@ -383,9 +385,13 @@ public class TimelineCommitInstantsUploader {
               for (int i = 0; i < batch.size(); i++) {
                 uploadFutures.add(
                     presignedUrlFileUploader.uploadFileToPresignedUrl(
-                        generateCommitMetadataUploadUrlResponse.getUploadUrls().get(i),
-                        constructStorageUri(directoryUri, batch.get(i).getFilename()),
-                        extractorConfig.getFileUploadStreamBatchSize()));
+                            generateCommitMetadataUploadUrlResponse.getUploadUrls().get(i),
+                            constructStorageUri(directoryUri, batch.get(i).getFilename()),
+                            extractorConfig.getFileUploadStreamBatchSize())
+                        .thenApply(result -> {
+                          hudiMetadataExtractorMetrics.incrementMetadataUploadSuccessCounter();
+                          return result;
+                        }));
               }
 
               return CompletableFuture.allOf(uploadFutures.toArray(new CompletableFuture[0]));
@@ -494,7 +500,9 @@ public class TimelineCommitInstantsUploader {
     return filesToUpload;
   }
 
-  /** Determines if a file should be included based on filters. */
+  /**
+   * Determines if a file should be included based on filters.
+   */
   private boolean shouldIncludeFile(
       File file,
       Checkpoint checkpoint,
@@ -502,7 +510,7 @@ public class TimelineCommitInstantsUploader {
       CommitTimelineType commitTimelineType) {
     return !file.isDirectory()
         && (!file.getLastModifiedAt().isBefore(checkpoint.getCheckpointTimestamp())
-            || !applyLastModifiedAtFilter)
+        || !applyLastModifiedAtFilter)
         && isInstantFile(file.getFilename())
         && !isInstantAlreadyUploaded(checkpoint, file, commitTimelineType)
         && !file.getFilename().equals(HOODIE_PROPERTIES_FILE)
@@ -521,7 +529,7 @@ public class TimelineCommitInstantsUploader {
           return false;
         }
         return getCommitIdFromActiveTimelineInstant(file.getFilename())
-                .compareTo(getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile()))
+            .compareTo(getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile()))
             <= 0;
       } else {
         return getNumericPartFromArchivedCommit(file.getFilename())
@@ -558,7 +566,7 @@ public class TimelineCommitInstantsUploader {
   private String getFileNameWithPrefix(File file, CommitTimelineType commitTimelineType) {
     String archivedPrefix = "archived/";
     return CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
-            && !HOODIE_PROPERTIES_FILE.equals(file.getFilename())
+        && !HOODIE_PROPERTIES_FILE.equals(file.getFilename())
         ? archivedPrefix + file.getFilename()
         : file.getFilename();
   }
@@ -588,8 +596,8 @@ public class TimelineCommitInstantsUploader {
 
     // Extractor blocks on incomplete commits, startAfter is the last processed file
     if (extractorConfig
-            .getUploadStrategy()
-            .equals(MetadataExtractorConfig.UploadStrategy.BLOCK_ON_INCOMPLETE_COMMIT)
+        .getUploadStrategy()
+        .equals(MetadataExtractorConfig.UploadStrategy.BLOCK_ON_INCOMPLETE_COMMIT)
         || !isFirstFetch) {
       return storageUtils.constructFileUri(prefix, lastProcessedFile);
     }
