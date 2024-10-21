@@ -152,7 +152,7 @@ spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientC
 
 Install and run a LakeView SyncTool JAR in your existing Hudi jobs to push metadata to LakeView. This functions similarly to Hudi's catalog integrations, such as the [DataHub SyncTool](https://hudi.apache.org/docs/syncing_datahub/).
 1. Download the latest LakeView SyncTool JAR from the [LakeView Maven repository](https://repo1.maven.org/maven2/ai/onehouse/lakeview/).
-1. < TODO - ADD HERE >
+1. Run the SyncTool JAR asynchronously or in-line with the Hudi Streamer (examples below).
 
 **Class**
 `org.apache.hudi.sync.LakeViewSyncTool`
@@ -206,7 +206,7 @@ java -cp lakeview-sync-tool-1.0-SNAPSHOT-all.jar ai.onehouse.lakeview.sync.Lakev
 ```
 
 **Example: Run in Hudi Streamer**
-See examples in the LakeView SyncTool tests directory [here](https://github.com/onehouseinc/LakeView/tree/main/lakeview-sync-tool/src/test/java/ai/onehouse/lakeview/sync).
+> See examples in the LakeView SyncTool tests directory [here](https://github.com/onehouseinc/LakeView/tree/main/lakeview-sync-tool/src/test/java/ai/onehouse/lakeview/sync).
 
 ## LakeView Configurations Explained
 
