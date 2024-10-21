@@ -84,21 +84,20 @@ With the Push Model, you will install and run the metadata extractor software wi
 
 ### Option 2a: Download JAR to Push Metadata
 
-1. Download the latest stable release JAR from the [release's page](https://github.com/onehouseinc/LakeView/releases/). For example, latest jar version is 0.14.0.
+1. Download the metadata extractor JAR from the [releases page](https://github.com/onehouseinc/LakeView/releases/). Here is an example for downloading version 0.14.0 of the JAR:
   ```BASH
   curl -o /tmp/LakeView-release-v0.14.0-all.jar \
     https://github.com/onehouseinc/LakeView/releases/download/prod-34/LakeView-release-v0.14.0-all.jar
   ```
-1. Copy the `lakeview_conf.yaml` content (mentioned in `YAML Configuration File Structure` step), then update all the details accordingly. You can pass this configuration content as string or file to the jar.
-< TODO - FIX THIS ^ >
-1. Run the LakeView using JAR.
+1. Download the Push Model configuration file from the Onehouse console, then fill in the configurations.
+1. Run the JAR to push your data to LakeView. Pass the configuration file as string or file to the JAR.
 
-Example running in AWS Glue:
-1. Upload the above downloaded LakeView jar file to a S3 location, this has to be accessible via an IAM role used by the Glue job.
+**Example running in AWS Glue:**
+1. Upload your downloaded LakeView JAR file to an Amazon S3 location accessible via an IAM role used by the Glue job.
 1. Configure the Glue Job details.
    * Set up the IAM role to be used by glue. **Note**: This role should be able to access the JAR file from S3 and also to the base paths mentioned in the config.
    * Under `Advanced properties > Libraries`, specify the JAR's S3 location in `Python library path` & `Dependent JARs path` fields.
-1. Create a glue job with a script. Please find a sample script to be used in Glue below. Here, the config.yaml is embedded as part of the script itself. This is a minified version of the same config.yaml file. Please update the parameters like `PROJECT_ID`, `API_KEY`, `API_SECRET`, `USER_ID`, `REGION`, `LAKE_NAME`, `DATABASE_NAME`, `BASE_PATH_1`, `BASE_PATH_2` etc. in the config.
+1. Create a Glue job with a script. Please find a sample script to be used in Glue below. Here, the config.yaml is embedded as part of the script itself. This is a minified version of the same config.yaml file. Please update the parameters like `PROJECT_ID`, `API_KEY`, `API_SECRET`, `USER_ID`, `REGION`, `LAKE_NAME`, `DATABASE_NAME`, `BASE_PATH_1`, `BASE_PATH_2`, etc. in the config.
 ```python
 import pyspark
 import pyspark.sql.types as T
@@ -117,7 +116,7 @@ spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientC
 
 ### Option 2b: Install Docker Image to Push Metadata
 
-1. Copy the `lakeview_conf.yaml` content (mentioned in `YAML Configuration File Structure` step), then update all the details accordingly. You can pass this configuration content as string or file to docker command.
+1. Download the Push Model configuration file from the Onehouse console, then fill in the configurations. You can pass this configuration content as string or file to docker command.
 1. Run the LakeView using Docker.
   ```BASH
   # Deploy with YAML configuration string
@@ -143,7 +142,8 @@ spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientC
   cd helm-chart
   ```
 1. Update `values.yaml` file with required field values. You can refer the fields in [supported_values](helm-chart/values.yaml) file.
-1. Install the lakeview using helm:
+1. Download the Push Model configuration file from the Onehouse console, then fill in the configurations and copy them into your `values.yaml` file.
+1. Install the LakeView using helm:
   ```BASH
   helm install lake-view . -f values.yaml
   ```
