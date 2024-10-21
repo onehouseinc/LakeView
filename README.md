@@ -42,14 +42,14 @@ LakeView currently supports Apache Hudi tables stored on AWS (in Amazon S3) and 
 
 # Deployment Models
 
+LakeView analyzes the following metadata for your Apache Hudi tables to generate metrics, dashboards, and alerts:
+- The instant files in the active and archived timeline of the tables
+- The last modification timestamp of the instant files (this is used to incrementally process changes)
+
 LakeView supports three deployment models:
 - **Pull Model (Recommended):** Grant LakeView access to your Hudi metadata files with an IAM role template. LakeView will continuously pull the latest metadata.
 - **Push Model:** Install and run the metadata extractor software within your cloud environment to push metadata to LakeView.
 - **LakeView SyncTool:** Install and run a LakeView SyncTool JAR in your existing Hudi jobs to push metadata to LakeView. This functions similarly to Hudi's catalog integrations, such as the [DataHub SyncTool](https://hudi.apache.org/docs/syncing_datahub/).
-
-LakeView analyzes the following metadata:
-- The instant files in the active and archived timeline of the tables
-- The last modification timestamp of the instant files (this is used to incrementally process changes)
 
 **In all deployment models, LakeView analyzes only your Hudi metadata files. Base data files containing records are never accessed and never leave your private cloud.**
 
@@ -154,10 +154,10 @@ Install and run a LakeView SyncTool JAR in your existing Hudi jobs to push metad
 1. Download the latest LakeView SyncTool JAR from the [LakeView Maven repository](https://repo1.maven.org/maven2/ai/onehouse/lakeview/).
 1. < TODO - ADD HERE >
 
-**Class:**
-`org.apache.hudi.sync.LakeViewSyncTool `
+**Class**
+`org.apache.hudi.sync.LakeViewSyncTool`
 
-**Configurations:**
+**Configurations Specification**
 ```
 hoodie.meta.sync.lakeview.version=V1
 hoodie.meta.sync.lakeview.projectId=<LakeView-project-id>
@@ -178,15 +178,35 @@ hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database1>.
 hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database2>.basePaths=<path1>,<path2>
 ```
 
-**Example: Run in Hudi Streamer**
+**Example Configurations with Amazon S3**
 ```
-< TODO - ADD HERE >
+hoodie.datasource.lakeview_sync.enable=true
+hoodie.base.path=s3://user-bucket/lake-1/database-1/table-2
+hoodie.meta.sync.lakeview.version=V1
+hoodie.meta.sync.lakeview.projectId=00000000-0000-0000-0000-000000000000
+hoodie.meta.sync.lakeview.apiKey=9c0a5da7-56e9-4004-be0e-66c229a096d8
+hoodie.meta.sync.lakeview.apiSecret=dummy-api-secret
+hoodie.meta.sync.lakeview.userId=66a29172-dc7b-4571-9190-c200c0540360
+
+hoodie.meta.sync.lakeview.s3.region=s3
+hoodie.meta.sync.lakeview.s3.accessKey=dummyS3AccessKey
+hoodie.meta.sync.lakeview.s3.accessSecret=dummyS3AccessSecret
+
+hoodie.meta.sync.lakeview.metadataExtractor.pathExclusionPatterns=s3://user-bucket/lake-1/database-3,s3://user-bucket/lake-1/database-4,
+
+hoodie.meta.sync.lakeview.metadataExtractor.lakes.lake-1.databases.database-1.basePaths=s3://user-bucket/lake-1/database-1/table-1,s3://user-bucket/lake-1/database-1/table-2
+hoodie.meta.sync.lakeview.metadataExtractor.lakes.lake-1.databases.database-2.basePaths=s3://user-bucket/lake-1/database-2/table-1,s3://user-bucket/lake-1/database-2/table-2
+hoodie.meta.sync.lakeview.metadataExtractor.lakes.lake-2.databases.database-1.basePaths=s3://user-bucket/lake-2/database-1/table-1,s3://user-bucket/lake-2/database-1/table-2
+hoodie.meta.sync.lakeview.metadataExtractor.lakes.this-is-an-invalid-property=s3://user-bucket/lake-2/database-1/table-1,s3://user-bucket/lake-2/database-1/table-2
 ```
 
 **Example: Run Ad Hoc in Command Line**
 ```
-< TODO - ADD HERE >
+java -cp lakeview-sync-tool-1.0-SNAPSHOT-all.jar ai.onehouse.lakeview.sync.LakeviewSyncTool --base-path s3://jenkinsintegration-tests/20241016085523/community-edition-non-blocking --version V1 --project-id c7c2d2c9-e906-4507-a277-352216195cd0 --api-key API_KEY --api-secret API_SECRET --userid o1d2LfHuJ5RPnyw1eOYizIoexm32 --s3-region us-west-2 --lake-paths sync-tool-test-lake.databases.sync-tool-0.basePaths=s3://jenkinsintegration-tests/20241016085523/community-edition-non-blocking
 ```
+
+**Example: Run in Hudi Streamer**
+See examples in the LakeView SyncTool tests directory [here](https://github.com/onehouseinc/LakeView/tree/main/lakeview-sync-tool/src/test/java/ai/onehouse/lakeview/sync).
 
 ## LakeView Configurations Explained
 
