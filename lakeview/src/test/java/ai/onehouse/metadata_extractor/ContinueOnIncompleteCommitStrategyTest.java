@@ -2,6 +2,7 @@ package ai.onehouse.metadata_extractor;
 
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
@@ -28,8 +29,14 @@ import ai.onehouse.storage.StorageUtils;
 import ai.onehouse.storage.models.File;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,6 +50,7 @@ import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -129,7 +137,12 @@ class ContinueOnIncompleteCommitStrategyTest {
         TABLE_PREFIX + "/.hoodie/",
         null,
         "table/.hoodie/777.rollback", // last successful commit is used for checkpointing
-        new ArrayList<>());
+        new ArrayList<>(
+            Arrays.asList(
+                generateFileObj("888.deltacommit.requested"),
+                // No batches returned, however it will return based on null continuation token
+                generateFileObj("888.deltacommit.inflight")
+        )));
 
     List<File> batch1 =
         Stream.of(
@@ -196,6 +209,7 @@ class ContinueOnIncompleteCommitStrategyTest {
                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
             .join();
 
+    assertNotNull(response);
     verify(asyncStorageClient, times(2)).fetchObjectsByPage(anyString(), anyString(), any(), any());
     verifyFilesUploaded(
         batch1.stream()
