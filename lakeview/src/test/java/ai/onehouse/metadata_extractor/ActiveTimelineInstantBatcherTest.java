@@ -593,12 +593,15 @@ class ActiveTimelineInstantBatcherTest {
     }
 
     //Checkpoint cp = getCP2();
-
+    List<File> truncatedFIles = files.subList(0, files.size());
     Pair<String, List<List<File>>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCP2());
+        activeTimelineInstantBatcher.createBatches(truncatedFIles, 4, getCP2());
     List<List<File>> batches = actualBatches.getRight();
     String cp = actualBatches.getLeft();
     System.out.println(batches);
+    // 0 ... 1000 -> firstIncomplete = 0th
+    // 1001 ... 2000
+    // 2001 ... 3000
     System.out.println(cp);
   }
 
