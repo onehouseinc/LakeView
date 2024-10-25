@@ -2,6 +2,7 @@ package ai.onehouse.metadata_extractor;
 
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
@@ -28,6 +29,7 @@ import ai.onehouse.storage.StorageUtils;
 import ai.onehouse.storage.models.File;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -129,7 +131,12 @@ class ContinueOnIncompleteCommitStrategyTest {
         TABLE_PREFIX + "/.hoodie/",
         null,
         "table/.hoodie/777.rollback", // last successful commit is used for checkpointing
-        new ArrayList<>());
+        new ArrayList<>(
+            Arrays.asList(
+                generateFileObj("888.deltacommit.requested"),
+                // No batches returned, however it will return based on null continuation token
+                generateFileObj("888.deltacommit.inflight")
+        )));
 
     List<File> batch1 =
         Stream.of(
@@ -196,6 +203,7 @@ class ContinueOnIncompleteCommitStrategyTest {
                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
             .join();
 
+    assertNotNull(response);
     verify(asyncStorageClient, times(2)).fetchObjectsByPage(anyString(), anyString(), any(), any());
     verifyFilesUploaded(
         batch1.stream()
