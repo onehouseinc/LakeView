@@ -133,6 +133,8 @@ public class TimelineCommitInstantsUploader {
     // startAfter is used only in the first call to get the objects, post that continuation token is
     // used
     // Resetting the firstIncompleteCommitFile so that we do not process from the same commit again
+    // All commit files will be processed after firstIncompleteCommitFile, and the checkpoint will be
+    // updated accordingly
     String startAfter = getStartAfterString(prefix, checkpoint, true);
     return executePaginatedBatchUpload(
         tableId,
