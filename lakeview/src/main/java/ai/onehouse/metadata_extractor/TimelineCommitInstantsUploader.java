@@ -287,9 +287,12 @@ public class TimelineCommitInstantsUploader {
     if (numBatches == 0) {
       // In case of CONTINUE_ON_INCOMPLETE_COMMIT, the extractor also needs to check subsequent pages hence
       // returning a non-null checkpoint to continue processing.
-      if (extractorConfig
+      if (
+          CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE.equals(commitTimelineType) &&
+          extractorConfig
           .getUploadStrategy()
-          .equals(MetadataExtractorConfig.UploadStrategy.CONTINUE_ON_INCOMPLETE_COMMIT)) {
+          .equals(MetadataExtractorConfig.UploadStrategy.CONTINUE_ON_INCOMPLETE_COMMIT)
+      ) {
         log.info(
             "No batches found in current page for table {} timeline {}",
             table,
