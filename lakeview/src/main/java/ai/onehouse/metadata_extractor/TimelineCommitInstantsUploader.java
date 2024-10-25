@@ -306,7 +306,7 @@ public class TimelineCommitInstantsUploader {
           "Could not create batches with completed commits for table {} timeline {}",
           table,
           commitTimelineType);
-      return CompletableFuture.completedFuture(null);
+      return CompletableFuture.completedFuture(checkpoint);
     }
 
     log.info(

@@ -7,9 +7,17 @@ import static org.mockito.Mockito.when;
 import ai.onehouse.config.Config;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -17,6 +25,8 @@ import java.util.stream.Stream;
 
 import ai.onehouse.metadata_extractor.models.Checkpoint;
 import ai.onehouse.storage.models.File;
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -67,6 +77,8 @@ class ActiveTimelineInstantBatcherTest {
         activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
   }
+
+
 
   @Test
   void testIncompleteInitialCommit() {
@@ -540,6 +552,56 @@ class ActiveTimelineInstantBatcherTest {
     assertEquals(expectedFirstIncompleteCommit, incompleteCommitBatchesPair.getLeft());
   }
 
+  Instant convert(String t) {
+    //String dateTimeString = "2024-10-14 07:39:50";
+
+    // Define the formatter matching the input string format
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    // Parse the string to LocalDateTime
+    LocalDateTime localDateTime = LocalDateTime.parse(t, formatter);
+
+    // Convert to Instant using UTC (ZoneOffset.UTC)
+    Instant instant = localDateTime.toInstant(ZoneOffset.UTC);
+    return instant;
+  }
+
+  @Tag("NonBlocking")
+  @Test
+  void test() {
+    String filePath = "/Users/karanmittal/Documents/Repos/LakeView/lakeview/src/test/resources/debug/cndr.txt";
+    List<String> entries = new ArrayList<>();
+    List<File> files = new ArrayList<>();
+
+    try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+      String line;
+      while ((line = br.readLine()) != null) {
+        // Split the line by spaces
+        String[] parts = line.trim().split("\\s+");
+        if (parts.length >= 3) {
+          // Extract the date (first two parts) and the file name (last part)
+          String date = parts[0] + " " + parts[1];
+          String fileName = parts[3];
+          System.out.println("Date: " + date + ", File Name: " + fileName);
+          entries.add("Date: " + date + ", File Name: " + fileName);
+          File f = File.builder().filename(fileName).isDirectory(false).lastModifiedAt(convert(date)).build();
+          files.add(f);
+        }
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    //Checkpoint cp = getCP2();
+
+    Pair<String, List<List<File>>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCP2());
+    List<List<File>> batches = actualBatches.getRight();
+    String cp = actualBatches.getLeft();
+    System.out.println(batches);
+    System.out.println(cp);
+  }
+
   static Stream<Arguments> createNonBlockingModeTestCases() {
     return Stream.of(
         Arguments.of(
@@ -633,6 +695,17 @@ class ActiveTimelineInstantBatcherTest {
         .checkpointTimestamp(instant)
         .batchId(0)
         .lastUploadedFile("12")
+        .archivedCommitsProcessed(true)
+        .build();
+  }
+
+  static Checkpoint getCP2() {
+    Instant instant = Instant.ofEpochSecond(1728954815);
+    return Checkpoint.builder()
+        .checkpointTimestamp(instant)
+        .batchId(0)
+        .lastUploadedFile("20241015011323784.deltacommit")
+        .firstIncompleteCommitFile("")
         .archivedCommitsProcessed(true)
         .build();
   }
