@@ -313,13 +313,13 @@ Click the “Notifications” page in the sidebar or the bell icon at the top of
 
 ## Weekly Review Emails
 
-LakeView will send you weekly review emails to help you stay on top of important activity in your Hudi deployment. These emails include trends, new tables, and potential issues.
+LakeView will send you weekly insights emails to help you stay on top of important activity in your Hudi deployment. These emails include trends, new tables, and potential issues.
 
 No action is required to set up weekly review emails – you will receive them automatically when you create or join a LakeView project.
 
-<img width="552" alt="Screenshot 2024-06-17 at 6 00 42 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/30f15f8c-1795-4568-ae87-26ece172327e">
-
 <img width="552" alt="Screenshot 2024-06-17 at 6 00 42 PM" src="assets/lakeview-stats-1.png">
+<img width="552" alt="Screenshot 2024-06-17 at 6 00 42 PM" src="assets/lakeview-stats-2.png">
+<img width="552" alt="Screenshot 2024-06-17 at 6 00 42 PM" src="assets/lakeview-stats-3.png">
 
 # FAQ
 
