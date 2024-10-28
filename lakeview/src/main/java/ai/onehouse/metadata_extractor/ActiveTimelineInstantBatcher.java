@@ -9,6 +9,7 @@ import ai.onehouse.config.Config;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.metadata_extractor.models.Checkpoint;
 import ai.onehouse.storage.models.File;
+import com.google.cloud.Tuple;
 import com.google.inject.Inject;
 import java.math.BigInteger;
 import java.time.Instant;
@@ -24,6 +25,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 
 public class ActiveTimelineInstantBatcher {
   private final MetadataExtractorConfig extractorConfig;
@@ -40,7 +42,7 @@ public class ActiveTimelineInstantBatcher {
    * @param maxBatchSize the maximum number of instants per batch.
    * @return A list of batches, each batch being a list of instants.
    */
-  public Pair<String, List<List<File>>> createBatches(
+  public Triple<String, List<List<File>>, String> createBatches(
       List<File> instants, int maxBatchSize, Checkpoint checkpoint) {
     if (maxBatchSize < 3) {
       throw new IllegalArgumentException("max batch size cannot be less than 3");
@@ -61,6 +63,7 @@ public class ActiveTimelineInstantBatcher {
     List<List<File>> batches = new ArrayList<>();
     List<File> currentBatch = new ArrayList<>();
     String firstIncompleteCheckpoint = checkpoint.getFirstIncompleteCommitFile();
+    String lastUnprocessedFile = "";
 
     int startIndex = 0;
     if (!sortedInstants.isEmpty()
@@ -90,6 +93,7 @@ public class ActiveTimelineInstantBatcher {
           // metrics.
           areInstantsInGrpRelated = false;
           shouldStopIteration = true;
+          lastUnprocessedFile = instant1.getTimestamp();
         } else {
           ActiveTimelineInstant instant2 =
               getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
@@ -106,6 +110,7 @@ public class ActiveTimelineInstantBatcher {
           // If the latest commit is not complete
           areInstantsInGrpRelated = false;
           shouldStopIteration = true;
+          lastUnprocessedFile = instant1.getTimestamp();
         } else {
           ActiveTimelineInstant instant2 =
               getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
@@ -117,6 +122,7 @@ public class ActiveTimelineInstantBatcher {
           // If the latest commit is not complete
           areInstantsInGrpRelated = false;
           shouldStopIteration = true;
+          lastUnprocessedFile = instant1.getTimestamp();
         } else {
           ActiveTimelineInstant instant2 =
               getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
@@ -171,10 +177,11 @@ public class ActiveTimelineInstantBatcher {
       batches.add(currentBatch);
     }
 
-    return Pair.of(firstIncompleteCheckpoint, batches);
+
+    return Triple.of(firstIncompleteCheckpoint, batches, getFirstIncompleteCheckpoint(lastUnprocessedFile));
   }
 
-  private static String getFirstIncompleteCheckpoint(String numericString) {
+  public static String getFirstIncompleteCheckpoint(String numericString) {
     BigInteger number = new BigInteger(numericString);
     BigInteger decrementedNumber = number.subtract(BigInteger.ONE);
     return decrementedNumber.toString();
@@ -250,7 +257,7 @@ public class ActiveTimelineInstantBatcher {
     return states.containsAll(Arrays.asList("inflight", "completed"));
   }
 
-  private static ActiveTimelineInstant getActiveTimeLineInstant(String instant) {
+  public static ActiveTimelineInstant getActiveTimeLineInstant(String instant) {
     String[] parts = instant.split("\\.", 3);
 
     String action;
@@ -268,7 +275,7 @@ public class ActiveTimelineInstantBatcher {
 
   @Builder
   @Getter
-  private static class ActiveTimelineInstant {
+  public static class ActiveTimelineInstant {
     private final String timestamp;
     private final String action;
     private final String state;

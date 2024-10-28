@@ -7,6 +7,7 @@ import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAM
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE_OBJ;
 import static ai.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
+import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.getActiveTimeLineInstant;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,9 +32,11 @@ import ai.onehouse.storage.StorageUtils;
 import ai.onehouse.storage.models.File;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
@@ -44,6 +47,7 @@ import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 
 /*
  * Has the core logic for listing and uploading commit instants in a given timeline
@@ -268,22 +272,24 @@ public class TimelineCommitInstantsUploader {
       Checkpoint checkpoint,
       CommitTimelineType commitTimelineType) {
     List<List<File>> batches;
+    String lastUnprocessedFile;
     if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)) {
       batches =
           Lists.partition(
               filesToUpload, getUploadBatchSize(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED));
     } else {
-      Pair<String, List<List<File>>> incompleteCheckpointBatchesPair =
+      Triple<String, List<List<File>>, String> incompleteCheckpointBatchesPair =
           activeTimelineInstantBatcher.createBatches(
               filesToUpload,
               getUploadBatchSize(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE),
               checkpoint);
-      batches = incompleteCheckpointBatchesPair.getRight();
+      batches = incompleteCheckpointBatchesPair.getMiddle();
       checkpoint =
           checkpoint
               .toBuilder()
               .firstIncompleteCommitFile(incompleteCheckpointBatchesPair.getLeft())
               .build();
+      lastUnprocessedFile = incompleteCheckpointBatchesPair.getRight();
     }
     int numBatches = batches.size();
 
@@ -376,7 +382,7 @@ public class TimelineCommitInstantsUploader {
               },
               executorService);
     }
-    // return pair of file of new checkpoint, start after -> checkpoint file if normal mode, else
+    // lastUnprocessedFile
     return sequentialBatchProcessingFuture;
   }
 
@@ -442,13 +448,26 @@ public class TimelineCommitInstantsUploader {
       archivedCommitsProcessed = true;
     }
 
+    String lastUploadedFileActual = lastUploadedFile.getFilename();
+    Instant lastModified = lastUploadedFile.getLastModifiedAt();
+
+    if (extractorConfig.getUploadStrategy().equals(MetadataExtractorConfig.UploadStrategy.CONTINUE_ON_INCOMPLETE_COMMIT)) {
+      if (!(previousCheckpoint.getLastUploadedFile().compareTo(lastUploadedFile.getFilename()) < 0)) {
+        lastUploadedFileActual = previousCheckpoint.getLastUploadedFile();
+      }
+      Optional<Long> maxLastModified = uploadedFiles.stream()
+          .map(UploadedFile::getLastModifiedAt)
+          .max(Long::compare);
+      if (maxLastModified.isPresent()) {
+        lastModified = Instant.ofEpochMilli(maxLastModified.get());
+      }
+    }
+
     Checkpoint updatedCheckpoint =
         Checkpoint.builder()
             .batchId(batchId)
-            // if file > prevCheckpoint file then file.getFile else prevCheckpoint.getFile
-            // same for last modified time
-            .lastUploadedFile(lastUploadedFile.getFilename())
-            .checkpointTimestamp(lastUploadedFile.getLastModifiedAt())
+            .lastUploadedFile(lastUploadedFileActual)
+            .checkpointTimestamp(lastModified)
             .archivedCommitsProcessed(archivedCommitsProcessed)
             .firstIncompleteCommitFile(previousCheckpoint.getFirstIncompleteCommitFile())
             .build();
@@ -642,6 +661,9 @@ public class TimelineCommitInstantsUploader {
    * the last file in the batch. If the batch only contains hoodie.properties file, we return
    * hoodie.properties. If the batch ends with savepoint commit, we return the second to last item.
    * If the batch ends with other commit types, we return third to last item.
+   * - IC1 - does not get complete
+   * - IC2 - gets complete - last modified wont work, even if we keep last modified as the highest time in the batch
+   *
    */
   private File getLastUploadedFileFromBatch(
       CommitTimelineType commitTimelineType, List<File> batch) {
