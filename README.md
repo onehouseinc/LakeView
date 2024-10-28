@@ -15,7 +15,7 @@
   - [Compaction Backlog Monitoring](#compaction-backlog-monitoring)
   - [Partition Insights](#partition-insights)
   - [Notifications](#notifications)
-  - [Weekly Review Emails](#weekly-review-emails)
+  - [Weekly Insights Emails](#weekly-insights-emails)
 - [FAQ](#faq)
 - [Known Limitations](#known-limitations)
 - [LICENSE](#license)
@@ -311,7 +311,7 @@ Click the “Notifications” page in the sidebar or the bell icon at the top of
 
 <img width="852" alt="Screenshot 2024-06-17 at 6 00 35 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/bdf00d9c-d9fc-4053-8783-b1280952ae2e">
 
-## Weekly Review Emails
+## Weekly Insights Emails
 
 LakeView will send you weekly insights emails to help you stay on top of important activity in your Hudi deployment. These emails include trends, new tables, and potential issues.
 
