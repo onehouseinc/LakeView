@@ -182,9 +182,15 @@ public class ActiveTimelineInstantBatcher {
   }
 
   public static String getFirstIncompleteCheckpoint(String numericString) {
-    BigInteger number = new BigInteger(numericString);
-    BigInteger decrementedNumber = number.subtract(BigInteger.ONE);
-    return decrementedNumber.toString();
+    try {
+      BigInteger number = new BigInteger(numericString);
+      BigInteger decrementedNumber = number.subtract(BigInteger.ONE);
+      return decrementedNumber.toString();
+    } catch (NumberFormatException ex) {
+      System.out.println("test");
+      return "";
+    }
+
   }
 
   private List<File> sortAndFilterInstants(List<File> instants) {

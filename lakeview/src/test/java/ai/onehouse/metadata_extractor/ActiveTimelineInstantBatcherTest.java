@@ -599,7 +599,7 @@ class ActiveTimelineInstantBatcherTest {
 
     //Checkpoint cp = getCP2();
     List<File> truncatedFIles = files.subList(0, files.size());
-    Pair<String, List<List<File>>> actualBatches =
+    Triple<String, List<List<File>>, String> actualBatches =
         activeTimelineInstantBatcher.createBatches(truncatedFIles, 4, getCP2());
     List<List<File>> batches = actualBatches.getMiddle();
     String cp = actualBatches.getLeft();
@@ -611,7 +611,7 @@ class ActiveTimelineInstantBatcherTest {
   }
 
 
-  @Tag("NonBlocking")
+  @Tag("Blocking")
   @Test
   void test2() {
     String fName = "apna2";
@@ -686,7 +686,7 @@ class ActiveTimelineInstantBatcherTest {
     }
 
     List<File> truncatedFIles = files.subList(0, files.size());
-    Pair<String, List<List<File>>> actualBatches =
+    Triple<String, List<List<File>>, String> actualBatches =
         activeTimelineInstantBatcher.createBatches(truncatedFIles, 20, getCP3());
     List<List<File>> batches = actualBatches.getMiddle();
     String cp = actualBatches.getLeft();
