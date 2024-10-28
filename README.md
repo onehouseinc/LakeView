@@ -319,6 +319,8 @@ No action is required to set up weekly review emails – you will receive them a
 
 <img width="552" alt="Screenshot 2024-06-17 at 6 00 42 PM" src="https://github.com/onehouseinc/hudi-metadata-extractor/assets/30377815/30f15f8c-1795-4568-ae87-26ece172327e">
 
+<img width="552" alt="Screenshot 2024-06-17 at 6 00 42 PM" src="assets/lakeview-stats-1.png">
+
 # FAQ
 
 ## How does LakeView keep my data secure?
@@ -382,4 +384,4 @@ When using the metadata extractor tool, it's important to be aware of certain li
 
 # LICENSE
 
-This repository is licensed under the terms of the Apache 2.0 license
+This repository is licensed under the terms of the Apache 2.0 license.
