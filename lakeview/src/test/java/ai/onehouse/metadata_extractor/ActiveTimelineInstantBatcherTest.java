@@ -21,6 +21,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import ai.onehouse.metadata_extractor.models.Checkpoint;
@@ -605,6 +608,111 @@ class ActiveTimelineInstantBatcherTest {
     System.out.println(cp);
   }
 
+
+  @Tag("NonBlocking")
+  @Test
+  void test2() {
+    String fName = "apna2";
+
+    String filePath = String.format("/Users/karanmittal/Documents/Repos/LakeView/lakeview/src/test/resources/debug/%s.txt", fName);  // Replace with your file path
+    List<File> files = new ArrayList<>();
+    int count = 0;
+    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+      String line;
+      String filePathLine = null;
+      String creationTime = null;
+      String updateTime = null;
+
+      // Patterns for matching lines
+      Pattern filePathPattern = Pattern.compile("^gs://prod-apna-data/(.+):$");
+
+      Pattern creationTimePattern = Pattern.compile("Creation Time:\\s+(\\S+)");
+      Pattern updateTimePattern = Pattern.compile("Update Time:\\s+(\\S+)");
+
+      if (fName.equals("apna2")) {
+        creationTimePattern = Pattern.compile("Creation time:\\s*(.*)");
+        updateTimePattern = Pattern.compile("Update time:\\s*(.*)");
+      }
+
+
+      while ((line = reader.readLine()) != null) {
+        line = line.trim();
+        // Check for file path line
+        Matcher filePathMatcher = filePathPattern.matcher(line);
+        if (filePathMatcher.find()) {
+          count++;
+          filePathLine = "data/" + filePathMatcher.group(1); // Format the path as requested
+        }
+
+        // Check for creation time line
+        Matcher creationMatcher = creationTimePattern.matcher(line);
+        if (creationMatcher.find()) {
+          creationTime = creationMatcher.group(1);
+        }
+
+        // Check for first update time line
+        Matcher updateMatcher = updateTimePattern.matcher(line);
+        if (updateMatcher.find() && updateTime == null) {  // Capture only the first Update Time
+          updateTime = updateMatcher.group(1);
+        }
+
+//        if(fName.equals("apna2")) {
+//          if (line.startsWith("Creation time:")) {
+//            creationTime = line.split(":")[1].trim();
+//          }
+//
+//          if (line.startsWith("Update time:")) {
+//            updateTime = line.split(":")[1].trim();
+//          }
+//        }
+
+
+        // Print and reset data at the end of each block (empty line signals end of current block)
+        if (filePathLine != null && creationTime != null && updateTime != null) {
+          String fileName = filePathLine.substring(filePathLine.lastIndexOf('/') + 1);
+          System.out.println(filePathLine.substring(filePathLine.lastIndexOf('/') + 1) + " | Creation Time: " + creationTime + " | Update Time: " + updateTime);
+          File f = File.builder().filename(fileName).isDirectory(false).lastModifiedAt(parseToInstant(updateTime)).build();
+          files.add(f);
+          filePathLine = null;
+          creationTime = null;
+          updateTime = null;
+
+        }
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    List<File> truncatedFIles = files.subList(0, files.size());
+    Pair<String, List<List<File>>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(truncatedFIles, 4, getCP3());
+    List<List<File>> batches = actualBatches.getRight();
+    String cp = actualBatches.getLeft();
+    System.out.println(batches);
+    // 0 ... 1000 -> firstIncomplete = 0th
+    // 1001 ... 2000
+    // 2001 ... 3000
+    System.out.println(cp);
+
+
+    // xyx
+    // xyz.requested
+    // xyz.inflight
+
+
+    //Checkpoint cp = getCP2();
+//    List<File> truncatedFIles = files.subList(0, files.size());
+//    Pair<String, List<List<File>>> actualBatches =
+//        activeTimelineInstantBatcher.createBatches(truncatedFIles, 4, getCP2());
+//    List<List<File>> batches = actualBatches.getRight();
+//    String cp = actualBatches.getLeft();
+//    System.out.println(batches);
+//    // 0 ... 1000 -> firstIncomplete = 0th
+//    // 1001 ... 2000
+//    // 2001 ... 3000
+//    System.out.println(cp);
+  }
+
   static Stream<Arguments> createNonBlockingModeTestCases() {
     return Stream.of(
         Arguments.of(
@@ -711,5 +819,25 @@ class ActiveTimelineInstantBatcherTest {
         .firstIncompleteCommitFile("")
         .archivedCommitsProcessed(true)
         .build();
+  }
+  // 20241019044830704
+
+  static Checkpoint getCP3() {
+    Instant instant = Instant.EPOCH;
+    return Checkpoint.builder()
+        .checkpointTimestamp(instant)
+        .batchId(0)
+        .lastUploadedFile("2021015011323784.deltacommit")
+        .firstIncompleteCommitFile("")
+        .archivedCommitsProcessed(true)
+        .build();
+  }
+
+  private static Instant parseToInstant(String dateTime) {
+    // Define the formatter for parsing the date string
+    DateTimeFormatter formatter =  DateTimeFormatter
+        .ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
+    // Parse and convert to Instant
+    return Instant.from(formatter.parse(dateTime));
   }
 }
