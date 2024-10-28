@@ -300,13 +300,18 @@ public class TimelineCommitInstantsUploader {
             "No batches found in current page for table {} timeline {}",
             table,
             commitTimelineType);
-        return CompletableFuture.completedFuture(checkpoint);
+        // This checkpoint has to be the next page
+        return CompletableFuture.completedFuture(checkpoint.toBuilder()
+                .lastUploadedFile(filesToUpload.get(filesToUpload.size()-1).getFilename())
+            .build());
+        // write a functionality to check if ther is an incomplete commit at the end of batch and return the file before that if it is present
+        // dont edit the checkpoint but return the file after which start after has to happen
       }
       log.info(
           "Could not create batches with completed commits for table {} timeline {}",
           table,
           commitTimelineType);
-      return CompletableFuture.completedFuture(checkpoint);
+      return CompletableFuture.completedFuture(null);
     }
 
     log.info(
@@ -371,6 +376,7 @@ public class TimelineCommitInstantsUploader {
               },
               executorService);
     }
+    // return pair of file of new checkpoint, start after -> checkpoint file if normal mode, else
     return sequentialBatchProcessingFuture;
   }
 
@@ -439,6 +445,8 @@ public class TimelineCommitInstantsUploader {
     Checkpoint updatedCheckpoint =
         Checkpoint.builder()
             .batchId(batchId)
+            // if file > prevCheckpoint file then file.getFile else prevCheckpoint.getFile
+            // same for last modified time
             .lastUploadedFile(lastUploadedFile.getFilename())
             .checkpointTimestamp(lastUploadedFile.getLastModifiedAt())
             .archivedCommitsProcessed(archivedCommitsProcessed)
