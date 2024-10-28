@@ -178,7 +178,7 @@ hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database1>.
 hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database2>.basePaths=<path1>,<path2>
 ```
 
-**Example Configurations with Amazon S3**
+**Example S3 Configuration File for Hudi Streamer**
 ```
 hoodie.datasource.lakeview_sync.enable=true
 hoodie.base.path=s3://user-bucket/lake-1/database-1/table-2
@@ -200,13 +200,10 @@ hoodie.meta.sync.lakeview.metadataExtractor.lakes.lake-2.databases.database-1.ba
 hoodie.meta.sync.lakeview.metadataExtractor.lakes.this-is-an-invalid-property=s3://user-bucket/lake-2/database-1/table-1,s3://user-bucket/lake-2/database-1/table-2
 ```
 
-**Example: Run Ad Hoc in Command Line**
+**Example Running Ad Hoc in Command Line**
 ```
 java -cp lakeview-sync-tool-1.0-SNAPSHOT-all.jar ai.onehouse.lakeview.sync.LakeviewSyncTool --base-path s3://jenkinsintegration-tests/20241016085523/community-edition-non-blocking --version V1 --project-id c7c2d2c9-e906-4507-a277-352216195cd0 --api-key API_KEY --api-secret API_SECRET --userid o1d2LfHuJ5RPnyw1eOYizIoexm32 --s3-region us-west-2 --lake-paths sync-tool-test-lake.databases.sync-tool-0.basePaths=s3://jenkinsintegration-tests/20241016085523/community-edition-non-blocking
 ```
-
-**Example: Run in Hudi Streamer**
-> See examples in the LakeView SyncTool tests directory [here](https://github.com/onehouseinc/LakeView/tree/main/lakeview-sync-tool/src/test/java/ai/onehouse/lakeview/sync).
 
 ## LakeView Configurations Explained
 
