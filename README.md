@@ -38,6 +38,7 @@ LakeView currently supports Apache Hudi tables stored on AWS (in Amazon S3) and 
 - Compaction backlog monitoring for Merge on Read tables
 - Email & Slack updates and notifications for common issues
 
+> [!TIP]
 > Visit the [LakeView website](https://www.onehouse.ai/product/lakeview) to request access. You will receive an email when you are approved.
 
 # Deployment Models
@@ -66,7 +67,7 @@ LakeView supports three deployment models:
 
 With the Pull Model, you will grant LakeView access to your Hudi metadata files with an IAM role template. LakeView will continuously pull the latest metadata.
 1. Open the [LakeView console](https://cloud.onehouse.ai/lakeview/signup).
-1. Download the configuration file from the LakeView console and fill in all configurations.
+1. Download the configuration file from the LakeView console and fill in all configurations. See details on each configuration [here](#lakeview-configurations-explained).
 1. Upload the filled-in configuration file to the LakeView console.
 1. LakeView will automatically generate an IAM template from the configuration file you uploaded. Download this IAM template from the LakeView console and apply the permissions in your cloud account.
 
