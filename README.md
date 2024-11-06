@@ -38,6 +38,7 @@ LakeView currently supports Apache Hudi tables stored on AWS (in Amazon S3) and 
 - Compaction backlog monitoring for Merge on Read tables
 - Email & Slack updates and notifications for common issues
 
+> [!TIP]
 > Visit the [LakeView website](https://www.onehouse.ai/product/lakeview) to request access. You will receive an email when you are approved.
 
 # Deployment Models
@@ -66,7 +67,7 @@ LakeView supports three deployment models:
 
 With the Pull Model, you will grant LakeView access to your Hudi metadata files with an IAM role template. LakeView will continuously pull the latest metadata.
 1. Open the [LakeView console](https://cloud.onehouse.ai/lakeview/signup).
-1. Download the configuration file from the LakeView console and fill in all configurations.
+1. Download the configuration file from the LakeView console and fill in all configurations. See details on each configuration [here](#lakeview-configurations-explained).
 1. Upload the filled-in configuration file to the LakeView console.
 1. LakeView will automatically generate an IAM template from the configuration file you uploaded. Download this IAM template from the LakeView console and apply the permissions in your cloud account.
 
@@ -165,6 +166,8 @@ hoodie.meta.sync.lakeview.apiKey=<api-key>
 hoodie.meta.sync.lakeview.apiSecret=<api-secret>
 hoodie.meta.sync.lakeview.userId=<user-id>
 
+hoodie.datasource.lakeview_sync.timeout.seconds=optional>
+
 hoodie.meta.sync.lakeview.s3.region=<aws-region>
 hoodie.meta.sync.lakeview.s3.accessKey=<optional>
 hoodie.meta.sync.lakeview.s3.accessSecret=<optional>
@@ -187,6 +190,8 @@ hoodie.meta.sync.lakeview.projectId=00000000-0000-0000-0000-000000000000
 hoodie.meta.sync.lakeview.apiKey=9c0a5da7-56e9-4004-be0e-66c229a096d8
 hoodie.meta.sync.lakeview.apiSecret=dummy-api-secret
 hoodie.meta.sync.lakeview.userId=66a29172-dc7b-4571-9190-c200c0540360
+
+hoodie.datasource.lakeview_sync.timeout.seconds=30
 
 hoodie.meta.sync.lakeview.s3.region=s3
 hoodie.meta.sync.lakeview.s3.accessKey=dummyS3AccessKey
@@ -211,6 +216,7 @@ The LakeView configurations vary slightly in each deployment model. Follow the i
 
 Below are explanations for the superset of all configurations across the three deployment models:
 
+> [!IMPORTANT]
 > - **version:** Specifies the configuration format version. Currently, only version V1 is supported.
 > - **onehouseClientConfig:** Contains credentials for communicating with the Onehouse console. these values can be obtained from the Onehouse console
 >   - **projectId:** Your Onehouse project ID. Get this by clicking on your profile in the top right of the Onehouse console.
