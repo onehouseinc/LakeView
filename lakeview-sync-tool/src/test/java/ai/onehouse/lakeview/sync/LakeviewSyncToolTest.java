@@ -104,6 +104,53 @@ class LakeviewSyncToolTest {
   }
 
   @Test
+  void testSyncToolTimeout() throws IOException {
+    List<ParserConfig> expectedParserConfigs = new ArrayList<>();
+    expectedParserConfigs.add(ParserConfig.builder()
+        .lake("lake-1")
+        .databases(Collections.singletonList(Database.builder()
+            .name("database-1")
+            .basePaths(Collections.singletonList("s3://user-bucket/lake-1/database-1/table-2"))
+            .build()))
+        .build());
+
+    Properties properties = new Properties();
+    properties.load(this.getClass().getResourceAsStream("/lakeview-sync-s3.properties"));
+    int timeoutInSeconds = 1;
+    Path tempFile = Files.createTempFile("temp", ".txt");
+    try (MockedConstruction<TableDiscoveryAndUploadJob> mockedConstruction =
+             mockConstruction(TableDiscoveryAndUploadJob.class, (tableDiscoveryAndUploadJob, context) -> {
+               doAnswer(invocationOnMock -> {
+                 // wait for timeout to exceed & then delete the temp file
+                 await().atMost(Duration.ofSeconds(timeoutInSeconds + 10)).until(() -> !Files.exists(tempFile));
+                 Files.deleteIfExists(tempFile);
+                 return null;
+               }).when(tableDiscoveryAndUploadJob).runOnce();
+             });
+         LakeviewSyncTool lakeviewSyncTool = new LakeviewSyncTool(properties, hadoopConf)) {
+      Config config = lakeviewSyncTool.getConfig();
+      assertNotNull(config);
+      assertEquals(new HashSet<>(expectedParserConfigs),
+          new HashSet<>(config.getMetadataExtractorConfig().getParserConfig()));
+      java.util.Optional<List<String>> pathExclusionPatterns = config.getMetadataExtractorConfig().getPathExclusionPatterns();
+      assertTrue(pathExclusionPatterns.isPresent());
+      assertEquals(2, pathExclusionPatterns.get().size());
+      assertNotNull(config.getFileSystemConfiguration().getS3Config());
+
+      assertDoesNotThrow(lakeviewSyncTool::syncHoodieTable);
+
+      List<TableDiscoveryAndUploadJob> constructedObjects = mockedConstruction.constructed();
+      assertEquals(1, constructedObjects.size());
+      TableDiscoveryAndUploadJob tableDiscoveryAndUploadJob = constructedObjects.get(0);
+      verify(tableDiscoveryAndUploadJob, times(1)).runOnce();
+
+      // verify that the temp file is still present as the future got cancelled due to timeout
+      assertTrue(Files.exists(tempFile));
+      Files.deleteIfExists(tempFile);
+    }
+  }
+
+  @Test
   void testSyncToolDisabled() {
     Properties properties = new Properties();
     try (LakeviewSyncTool lakeviewSyncTool = new LakeviewSyncTool(properties, hadoopConf)) {
