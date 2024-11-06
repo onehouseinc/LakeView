@@ -166,6 +166,8 @@ hoodie.meta.sync.lakeview.apiKey=<api-key>
 hoodie.meta.sync.lakeview.apiSecret=<api-secret>
 hoodie.meta.sync.lakeview.userId=<user-id>
 
+hoodie.datasource.lakeview_sync.timeout.seconds=optional>
+
 hoodie.meta.sync.lakeview.s3.region=<aws-region>
 hoodie.meta.sync.lakeview.s3.accessKey=<optional>
 hoodie.meta.sync.lakeview.s3.accessSecret=<optional>
@@ -188,6 +190,8 @@ hoodie.meta.sync.lakeview.projectId=00000000-0000-0000-0000-000000000000
 hoodie.meta.sync.lakeview.apiKey=9c0a5da7-56e9-4004-be0e-66c229a096d8
 hoodie.meta.sync.lakeview.apiSecret=dummy-api-secret
 hoodie.meta.sync.lakeview.userId=66a29172-dc7b-4571-9190-c200c0540360
+
+hoodie.datasource.lakeview_sync.timeout.seconds=30
 
 hoodie.meta.sync.lakeview.s3.region=s3
 hoodie.meta.sync.lakeview.s3.accessKey=dummyS3AccessKey
@@ -212,6 +216,7 @@ The LakeView configurations vary slightly in each deployment model. Follow the i
 
 Below are explanations for the superset of all configurations across the three deployment models:
 
+> [!INFO]
 > - **version:** Specifies the configuration format version. Currently, only version V1 is supported.
 > - **onehouseClientConfig:** Contains credentials for communicating with the Onehouse console. these values can be obtained from the Onehouse console
 >   - **projectId:** Your Onehouse project ID. Get this by clicking on your profile in the top right of the Onehouse console.
