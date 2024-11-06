@@ -216,7 +216,7 @@ The LakeView configurations vary slightly in each deployment model. Follow the i
 
 Below are explanations for the superset of all configurations across the three deployment models:
 
-> [!INFO]
+> [!IMPORTANT]
 > - **version:** Specifies the configuration format version. Currently, only version V1 is supported.
 > - **onehouseClientConfig:** Contains credentials for communicating with the Onehouse console. these values can be obtained from the Onehouse console
 >   - **projectId:** Your Onehouse project ID. Get this by clicking on your profile in the top right of the Onehouse console.
