@@ -13,4 +13,5 @@ import lombok.extern.jackson.Jacksonized;
 public class GCSConfig {
   @Builder.Default private Optional<String> projectId = Optional.empty();
   @Builder.Default private Optional<String> gcpServiceAccountKeyPath = Optional.empty();
+  @Builder.Default private Optional<String> destinationServiceAccount = Optional.empty();
 }

@@ -1,21 +1,28 @@
 package ai.onehouse.storage.providers;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import ai.onehouse.config.Config;
 import ai.onehouse.config.models.common.FileSystemConfiguration;
 import ai.onehouse.config.models.common.S3Config;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.SdkAdvancedAsyncClientOption;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
+import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
+import software.amazon.awssdk.services.sts.model.AssumeRoleResponse;
 
 public class S3AsyncClientProvider {
   private final S3Config s3Config;
@@ -41,6 +48,23 @@ public class S3AsyncClientProvider {
           AwsBasicCredentials.create(
               s3Config.getAccessKey().get(), s3Config.getAccessSecret().get());
       s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
+    } else if(s3Config.getDestinationArn().isPresent()) {
+      // Assume role of Destination ARN
+      try (StsClient stsClient = StsClient.builder()
+          .region(Region.of(s3Config.getRegion()))
+          .build()) {
+        AssumeRoleRequest assumeRoleRequest = AssumeRoleRequest.builder()
+            .roleArn(s3Config.getDestinationArn().get())
+            .roleSessionName(String.format("S3AsyncClientSession-%s", extractAccountIdFromArn(s3Config.getDestinationArn().get())))
+            .build();
+        AssumeRoleResponse assumeRoleResponse = stsClient.assumeRole(assumeRoleRequest);
+        AwsSessionCredentials tempCredentials = AwsSessionCredentials.create(
+            assumeRoleResponse.credentials().accessKeyId(),
+            assumeRoleResponse.credentials().secretAccessKey(),
+            assumeRoleResponse.credentials().sessionToken()
+        );
+        s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(tempCredentials));
+      }
     }
 
     return s3AsyncClientBuilder
@@ -50,6 +74,11 @@ public class S3AsyncClientProvider {
                 builder.advancedOption(
                     SdkAdvancedAsyncClientOption.FUTURE_COMPLETION_EXECUTOR, executorService))
         .build();
+  }
+
+  private static String extractAccountIdFromArn(String arn) {
+    Matcher matcher = Pattern.compile("arn:aws:iam::(\\d+):role/").matcher(arn);
+    return matcher.find() ? matcher.group(1) : "";
   }
 
   public S3AsyncClient getS3AsyncClient() {
@@ -67,5 +96,10 @@ public class S3AsyncClientProvider {
     if (StringUtils.isBlank(s3Config.getRegion())) {
       throw new IllegalArgumentException("Aws region cannot be empty");
     }
+  }
+
+  @VisibleForTesting
+  static void resetS3AsyncClient() {
+    s3AsyncClient = null;
   }
 }

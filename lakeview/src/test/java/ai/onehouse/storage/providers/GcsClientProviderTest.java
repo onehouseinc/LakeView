@@ -4,16 +4,20 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import ai.onehouse.config.models.common.FileSystemConfiguration;
 import ai.onehouse.config.models.common.GCSConfig;
 import ai.onehouse.config.models.configv1.ConfigV1;
 import java.io.FileInputStream;
+import java.util.Collections;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -70,21 +74,34 @@ class GcsClientProviderTest {
     assertEquals("Invalid GCP Service Account Key Path: ", thrown.getMessage());
   }
 
-  @Test
-  void testCreateGcsClientWithValidConfig() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testCreateGcsClientWithValidConfig(boolean impersonatedCredentialsFlow) throws Exception {
     String serviceAccountKeyPath = "/path/to/key.json";
     String projectId = "your-project-id";
     try (MockedStatic<GoogleCredentials> credentialsMock = mockStatic(GoogleCredentials.class);
-        MockedStatic<StorageOptions> optionsMock = mockStatic(StorageOptions.class)) {
+        MockedStatic<StorageOptions> optionsMock = mockStatic(StorageOptions.class);
+        MockedStatic<ImpersonatedCredentials> impersonatedCredsMock = mockStatic(ImpersonatedCredentials.class)) {
       when(fileSystemConfiguration.getGcsConfig()).thenReturn(gcsConfig);
       GoogleCredentials mockCredentials = mock(GoogleCredentials.class);
       credentialsMock.when(() -> GoogleCredentials.fromStream(any())).thenReturn(mockCredentials);
+      ImpersonatedCredentials impersonatedCredentials = mock(ImpersonatedCredentials.class);
+      if (impersonatedCredentialsFlow) {
+        impersonatedCredsMock.when(() ->
+                ImpersonatedCredentials.create(mockCredentials, "test-sa", null,
+                    Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"), 3600))
+            .thenReturn(impersonatedCredentials);
+      }
 
       GcsClientProvider gcsClientProviderSpy = Mockito.spy(new GcsClientProvider(config));
 
       StorageOptions.Builder builder = mock(StorageOptions.Builder.class);
       optionsMock.when(StorageOptions::newBuilder).thenReturn(builder);
-      when(builder.setCredentials(mockCredentials)).thenReturn(builder);
+      if (impersonatedCredentialsFlow) {
+        when(builder.setCredentials(impersonatedCredentials)).thenReturn(builder);
+      } else {
+        when(builder.setCredentials(mockCredentials)).thenReturn(builder);
+      }
       when(builder.setProjectId(projectId)).thenReturn(builder);
 
       StorageOptions options = mock(StorageOptions.class);
@@ -98,6 +115,9 @@ class GcsClientProviderTest {
       // Set GcsConfig behavior
       when(gcsConfig.getGcpServiceAccountKeyPath()).thenReturn(Optional.of(serviceAccountKeyPath));
       when(gcsConfig.getProjectId()).thenReturn(Optional.of(projectId));
+      if (impersonatedCredentialsFlow) {
+        when(gcsConfig.getDestinationServiceAccount()).thenReturn(Optional.of("test-sa"));
+      }
 
       // Create instance of the class to test
       Storage result = gcsClientProviderSpy.createGcsClient();
