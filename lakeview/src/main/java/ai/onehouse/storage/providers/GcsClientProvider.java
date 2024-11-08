@@ -3,6 +3,7 @@ package ai.onehouse.storage.providers;
 import static ai.onehouse.constants.StorageConstants.GCP_RESOURCE_NAME_FORMAT;
 
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.annotations.VisibleForTesting;
@@ -13,6 +14,7 @@ import ai.onehouse.config.models.common.GCSConfig;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Collections;
 import javax.annotation.Nonnull;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -44,8 +46,20 @@ public class GcsClientProvider {
     if (gcsConfig.getGcpServiceAccountKeyPath().isPresent()) {
       StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder();
       try (FileInputStream serviceAccountStream = readAsStream()) {
+        if (gcsConfig.getDestinationServiceAccount().isPresent()) {
+          // Impersonate service account in case of lakeview pull model
+          ImpersonatedCredentials impersonatedCredentials = ImpersonatedCredentials.create(
+              GoogleCredentials.fromStream(serviceAccountStream),
+              gcsConfig.getDestinationServiceAccount().get(),
+              null,
+              Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"),
+              3600
+          );
+          storageOptionsBuilder.setCredentials(impersonatedCredentials);
+        } else {
+          storageOptionsBuilder.setCredentials(GoogleCredentials.fromStream(serviceAccountStream));
+        }
 
-        storageOptionsBuilder.setCredentials(GoogleCredentials.fromStream(serviceAccountStream));
         if (gcsConfig.getProjectId().isPresent()) {
           storageOptionsBuilder.setProjectId(gcsConfig.getProjectId().get());
         }

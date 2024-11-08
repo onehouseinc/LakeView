@@ -1,10 +1,13 @@
 package ai.onehouse.storage.providers;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import ai.onehouse.config.Config;
 import ai.onehouse.config.models.common.FileSystemConfiguration;
 import ai.onehouse.config.models.common.S3Config;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang3.StringUtils;
@@ -51,7 +54,7 @@ public class S3AsyncClientProvider {
           .build()) {
         AssumeRoleRequest assumeRoleRequest = AssumeRoleRequest.builder()
             .roleArn(s3Config.getDestinationArn().get())
-            .roleSessionName(String.format("S3AsyncClientSession-%s", s3Config.getDestinationArn().get()))
+            .roleSessionName(String.format("S3AsyncClientSession-%s", extractAccountIdFromArn(s3Config.getDestinationArn().get())))
             .build();
         AssumeRoleResponse assumeRoleResponse = stsClient.assumeRole(assumeRoleRequest);
         AwsSessionCredentials tempCredentials = AwsSessionCredentials.create(
@@ -72,6 +75,11 @@ public class S3AsyncClientProvider {
         .build();
   }
 
+  public static String extractAccountIdFromArn(String arn) {
+    Matcher matcher = Pattern.compile("arn:aws:iam::(\\d+):role/").matcher(arn);
+    return matcher.find() ? matcher.group(1) : "";
+  }
+
   public S3AsyncClient getS3AsyncClient() {
     if (s3AsyncClient == null) {
       s3AsyncClient = createS3AsyncClient();
@@ -87,5 +95,10 @@ public class S3AsyncClientProvider {
     if (StringUtils.isBlank(s3Config.getRegion())) {
       throw new IllegalArgumentException("Aws region cannot be empty");
     }
+  }
+
+  @VisibleForTesting
+  static void resetS3AsyncClient() {
+    s3AsyncClient = null;
   }
 }
