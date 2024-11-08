@@ -46,25 +46,19 @@ public class S3AsyncClientProvider {
               s3Config.getAccessKey().get(), s3Config.getAccessSecret().get());
       s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
     } else if(s3Config.getDestinationArn().isPresent()) {
-      logger.debug("Assuming role: " + s3Config.getDestinationArn().get());
-
       try (StsClient stsClient = StsClient.builder()
           .region(Region.of(s3Config.getRegion()))
           .build()) {
-
         AssumeRoleRequest assumeRoleRequest = AssumeRoleRequest.builder()
             .roleArn(s3Config.getDestinationArn().get())
-            .roleSessionName("S3AsyncClientSession")
+            .roleSessionName(String.format("S3AsyncClientSession-%s", s3Config.getDestinationArn().get()))
             .build();
-
         AssumeRoleResponse assumeRoleResponse = stsClient.assumeRole(assumeRoleRequest);
-
         AwsSessionCredentials tempCredentials = AwsSessionCredentials.create(
             assumeRoleResponse.credentials().accessKeyId(),
             assumeRoleResponse.credentials().secretAccessKey(),
             assumeRoleResponse.credentials().sessionToken()
         );
-
         s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(tempCredentials));
       }
     }
