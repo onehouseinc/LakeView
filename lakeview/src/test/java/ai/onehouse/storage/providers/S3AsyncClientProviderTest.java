@@ -43,11 +43,6 @@ class S3AsyncClientProviderTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   AssumeRoleResponse assumeRoleResponse;
 
-  @AfterEach
-  void clearCaches() {
-    clearInvocations();
-  }
-
   @Test
   void throwExceptionWhenS3ConfigIsNull() {
     when(config.getFileSystemConfiguration()).thenReturn(fileSystemConfiguration);
