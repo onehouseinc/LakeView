@@ -47,7 +47,7 @@ public class GcsClientProvider {
       StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder();
       try (FileInputStream serviceAccountStream = readAsStream()) {
         if (gcsConfig.getDestinationServiceAccount().isPresent()) {
-          // Impersonate service account in case of lakeview pull model
+          // Impersonate Service Account
           ImpersonatedCredentials impersonatedCredentials = ImpersonatedCredentials.create(
               GoogleCredentials.fromStream(serviceAccountStream),
               gcsConfig.getDestinationServiceAccount().get(),

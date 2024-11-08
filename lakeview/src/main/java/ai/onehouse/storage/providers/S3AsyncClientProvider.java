@@ -49,6 +49,7 @@ public class S3AsyncClientProvider {
               s3Config.getAccessKey().get(), s3Config.getAccessSecret().get());
       s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
     } else if(s3Config.getDestinationArn().isPresent()) {
+      // Assume role of Destination ARN
       try (StsClient stsClient = StsClient.builder()
           .region(Region.of(s3Config.getRegion()))
           .build()) {
@@ -75,7 +76,7 @@ public class S3AsyncClientProvider {
         .build();
   }
 
-  public static String extractAccountIdFromArn(String arn) {
+  private static String extractAccountIdFromArn(String arn) {
     Matcher matcher = Pattern.compile("arn:aws:iam::(\\d+):role/").matcher(arn);
     return matcher.find() ? matcher.group(1) : "";
   }
