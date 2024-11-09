@@ -46,11 +46,11 @@ public class GcsClientProvider {
     if (gcsConfig.getGcpServiceAccountKeyPath().isPresent()) {
       StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder();
       try (FileInputStream serviceAccountStream = readAsStream()) {
-        if (gcsConfig.getDestinationServiceAccount().isPresent()) {
+        if (gcsConfig.getServiceAccountToImpersonate().isPresent()) {
           // Impersonate Service Account
           ImpersonatedCredentials impersonatedCredentials = ImpersonatedCredentials.create(
               GoogleCredentials.fromStream(serviceAccountStream),
-              gcsConfig.getDestinationServiceAccount().get(),
+              gcsConfig.getServiceAccountToImpersonate().get(),
               null,
               Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"),
               3600

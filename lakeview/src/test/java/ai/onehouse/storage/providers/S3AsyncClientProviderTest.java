@@ -72,7 +72,7 @@ class S3AsyncClientProviderTest {
     when(config.getFileSystemConfiguration()).thenReturn(fileSystemConfiguration);
     when(fileSystemConfiguration.getS3Config()).thenReturn(s3Config);
     if (isAssumedRoleFlow) {
-      when(s3Config.getDestinationArn()).thenReturn(Optional.of("arn:aws:iam::396675327081:role/test-role"));
+      when(s3Config.getArnToImpersonate()).thenReturn(Optional.of("arn:aws:iam::396675327081:role/test-role"));
     } else {
       when(s3Config.getAccessSecret()).thenReturn(Optional.of("access-secret"));
       when(s3Config.getAccessKey()).thenReturn(Optional.of("access-key"));

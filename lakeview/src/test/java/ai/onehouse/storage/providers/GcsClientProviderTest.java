@@ -116,7 +116,7 @@ class GcsClientProviderTest {
       when(gcsConfig.getGcpServiceAccountKeyPath()).thenReturn(Optional.of(serviceAccountKeyPath));
       when(gcsConfig.getProjectId()).thenReturn(Optional.of(projectId));
       if (impersonatedCredentialsFlow) {
-        when(gcsConfig.getDestinationServiceAccount()).thenReturn(Optional.of("test-sa"));
+        when(gcsConfig.getServiceAccountToImpersonate()).thenReturn(Optional.of("test-sa"));
       }
 
       // Create instance of the class to test
