@@ -236,7 +236,7 @@ The LakeView configurations vary slightly in each deployment model. Follow the i
 
 Below are explanations for the superset of all configurations across the three deployment models:
 
-**Pull Model Configurations**
+### Pull Model Configurations
 > [!IMPORTANT]
 > - **version:** Specify the configuration format version. Currently, only version V1 is supported.
 > - **cloud:** Specify details about the cloud environment where the tables are stored.
@@ -250,7 +250,7 @@ Below are explanations for the superset of all configurations across the three d
 >       - **name:** Database name (optional, defaults to community-db ).
 >       - **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
 
-**Push Model Configurations**
+### Push Model Configurations
 > [!IMPORTANT]
 > - **version:** Specify the configuration format version. Currently, only version V1 is supported.
 > - **onehouseClientConfig:** Credentials for comnmunicating with Onehouse. These values can be obtained from the Onehouse console.
