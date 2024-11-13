@@ -86,8 +86,8 @@ With the Pull Model, you will grant LakeView access to your Hudi metadata files 
    * **GCP:** In the GCP console, create a new Service Account with the following configurations:
      * New principles: lv-access-sa@infra-staging-354809.iam.gserviceaccount.com
      * Role: Service Account Token Creator
-1. **Download Config File:** In the [LakeView console](https://cloud.onehouse.ai/lakeview/signup), download the configuration file from the LakeView console and fill in all configurations. See details on each configuration [here](#lakeview-configurations-explained).
-1. **Fill in & Upload Config File:** In the LakeView console, upload the filled-in configuration file.
+1. **Download & Fill In Config File:** In the [LakeView console](https://cloud.onehouse.ai/lakeview/signup), download the configuration file and fill in all configurations. See details on each configuration [here](#lakeview-configurations-explained).
+1. **Upload Filled-In Config File:** In the LakeView console, upload the filled-in configuration file.
 1. **Apply IAM Role:** LakeView will automatically generate an IAM template from the configuration file you uploaded. In the LakeView console, download this IAM template. Then apply the permissions in your cloud account:
    * **AWS:** In the AWS console, navigate to your IAM Role. Click "Add Permissions" > "Create Inline Policy" and paste the downloaded IAM template JSON.
    * **GCP:** In the GCP console, navigate to Service Principles. Select your Service Principle, click "Grant Access", then assign the "Storage Object Listener" and "Storage Object Viewer" roles. On the same page, click "Add Condition" (for each IAM role in your downloaded template), then copy in the Title, Description, and Conditions from the IAM template.
@@ -98,10 +98,9 @@ After you complete these steps, LakeView will continuously pull metadata for you
 ## Option 2: Deploy with Push Model
 
 With the Push Model, you will install and run the metadata extractor software within your cloud environment to push metadata to LakeView.
-1. Open the [LakeView console](https://cloud.onehouse.ai/lakeview/signup).
-1. Create an API Key in the LakeView console. In the sidebar, open Settings > API Settings, then generate a new token.
-1. Download the configuration file from the LakeView console and fill in all configurations.
-1. Deploy the metadata extractor tool to push metadata.
+1. **Create Onehouse API Key:** In the [LakeView console](https://cloud.onehouse.ai/lakeview/signup), create an API Key. In the sidebar, open Settings > API Settings, then generate a new token.
+1. **Download & Fill In Config File:** In the LakeView console, download the configuration file and fill in all configurations. See details on each configuration [here](#lakeview-configurations-explained).
+1. **Deploy Metadata Extractor:** Follow the steps below to deploy the metadata extractor tool and push Hudi metadata to LakeView.
 
 **To deploy the metadata extractor tool, use one of the options below for (2a) JAR, (2b) Docker, or (2c) Kubernetes.**
 
