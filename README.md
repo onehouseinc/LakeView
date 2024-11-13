@@ -237,38 +237,41 @@ The LakeView configurations vary slightly in each deployment model. Follow the i
 Below are explanations for the superset of all configurations across the three deployment models:
 
 **Pull Model Configurations**
-<TODO>
-roleIdentifier
+> [!IMPORTANT]
+> - **version:** Specify the configuration format version. Currently, only version V1 is supported.
+> - **cloud:** Specify details about the cloud environment where the tables are stored.
+>   - **type:** AWS or GCP.
+>   - **region:** Your AWS region (exclude this for GCP).
+>   - **roleIdentifier:** Your AWS ARN or GCP Service Account, created in the first step.
+> - **pathExclusionPatterns:** List of regex patterns to exclude from scanning. (Java regex patterns are supported)
+> - **parserConfig:** List of lakes and databases to be parsed.
+>   - **lake:** Name of the lake (optional, defaults to community-lake). This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
+>     - **databases:** List of databases and their respective base paths. This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
+>       - **name:** Database name (optional, defaults to community-db ).
+>       - **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
 
 **Push Model Configurations**
 > [!IMPORTANT]
-> - **version:** Specifies the configuration format version. Currently, only version V1 is supported.
-> - **onehouseClientConfig:** Contains credentials for communicating with the Onehouse console. these values can be obtained from the Onehouse console
+> - **version:** Specify the configuration format version. Currently, only version V1 is supported.
+> - **onehouseClientConfig:** Credentials for comnmunicating with Onehouse. These values can be obtained from the Onehouse console.
 >   - **projectId:** Your Onehouse project ID. Get this by clicking on your profile in the top right of the Onehouse console.
->   - **userUuid:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse console.
 >   - **apiKey:** The API key for authentication. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
 >   - **apiSecret:** The corresponding secret for the API key. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
->   - **[Optional] file:** Absolute path of json/yaml file containing onehouseClientConfig details - projectId, userId, apiKey, apiSecret - if you wish to break them out into a separate file.
-> - **fileSystemConfiguration:** Authentication configuration to access file system, only one of AWS S3 or Google Cloud Storage (GCS) credentials should be passed.
->   - **s3Config**
+>   - **userId:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse console.
+> - **fileSystemConfiguration:** Authentication configuration to access file system. Include only one of the s3Config (for AWS) or gcsConfig (for GCP).
+>   - **s3Config:**
 >     - **region:** AWS region of the S3 bucket.
->     - **[Optional] accessKey:** AWS access key (not recommended for production).
->     - **[Optional] accessSecret:** AWS secret key (not recommended for production).
->     - Note: If access keys are not provided, we use the default AWS credentials chain. For example, you can run the package in an EC2 instance with IAM access to read from S3.
->   - **gcsConfig**
->     - **[Optional] projectId:** GCP project ID.
->     - **[Optional] gcpServiceAccountKeyPath:** Path to the GCP service account key.
->     - Note: If a service account key is not provided, we use the application default credentials. For example, you can run the package in a Compute Engine instance with IAM access to read from GCS.
-> - **metadataExtractorConfig:** Configuration for the metadata extraction job.
+>   - **gcsConfig:**
+>     - **projectId:** <optional projectId>
+> - **metadataExtractorConfig:**
 >   - **jobRunMode:** Can be CONTINUOUS or ONCE.
 >     - `CONTINUOUS` - The tool periodically discovers and uploads metadata for tables found in the configured path. Table discovery happens every 30minutes and new commit instants for the files are discovered and extracted every 5minutes (provided the previous run has completed).
 >     - `ONCE` - Allows users to trigger the discovery and extraction flow on demand, the tool picks up from where it left off on the last run. This can be useful if you want to run the metadata extractor tool as a recurring job that you manage.
 >   - **uploadStrategy:** Can be BLOCK_ON_INCOMPLETE_COMMIT or CONTINUE_ON_INCOMPLETE_COMMIT. 
 >     - `BLOCK_ON_INCOMPLETE_COMMIT` - The job stops when it encounters an incomplete commit. In the next run, the job will start from the incomplete commit.
->     - `CONTINUE_ON_INCOMPLETE_COMMIT` - The job skips incomplete commits to continue processing the complete commits. In the next run,
+>     - `CONTINUE_ON_INCOMPLETE_COMMIT` - The job skips incomplete commits to continue processing the complete commits in the next run.
 >   - **pathExclusionPatterns:** List of regex patterns to exclude from scanning. (Java regex patterns are supported)
->   - **parserConfig**
->     - Description: List of lakes and databases to be parsed.
+>   - **parserConfig:** List of lakes and databases to be parsed.
 >     - **lake:** Name of the lake (optional, defaults to community-lake). This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
 >       - **databases:** List of databases and their respective base paths. This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
 >         - **name:** Database name (optional, defaults to community-db ).
