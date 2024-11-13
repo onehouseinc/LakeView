@@ -67,7 +67,7 @@ LakeView supports three deployment models:
 
 With the Pull Model, you will grant LakeView access to your Hudi metadata files with an IAM role template. LakeView will continuously pull the latest metadata.
 1. Create an IAM Role (AWS) or Service Account (GCP) for LakeView.
-  1. **AWS:** In the AWS console, create a new IAM Role. Under the "Trust relationships", add the following JSON:
+   * **AWS:** In the AWS console, create a new IAM Role. Under the "Trust relationships", add the following JSON:
     ```json
     {
       "Version": "2012-10-17",
@@ -83,9 +83,9 @@ With the Pull Model, you will grant LakeView access to your Hudi metadata files 
       ]
     }
     ```
-  1. **GCP:** In the GCP console, create a new Service Account with the following configurations:
-    1. New principles: lv-access-sa@infra-staging-354809.iam.gserviceaccount.com
-    1. Role: Service Account Token Creator
+   * **GCP:** In the GCP console, create a new Service Account with the following configurations:
+     * New principles: lv-access-sa@infra-staging-354809.iam.gserviceaccount.com
+     * Role: Service Account Token Creator
 1. Open the [LakeView console](https://cloud.onehouse.ai/lakeview/signup).
 1. Download the configuration file from the LakeView console and fill in all configurations. See details on each configuration [here](#lakeview-configurations-explained).
 1. Upload the filled-in configuration file to the LakeView console.
