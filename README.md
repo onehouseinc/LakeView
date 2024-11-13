@@ -91,7 +91,7 @@ With the Pull Model, you will grant LakeView access to your Hudi metadata files 
 1. **Apply IAM Role:** LakeView will automatically generate an IAM template from the configuration file you uploaded. In the LakeView console, download this IAM template. Then apply the permissions in your cloud account:
    * **AWS:** In the AWS console, navigate to your IAM Role. Click "Add Permissions" > "Create Inline Policy" and paste the downloaded IAM template JSON.
    * **GCP:** In the GCP console, navigate to Service Principles. Select your Service Principle, click "Grant Access", then assign the "Storage Object Listener" and "Storage Object Viewer" roles. On the same page, click "Add Condition" (for each IAM role in your downloaded template), then copy in the Title, Description, and Conditions from the IAM template.
-    * **Note:** In GCP, Object List permissions must be granted for an entire bucket - this does not allow Onehouse to read the actual files. The Object Access permissions for reading the files are granularly scoped to the Hudi metadata.
+     * **Note:** In GCP, Object List permissions must be granted for an entire bucket - this does not allow Onehouse to read the actual files. The Object Access permissions for reading the files are granularly scoped to the Hudi metadata.
 
 After you complete these steps, LakeView will continuously pull metadata for your tables to generate dashboards and insights.
 
