@@ -84,7 +84,7 @@ With the Pull Model, you will grant LakeView access to your Hudi metadata files 
       }
       ```
    * **GCP:** In the GCP console, create a new Service Account with the following configurations:
-     * New principles: lv-access-sa@infra-staging-354809.iam.gserviceaccount.com
+     * New principles: lv-access-sa@infra-production-355309.iam.gserviceaccount.com
      * Role: Service Account Token Creator
 1. **Download & Fill In Config File:** In the [LakeView console](https://cloud.onehouse.ai/lakeview/signup), download the configuration file and fill in all configurations. See details on each configuration [here](#lakeview-configurations-explained).
 1. **Upload Filled-In Config File:** In the LakeView console, upload the filled-in configuration file.
