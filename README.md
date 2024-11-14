@@ -66,20 +66,41 @@ LakeView supports three deployment models:
 ## Option 1: Deploy with Pull Model (Recommended)
 
 With the Pull Model, you will grant LakeView access to your Hudi metadata files with an IAM role template. LakeView will continuously pull the latest metadata.
-1. Open the [LakeView console](https://cloud.onehouse.ai/lakeview/signup).
-1. Download the configuration file from the LakeView console and fill in all configurations. See details on each configuration [here](#lakeview-configurations-explained).
-1. Upload the filled-in configuration file to the LakeView console.
-1. LakeView will automatically generate an IAM template from the configuration file you uploaded. Download this IAM template from the LakeView console and apply the permissions in your cloud account.
+1. **Create Role:** Create an IAM Role (AWS) or Service Account (GCP) for LakeView.
+   * **AWS:** In the AWS console, create a new IAM Role. Under the "Trust relationships", add the following JSON:
+      ```json
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "Statement1",
+            "Effect": "Allow",
+            "Principal": {
+              "AWS": "arn:aws:iam::194159489498:role/onehouse-prod-eks-lv-node-group-role"
+            },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      }
+      ```
+   * **GCP:** In the GCP console, create a new Service Account with the following configurations:
+     * New principles: lv-access-sa@infra-production-355309.iam.gserviceaccount.com
+     * Role: Service Account Token Creator
+1. **Download & Fill In Config File:** In the [LakeView console](https://cloud.onehouse.ai/lakeview/signup), download the configuration file and fill in all configurations. See details on each configuration [here](#lakeview-configurations-explained).
+1. **Upload Filled-In Config File:** In the LakeView console, upload the filled-in configuration file.
+1. **Apply IAM Role:** LakeView will automatically generate an IAM template from the configuration file you uploaded. In the LakeView console, download this IAM template. Then apply the permissions in your cloud account:
+   * **AWS:** In the AWS console, navigate to your IAM Role. Click "Add Permissions" > "Create Inline Policy" and paste the downloaded IAM template JSON.
+   * **GCP:** In the GCP console, navigate to Service Principles. Select your Service Principle, click "Grant Access", then assign the "Storage Object Listener" and "Storage Object Viewer" roles. On the same page, click "Add Condition" (for each IAM role in your downloaded template), then copy in the Title, Description, and Conditions from the IAM template.
+     * **Note:** In GCP, Object List permissions must be granted for an entire bucket - this does not allow Onehouse to read the actual files. The Object Access permissions for reading the files are granularly scoped to the Hudi metadata.
 
 After you complete these steps, LakeView will continuously pull metadata for your tables to generate dashboards and insights.
 
 ## Option 2: Deploy with Push Model
 
 With the Push Model, you will install and run the metadata extractor software within your cloud environment to push metadata to LakeView.
-1. Open the [LakeView console](https://cloud.onehouse.ai/lakeview/signup).
-1. Create an API Key in the LakeView console. In the sidebar, open Settings > API Settings, then generate a new token.
-1. Download the configuration file from the LakeView console and fill in all configurations.
-1. Deploy the metadata extractor tool to push metadata.
+1. **Create Onehouse API Key:** In the [LakeView console](https://cloud.onehouse.ai/lakeview/signup), create an API Key. In the sidebar, open Settings > API Settings, then generate a new token.
+1. **Download & Fill In Config File:** In the LakeView console, download the configuration file and fill in all configurations. See details on each configuration [here](#lakeview-configurations-explained).
+1. **Deploy Metadata Extractor:** Follow the steps below to deploy the metadata extractor tool and push Hudi metadata to LakeView.
 
 **To deploy the metadata extractor tool, use one of the options below for (2a) JAR, (2b) Docker, or (2c) Kubernetes.**
 
@@ -216,34 +237,42 @@ The LakeView configurations vary slightly in each deployment model. Follow the i
 
 Below are explanations for the superset of all configurations across the three deployment models:
 
+### Pull Model Configurations
 > [!IMPORTANT]
-> - **version:** Specifies the configuration format version. Currently, only version V1 is supported.
-> - **onehouseClientConfig:** Contains credentials for communicating with the Onehouse console. these values can be obtained from the Onehouse console
+> - **version:** Specify the configuration format version. Currently, only version V1 is supported.
+> - **cloud:** Specify details about the cloud environment where the tables are stored.
+>   - **type:** AWS or GCP.
+>   - **region:** Your AWS region (exclude this for GCP).
+>   - **roleIdentifier:** Your AWS ARN or GCP Service Account, created in the first step.
+> - **pathExclusionPatterns:** List of regex patterns to exclude from scanning. (Java regex patterns are supported)
+> - **parserConfig:** List of lakes and databases to be parsed.
+>   - **lake:** Name of the lake (optional, defaults to community-lake). This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
+>     - **databases:** List of databases and their respective base paths. This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
+>       - **name:** Database name (optional, defaults to community-db ).
+>       - **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
+
+### Push Model Configurations
+> [!IMPORTANT]
+> - **version:** Specify the configuration format version. Currently, only version V1 is supported.
+> - **onehouseClientConfig:** Credentials for comnmunicating with Onehouse. These values can be obtained from the Onehouse console.
 >   - **projectId:** Your Onehouse project ID. Get this by clicking on your profile in the top right of the Onehouse console.
->   - **userUuid:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse console.
 >   - **apiKey:** The API key for authentication. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
 >   - **apiSecret:** The corresponding secret for the API key. Get this by opening Settings > API Settings in the Onehouse console and creating an API key.
->   - **[Optional] file:** Absolute path of json/yaml file containing onehouseClientConfig details - projectId, userId, apiKey, apiSecret - if you wish to break them out into a separate file.
-> - **fileSystemConfiguration:** Authentication configuration to access file system, only one of AWS S3 or Google Cloud Storage (GCS) credentials should be passed.
->   - **s3Config**
+>   - **userId:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse console.
+> - **fileSystemConfiguration:** Authentication configuration to access file system. Include only one of the s3Config (for AWS) or gcsConfig (for GCP).
+>   - **s3Config:**
 >     - **region:** AWS region of the S3 bucket.
->     - **[Optional] accessKey:** AWS access key (not recommended for production).
->     - **[Optional] accessSecret:** AWS secret key (not recommended for production).
->     - Note: If access keys are not provided, we use the default AWS credentials chain. For example, you can run the package in an EC2 instance with IAM access to read from S3.
->   - **gcsConfig**
->     - **[Optional] projectId:** GCP project ID.
->     - **[Optional] gcpServiceAccountKeyPath:** Path to the GCP service account key.
->     - Note: If a service account key is not provided, we use the application default credentials. For example, you can run the package in a Compute Engine instance with IAM access to read from GCS.
-> - **metadataExtractorConfig:** Configuration for the metadata extraction job.
+>   - **gcsConfig:**
+>     - **projectId:** <optional projectId>
+> - **metadataExtractorConfig:**
 >   - **jobRunMode:** Can be CONTINUOUS or ONCE.
 >     - `CONTINUOUS` - The tool periodically discovers and uploads metadata for tables found in the configured path. Table discovery happens every 30minutes and new commit instants for the files are discovered and extracted every 5minutes (provided the previous run has completed).
 >     - `ONCE` - Allows users to trigger the discovery and extraction flow on demand, the tool picks up from where it left off on the last run. This can be useful if you want to run the metadata extractor tool as a recurring job that you manage.
 >   - **uploadStrategy:** Can be BLOCK_ON_INCOMPLETE_COMMIT or CONTINUE_ON_INCOMPLETE_COMMIT. 
 >     - `BLOCK_ON_INCOMPLETE_COMMIT` - The job stops when it encounters an incomplete commit. In the next run, the job will start from the incomplete commit.
->     - `CONTINUE_ON_INCOMPLETE_COMMIT` - The job skips incomplete commits to continue processing the complete commits. In the next run,
+>     - `CONTINUE_ON_INCOMPLETE_COMMIT` - The job skips incomplete commits to continue processing the complete commits in the next run.
 >   - **pathExclusionPatterns:** List of regex patterns to exclude from scanning. (Java regex patterns are supported)
->   - **parserConfig**
->     - Description: List of lakes and databases to be parsed.
+>   - **parserConfig:** List of lakes and databases to be parsed.
 >     - **lake:** Name of the lake (optional, defaults to community-lake). This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
 >       - **databases:** List of databases and their respective base paths. This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
 >         - **name:** Database name (optional, defaults to community-db ).
