@@ -58,9 +58,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static ai.onehouse.lakeview.sync.LakeviewSyncConfigHolder.BASE_PATH;
 import static ai.onehouse.lakeview.sync.LakeviewSyncConfigHolder.LAKEVIEW_METADATA_EXTRACTOR_LAKE_PATHS;
 import static ai.onehouse.lakeview.sync.LakeviewSyncConfigHolder.LAKEVIEW_METADATA_EXTRACTOR_PATH_EXCLUSION_PATTERNS;
-import static org.apache.hudi.common.config.HoodieCommonConfig.BASE_PATH;
 
 public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
 
@@ -109,12 +109,18 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
     AtomicReference<String> lakeNameRef = new AtomicReference<>();
     AtomicReference<String> databaseNameRef = new AtomicReference<>();
     String tableBasePath = hoodieConfig.getString(BASE_PATH);
+    String finalTableBasePath;
+    if (tableBasePath.startsWith("s3a://")) {
+      finalTableBasePath = tableBasePath.replace("s3a://", "s3://");
+    } else {
+      finalTableBasePath = tableBasePath;
+    }
     // identify the lake & database to which the current table base path belongs to
     parserConfigList
         .forEach(parserConfig -> parserConfig.getDatabases()
             .forEach(database -> {
               for (String basePath : database.getBasePaths()) {
-                if (tableBasePath.startsWith(basePath) && lakeNameRef.get() == null) {
+                if (finalTableBasePath.startsWith(basePath) && lakeNameRef.get() == null) {
                   lakeNameRef.set(parserConfig.getLake());
                   databaseNameRef.set(database.getName());
                   break;
@@ -126,7 +132,7 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
           .lake(lakeNameRef.get())
           .databases(Collections.singletonList(Database.builder()
               .name(databaseNameRef.get())
-              .basePaths(Collections.singletonList(tableBasePath))
+              .basePaths(Collections.singletonList(finalTableBasePath))
               .build()))
           .build();
       parserConfigList = Collections.singletonList(parserConfig);

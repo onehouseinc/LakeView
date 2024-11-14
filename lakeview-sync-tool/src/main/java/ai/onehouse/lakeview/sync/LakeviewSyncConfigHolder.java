@@ -9,12 +9,12 @@ import org.apache.hudi.sync.common.HoodieSyncConfig;
 
 import java.util.List;
 
-import static org.apache.hudi.common.config.HoodieCommonConfig.BASE_PATH;
-
 public class LakeviewSyncConfigHolder {
   // this class holds static config fields
   private LakeviewSyncConfigHolder() {
   }
+
+  public static final ConfigProperty<String> BASE_PATH = ConfigProperty.key("hoodie.base.path").noDefaultValue().withDocumentation("Base path on lake storage, under which all the table data is stored. Always prefix it explicitly with the storage scheme (e.g hdfs://, s3:// etc). Hudi stores all the main meta-data about commits, savepoints, cleaning audit logs etc in .hoodie directory under this base path directory.");
 
   public static final ConfigProperty<Boolean> LAKEVIEW_SYNC_ENABLED = ConfigProperty
       .key("hoodie.datasource.lakeview_sync.enable")

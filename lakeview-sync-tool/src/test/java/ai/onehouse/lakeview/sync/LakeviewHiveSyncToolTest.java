@@ -3,12 +3,13 @@ package ai.onehouse.lakeview.sync;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hudi.hadoop.fs.HadoopFSUtils;
 import org.apache.hudi.hive.HiveSyncTool;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 
+import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import java.util.Properties;
 
@@ -24,8 +25,8 @@ class LakeviewHiveSyncToolTest {
   private Configuration hadoopConf;
 
   @BeforeEach
-  public void setUp() {
-    FileSystem fileSystem = HadoopFSUtils.getFs(BASE_PATH, new Configuration());
+  public void setUp() throws IOException {
+    FileSystem fileSystem = FileSystem.get(URI.create("file://" + BASE_PATH), new Configuration());
     hadoopConf = fileSystem.getConf();
   }
 
