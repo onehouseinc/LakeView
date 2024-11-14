@@ -76,7 +76,7 @@ With the Pull Model, you will grant LakeView access to your Hudi metadata files 
             "Sid": "Statement1",
             "Effect": "Allow",
             "Principal": {
-              "AWS": "arn:aws:iam::395578527081:role/onehouse-staging-eks-lv-node-group-role"
+              "AWS": "arn:aws:iam::194159489498:role/onehouse-prod-eks-lv-node-group-role"
             },
             "Action": "sts:AssumeRole"
           }
