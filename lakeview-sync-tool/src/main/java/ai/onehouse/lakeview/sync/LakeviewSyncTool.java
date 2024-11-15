@@ -332,6 +332,7 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
       try (LakeviewSyncTool lakeviewSyncTool = new LakeviewSyncTool(params.toProps(), new Configuration())) {
         lakeviewSyncTool.syncHoodieTable();
       }
+      System.exit(0);
     }
   }
 }

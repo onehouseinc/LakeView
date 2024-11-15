@@ -128,7 +128,7 @@ public class OnehouseApiClient {
 
   @VisibleForTesting
   <T> CompletableFuture<T> asyncPost(String apiEndpoint, String json, Class<T> typeReference) {
-    RequestBody body = RequestBody.create(json, MediaType.parse("application/json; charset=utf-8"));
+    RequestBody body = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), json);
 
     Request request =
         new Request.Builder()

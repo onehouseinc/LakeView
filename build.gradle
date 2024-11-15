@@ -91,7 +91,7 @@ ext {
     versions = [
             hudi: '0.15.0',
             hive: '2.3.4',
-            okhttp: '4.11.0',
+            okhttp: '3.12.12',
             mockito: '3.11.2'
     ]
 }

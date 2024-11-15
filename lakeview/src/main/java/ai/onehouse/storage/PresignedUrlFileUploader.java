@@ -17,7 +17,6 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okio.BufferedSink;
 import org.apache.commons.io.IOUtils;
-import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class PresignedUrlFileUploader {
@@ -70,14 +69,15 @@ public class PresignedUrlFileUploader {
                     }));
   }
 
-  private @NotNull Request getRequest(
+  private @Nonnull Request getRequest(
       String presignedUrl, int fileUploadStreamBatchSize, FileStreamData fileStreamData) {
     Request request;
+    MediaType mediaType = MediaType.parse("application/octet-stream");
     if (fileStreamData.getFileSize() <= fileUploadStreamBatchSize) {
       // if the file size is less than the stream batch size, upload it directly
       RequestBody requestBody;
       try {
-        requestBody = RequestBody.create(IOUtils.toByteArray(fileStreamData.getInputStream()));
+        requestBody = RequestBody.create(mediaType, IOUtils.toByteArray(fileStreamData.getInputStream()));
         request = new Request.Builder().url(presignedUrl).put(requestBody).build();
       } catch (IOException e) {
         throw new FileUploadException(e);
@@ -92,7 +92,7 @@ public class PresignedUrlFileUploader {
                   new RequestBody() {
                     @Override
                     public MediaType contentType() {
-                      return MediaType.parse("application/octet-stream");
+                      return mediaType;
                     }
 
                     @Override
@@ -101,7 +101,7 @@ public class PresignedUrlFileUploader {
                     }
 
                     @Override
-                    public void writeTo(@NotNull BufferedSink sink) throws IOException {
+                    public void writeTo(@Nonnull BufferedSink sink) throws IOException {
                       try (InputStream is = fileStreamData.getInputStream()) {
                         byte[] buffer = new byte[fileUploadStreamBatchSize];
                         int bytesRead;
