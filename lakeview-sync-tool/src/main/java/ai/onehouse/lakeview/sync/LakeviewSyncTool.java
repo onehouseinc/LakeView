@@ -47,7 +47,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -93,8 +92,8 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
       this.tableDiscoveryAndUploadJob = getTableDiscoveryAndUploadJob(this.config, this.executorService);
       this.httpClientTimeoutSeconds = hoodieConfig.getIntOrDefault(LakeviewSyncConfigHolder.LAKEVIEW_HTTP_CLIENT_TIMEOUT_SECONDS);
       this.httpClientMaxRetries = hoodieConfig.getIntOrDefault(LakeviewSyncConfigHolder.LAKEVIEW_HTTP_CLIENT_MAX_RETRIES);
-      this.httpClientRetryDelayMs = Optional.ofNullable(hoodieConfig.getLong(LakeviewSyncConfigHolder.LAKEVIEW_HTTP_CLIENT_RETRY_DELAY_MS)).orElse(Long.valueOf(LakeviewSyncConfigHolder.LAKEVIEW_HTTP_CLIENT_RETRY_DELAY_MS.defaultValue()));
-      this.timeoutInSeconds = Optional.ofNullable(hoodieConfig.getLong(LakeviewSyncConfigHolder.LAKEVIEW_SYNC_TOOL_TIMEOUT_SECONDS)).orElse(Long.valueOf(LakeviewSyncConfigHolder.LAKEVIEW_SYNC_TOOL_TIMEOUT_SECONDS.defaultValue()));
+      this.httpClientRetryDelayMs = Option.ofNullable(hoodieConfig.getLong(LakeviewSyncConfigHolder.LAKEVIEW_HTTP_CLIENT_RETRY_DELAY_MS)).orElse(Long.valueOf(LakeviewSyncConfigHolder.LAKEVIEW_HTTP_CLIENT_RETRY_DELAY_MS.defaultValue()));
+      this.timeoutInSeconds = Option.ofNullable(hoodieConfig.getLong(LakeviewSyncConfigHolder.LAKEVIEW_SYNC_TOOL_TIMEOUT_SECONDS)).orElse(Long.valueOf(LakeviewSyncConfigHolder.LAKEVIEW_SYNC_TOOL_TIMEOUT_SECONDS.defaultValue()));
     } else {
       this.config = null;
       this.tableDiscoveryAndUploadJob = null;
