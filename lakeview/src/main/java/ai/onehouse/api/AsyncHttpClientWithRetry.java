@@ -118,6 +118,8 @@ public class AsyncHttpClientWithRetry {
 
   public void shutdownScheduler() {
     scheduler.shutdown();
+    okHttpClient.connectionPool().evictAll();
+    okHttpClient.dispatcher().executorService().shutdown();
   }
 
   @VisibleForTesting
