@@ -6,7 +6,6 @@ import ai.onehouse.config.models.configv1.ParserConfig;
 import ai.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hudi.hadoop.fs.HadoopFSUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -15,6 +14,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.MockedConstruction;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -46,8 +46,8 @@ class LakeviewSyncToolTest {
   private Configuration hadoopConf;
 
   @BeforeEach
-  public void setUp() {
-    FileSystem fileSystem = HadoopFSUtils.getFs(BASE_PATH, new Configuration());
+  public void setUp() throws IOException {
+    FileSystem fileSystem = FileSystem.get(URI.create("file://" + BASE_PATH), new Configuration());
     hadoopConf = fileSystem.getConf();
   }
 

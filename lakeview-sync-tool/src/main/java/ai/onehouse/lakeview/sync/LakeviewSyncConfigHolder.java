@@ -9,12 +9,14 @@ import org.apache.hudi.sync.common.HoodieSyncConfig;
 
 import java.util.List;
 
-import static org.apache.hudi.common.config.HoodieCommonConfig.BASE_PATH;
-
 public class LakeviewSyncConfigHolder {
   // this class holds static config fields
   private LakeviewSyncConfigHolder() {
   }
+
+  public static final ConfigProperty<String> BASE_PATH = ConfigProperty.key("hoodie.base.path")
+      .noDefaultValue()
+      .withDocumentation("Base path on lake storage, under which all the table data is stored. Always prefix it explicitly with the storage scheme (e.g hdfs://, s3:// etc). Hudi stores all the main meta-data about commits, savepoints, cleaning audit logs etc in .hoodie directory under this base path directory.");
 
   public static final ConfigProperty<Boolean> LAKEVIEW_SYNC_ENABLED = ConfigProperty
       .key("hoodie.datasource.lakeview_sync.enable")
@@ -29,61 +31,51 @@ public class LakeviewSyncConfigHolder {
   public static final ConfigProperty<String> LAKEVIEW_PROJECT_ID = ConfigProperty
       .key("hoodie.meta.sync.lakeview.projectId")
       .noDefaultValue()
-      .markAdvanced()
       .withDocumentation("Project ID in lakeview");
 
   public static final ConfigProperty<String> LAKEVIEW_API_KEY = ConfigProperty
       .key("hoodie.meta.sync.lakeview.apiKey")
       .noDefaultValue()
-      .markAdvanced()
       .withDocumentation("API key to access lakeview");
 
   public static final ConfigProperty<String> LAKEVIEW_API_SECRET = ConfigProperty
       .key("hoodie.meta.sync.lakeview.apiSecret")
       .noDefaultValue()
-      .markAdvanced()
       .withDocumentation("API secret to access lakeview");
 
   public static final ConfigProperty<String> LAKEVIEW_USERID = ConfigProperty
       .key("hoodie.meta.sync.lakeview.userId")
       .noDefaultValue()
-      .markAdvanced()
       .withDocumentation("UserId used for creating API key, secret in lakeview");
 
   public static final ConfigProperty<String> LAKEVIEW_S3_REGION = ConfigProperty
       .key("hoodie.meta.sync.lakeview.s3.region")
       .noDefaultValue()
-      .markAdvanced()
       .withDocumentation("S3 region associated with the table base path");
 
   public static final ConfigProperty<String> LAKEVIEW_S3_ACCESS_KEY = ConfigProperty
       .key("hoodie.meta.sync.lakeview.s3.accessKey")
       .noDefaultValue()
-      .markAdvanced()
       .withDocumentation("[Optional]: Access key required to access table base paths present in S3");
 
   public static final ConfigProperty<String> LAKEVIEW_S3_ACCESS_SECRET = ConfigProperty
       .key("hoodie.meta.sync.lakeview.s3.accessSecret")
       .noDefaultValue()
-      .markAdvanced()
       .withDocumentation("[Optional]: Access secret required to access table base paths present in S3");
 
   public static final ConfigProperty<String> LAKEVIEW_GCS_PROJECT_ID = ConfigProperty
       .key("hoodie.meta.sync.lakeview.gcs.projectId")
       .noDefaultValue()
-      .markAdvanced()
       .withDocumentation("GCS Project ID the table base path belongs to");
 
   public static final ConfigProperty<String> LAKEVIEW_GCS_SERVICE_ACCOUNT_KEY_PATH = ConfigProperty
       .key("hoodie.meta.sync.lakeview.gcs.gcpServiceAccountKeyPath")
       .noDefaultValue()
-      .markAdvanced()
       .withDocumentation("[Optional]: GCS Service account key path to access the table base path present in GCS");
 
   public static final ConfigProperty<String> LAKEVIEW_METADATA_EXTRACTOR_PATH_EXCLUSION_PATTERNS = ConfigProperty
       .key("hoodie.meta.sync.lakeview.metadataExtractor.pathExclusionPatterns")
       .defaultValue("")
-      .markAdvanced()
       .withDocumentation("List of pattens to be ignored by lakeview metadata extractor");
 
   /**
@@ -97,7 +89,6 @@ public class LakeviewSyncConfigHolder {
   public static final ConfigProperty<String> LAKEVIEW_METADATA_EXTRACTOR_LAKE_PATHS = ConfigProperty
       .key("hoodie.meta.sync.lakeview.metadataExtractor.lakes")
       .noDefaultValue()
-      .markAdvanced()
       .withDocumentation("Lake name & database name that should be applied to specified list of table base paths in lakeview metadata extractor");
 
   public static final ConfigProperty<Integer> LAKEVIEW_HTTP_CLIENT_TIMEOUT_SECONDS = ConfigProperty

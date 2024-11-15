@@ -51,6 +51,12 @@ public class ConfigRefresher {
         TimeUnit.MINUTES);
   }
 
+  public void shutdown() {
+    if (executorService != null) {
+      executorService.shutdown();
+    }
+  }
+
   private void fetchAndOverrideConfig() throws JsonProcessingException {
     byte[] extractorConfigBytes = storageClient.readFileAsBytes(extractorConfigPath).join();
     Config newConfigWithOverride =
