@@ -18,13 +18,14 @@ class AsyncHttpClientWithRetryTest {
 
   private MockWebServer mockWebServer;
   private AsyncHttpClientWithRetry asyncHttpClientWithRetry;
+  private OkHttpClient okHttpClient;
 
   @BeforeEach
   void setUp() throws IOException {
     mockWebServer = new MockWebServer();
     mockWebServer.start();
 
-    OkHttpClient okHttpClient = new OkHttpClient.Builder().build();
+    okHttpClient = new OkHttpClient.Builder().build();
     asyncHttpClientWithRetry = new AsyncHttpClientWithRetry(3, 100, okHttpClient);
   }
 
@@ -32,6 +33,8 @@ class AsyncHttpClientWithRetryTest {
   void tearDown() throws IOException {
     mockWebServer.shutdown();
     asyncHttpClientWithRetry.shutdownScheduler();
+    assertEquals(0, okHttpClient.connectionPool().connectionCount());
+    assertTrue(okHttpClient.dispatcher().executorService().isShutdown());
   }
 
   @Test
@@ -67,7 +70,7 @@ class AsyncHttpClientWithRetryTest {
   }
 
   @Test
-  void testMakeRequestWithRetryIOException() throws InterruptedException, IOException {
+  void testMakeRequestWithRetryIOException() throws IOException {
     // Shut down the server to simulate an IOException.
     mockWebServer.shutdown();
 
@@ -76,7 +79,7 @@ class AsyncHttpClientWithRetryTest {
     CompletableFuture<Response> future = asyncHttpClientWithRetry.makeRequestWithRetry(request);
 
     ExecutionException exception = assertThrows(ExecutionException.class, future::get);
-    assertTrue(exception.getCause() instanceof IOException);
+    assertInstanceOf(IOException.class, exception.getCause());
 
     assertEquals(0, mockWebServer.getRequestCount());
   }
