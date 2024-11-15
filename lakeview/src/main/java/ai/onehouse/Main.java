@@ -27,6 +27,7 @@ public class Main {
   private MetricsServer metricsServer;
   private final CliParser parser;
   private final ConfigLoader configLoader;
+  private ConfigRefresher configRefresher;
 
   public Main(CliParser parser, ConfigLoader configLoader) {
     this.parser = parser;
@@ -71,7 +72,7 @@ public class Main {
       AsyncStorageClient storageClient = injector.getInstance(AsyncStorageClient.class);
       try {
         String baseConfigYaml = configLoader.convertConfigToString(config);
-        ConfigRefresher configRefresher =
+        configRefresher =
             new ConfigRefresher(
                 baseConfigYaml,
                 config.getMetadataExtractorConfigPath(),
@@ -120,5 +121,8 @@ public class Main {
     asyncHttpClientWithRetry.shutdownScheduler();
     job.shutdown();
     metricsServer.shutdown();
+    if (configRefresher != null) {
+      configRefresher.shutdown();
+    }
   }
 }

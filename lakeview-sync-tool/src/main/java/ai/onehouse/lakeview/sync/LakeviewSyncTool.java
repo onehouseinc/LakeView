@@ -77,6 +77,8 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
   private final ExecutorService executorService;
   @Nullable
   private final TableDiscoveryAndUploadJob tableDiscoveryAndUploadJob;
+  @Nullable
+  private final AsyncHttpClientWithRetry asyncHttpClientWithRetry;
   private final int httpClientTimeoutSeconds;
   private final int httpClientMaxRetries;
   private final long httpClientRetryDelayMs;
@@ -89,7 +91,8 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
     this.executorService = Executors.newFixedThreadPool(2);
     if (isLakeviewSyncToolEnabled) {
       this.config = getConfig(hoodieConfig);
-      this.tableDiscoveryAndUploadJob = getTableDiscoveryAndUploadJob(this.config, this.executorService);
+      this.asyncHttpClientWithRetry = getAsyncHttpClientWithRetry(executorService);
+      this.tableDiscoveryAndUploadJob = getTableDiscoveryAndUploadJob(this.config, this.executorService, this.asyncHttpClientWithRetry);
       this.httpClientTimeoutSeconds = hoodieConfig.getIntOrDefault(LakeviewSyncConfigHolder.LAKEVIEW_HTTP_CLIENT_TIMEOUT_SECONDS);
       this.httpClientMaxRetries = hoodieConfig.getIntOrDefault(LakeviewSyncConfigHolder.LAKEVIEW_HTTP_CLIENT_MAX_RETRIES);
       this.httpClientRetryDelayMs = Option.ofNullable(hoodieConfig.getLong(LakeviewSyncConfigHolder.LAKEVIEW_HTTP_CLIENT_RETRY_DELAY_MS)).orElse(Long.valueOf(LakeviewSyncConfigHolder.LAKEVIEW_HTTP_CLIENT_RETRY_DELAY_MS.defaultValue()));
@@ -97,6 +100,7 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
     } else {
       this.config = null;
       this.tableDiscoveryAndUploadJob = null;
+      this.asyncHttpClientWithRetry = null;
       this.httpClientTimeoutSeconds = HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS;
       this.httpClientMaxRetries = HTTP_CLIENT_MAX_RETRIES;
       this.httpClientRetryDelayMs = HTTP_CLIENT_RETRY_DELAY_MS;
@@ -238,7 +242,8 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
   }
 
   private TableDiscoveryAndUploadJob getTableDiscoveryAndUploadJob(@Nonnull Config config,
-                                                                   @Nonnull ExecutorService executorService) {
+                                                                   @Nonnull ExecutorService executorService,
+                                                                   @Nonnull AsyncHttpClientWithRetry asyncHttpClientWithRetry) {
     StorageUtils storageUtils = new StorageUtils();
     AsyncStorageClient asyncStorageClient = getAsyncStorageClient(config, executorService, storageUtils);
     ConfigProvider configProvider = new ConfigProvider(config);
@@ -248,7 +253,6 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
         configProvider);
     HoodiePropertiesReader hoodiePropertiesReader = new HoodiePropertiesReader(asyncStorageClient,
         lakeViewExtractorMetrics);
-    AsyncHttpClientWithRetry asyncHttpClientWithRetry = getAsyncHttpClientWithRetry(executorService);
     OnehouseApiClient onehouseApiClient = new OnehouseApiClient(asyncHttpClientWithRetry, config,
         lakeViewExtractorMetrics);
     PresignedUrlFileUploader presignedUrlFileUploader = new PresignedUrlFileUploader(asyncStorageClient,
@@ -315,6 +319,12 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
       if (executorService != null) {
         executorService.shutdown();
       }
+      if (tableDiscoveryAndUploadJob != null) {
+        tableDiscoveryAndUploadJob.shutdown();
+      }
+      if (asyncHttpClientWithRetry != null) {
+        asyncHttpClientWithRetry.shutdownScheduler();
+      }
     } catch (Exception e) {
       LOG.error("Failed to close lakeview sync tool", e);
     }
@@ -332,7 +342,6 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
       try (LakeviewSyncTool lakeviewSyncTool = new LakeviewSyncTool(params.toProps(), new Configuration())) {
         lakeviewSyncTool.syncHoodieTable();
       }
-      System.exit(0);
     }
   }
 }
