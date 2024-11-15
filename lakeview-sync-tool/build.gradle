@@ -26,7 +26,6 @@ dependencies {
 
     // apache-hudi dependencies
     implementation "org.apache.hudi:hudi-common:${versions.hudi}"
-    implementation "org.apache.hudi:hudi-io:${versions.hudi}"
     implementation "org.apache.hudi:hudi-sync-common:${versions.hudi}"
     implementation "org.apache.hudi:hudi-hive-sync:${versions.hudi}"
     implementation "org.apache.hudi:hudi-aws:${versions.hudi}"
