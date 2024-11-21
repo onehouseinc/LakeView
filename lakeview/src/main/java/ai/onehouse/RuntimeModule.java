@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 public class RuntimeModule extends AbstractModule {
   private static final Logger logger = LoggerFactory.getLogger(RuntimeModule.class);
   private static final int IO_WORKLOAD_NUM_THREAD_MULTIPLIER = 5;
-  private static final int HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS = 15;
+  private static final int HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS = 60;
   private static final int HTTP_CLIENT_MAX_RETRIES = 3;
   private static final long HTTP_CLIENT_RETRY_DELAY_MS = 1000;
   private final Config config;
