@@ -95,6 +95,8 @@ With the Pull Model, you will grant LakeView access to your Hudi metadata files 
 
 After you complete these steps, LakeView will continuously pull metadata for your tables to generate dashboards and insights.
 
+**Note: New tables may initially take up to 6 hours to appear in the Onehouse UI.**
+
 ## Option 2: Deploy with Push Model
 
 With the Push Model, you will install and run the metadata extractor software within your cloud environment to push metadata to LakeView.
