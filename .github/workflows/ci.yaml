@@ -37,6 +37,24 @@ jobs:
         uses: gradle/gradle-build-action@v2
       - name: Test
         run: ./gradlew clean check jacocoRootReport
+      - name: Publish with Gradle
+        env:
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          MAVENCENTRAL_AUTH_HEADER: ${{ secrets.MAVENCENTRAL_AUTH_HEADER }}
+        run: |
+          branch_name=$(git rev-parse --abbrev-ref HEAD)
+          version_number="test"
+          echo "Publishing release branch"
+          ./gradlew publish -PbuildRelease=true -Pversion=${version_number}
+          ./gradlew signing signMavenJavaPublication -PbuildRelease=true -Pversion=${version_number}
+          cd lakeview/build/staging-deploy/
+          zip -r ai.onehouse-lakeview-${version_number}.zip .
+          cd ../../../
+          cd lakeview-sync-tool/build/staging-deploy/
+          zip -r ai.onehouse-lakeview-sync-tool-${version_number}.zip .
+          cd ../../../
       - name: Publish Coverage
         run: |
           # As sonar scanner analysis should be done by jdk 17
