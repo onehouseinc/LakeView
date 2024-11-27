@@ -49,6 +49,7 @@ jobs:
             version_number=${branch_name:9}
             echo "Publishing release branch"
             ./gradlew publish -PbuildRelease=true -Pversion=${version_number}
+            ./gradlew signMavenJavaPublication -PbuildRelease=true -Pversion=${version_number}
             cd lakeview/build/staging-deploy/
             zip -r ai.onehouse-lakeview-${version_number}.zip .
             curl --request POST \
