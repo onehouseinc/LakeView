@@ -35,34 +35,14 @@ jobs:
           cache: gradle
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
-#      - name: Test
-#        run: ./gradlew clean check jacocoRootReport
-      - name: Publish with Gradle
-        env:
-          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-          GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          MAVENCENTRAL_AUTH_HEADER: ${{ secrets.MAVENCENTRAL_AUTH_HEADER }}
+      - name: Test
+        run: ./gradlew clean check jacocoRootReport
+      - name: Publish Coverage
         run: |
-          branch_name=$(git rev-parse --abbrev-ref HEAD)
-          version_number="test"
-          echo "Publishing release branch"
-          ./gradlew publish -PbuildRelease=true -Pversion=${version_number}
-          ./gradlew signMavenJavaPublication -PbuildRelease=true -Pversion=${version_number}
-          ls -lht lakeview/build/staging-deploy/ai/onehouse/lakeview/
-          ls -lht lakeview-sync-tool/build/staging-deploy/ai/onehouse/lakeview-sync-tool/
-          cd lakeview/build/staging-deploy/
-          zip -r ai.onehouse-lakeview-${version_number}.zip .
-          cd ../../../
-          cd lakeview-sync-tool/build/staging-deploy/
-          zip -r ai.onehouse-lakeview-sync-tool-${version_number}.zip .
-          cd ../../../
-#      - name: Publish Coverage
-#        run: |
-#          # As sonar scanner analysis should be done by jdk 17
-#          export JAVA_HOME="${{env.JAVA_HOME_17_X64}}"
-#          if [ ${{ github.event_name }} == 'pull_request' ]; then
-#            ./gradlew -Psonar_token=${{ secrets.SONAR_TOKEN }} -Ppullrequest_key=${{ github.event.number }} -Ppullrequest_branch=${{ github.HEAD_REF }} -Ppullrequest_base=${{ github.BASE_REF }} sonar
-#          else
-#            ./gradlew -Psonar_token=${{ secrets.SONAR_TOKEN }} -Pbranch_name=${{ github.HEAD_REF }} sonar
-#          fi
+          # As sonar scanner analysis should be done by jdk 17
+          export JAVA_HOME="${{env.JAVA_HOME_17_X64}}"
+          if [ ${{ github.event_name }} == 'pull_request' ]; then
+            ./gradlew -Psonar_token=${{ secrets.SONAR_TOKEN }} -Ppullrequest_key=${{ github.event.number }} -Ppullrequest_branch=${{ github.HEAD_REF }} -Ppullrequest_base=${{ github.BASE_REF }} sonar
+          else
+            ./gradlew -Psonar_token=${{ secrets.SONAR_TOKEN }} -Pbranch_name=${{ github.HEAD_REF }} sonar
+          fi
