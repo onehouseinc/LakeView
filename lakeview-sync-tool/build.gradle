@@ -4,6 +4,7 @@ plugins {
 
 group = 'ai.onehouse'
 version = '1.0-SNAPSHOT'
+description = 'lakeview-sync-tool'
 
 repositories {
     mavenCentral()
