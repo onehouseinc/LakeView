@@ -5,6 +5,7 @@ plugins {
 
 group = 'ai.onehouse'
 version = '1.0-SNAPSHOT'
+description = 'Lakeview wrapper to integrate with glue jobs'
 
 def mainClass = 'ai.onehouse.GlueWrapperMain'
 
