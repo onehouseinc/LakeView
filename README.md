@@ -179,7 +179,7 @@ Install and run a LakeView SyncTool JAR in your existing Hudi jobs to push metad
 1. Run the SyncTool JAR asynchronously or in-line with the Hudi Streamer (examples below).
 
 **Class**
-`org.apache.hudi.sync.LakeViewSyncTool`
+`ai.onehouse.lakeview.sync.LakeviewSyncTool`
 
 **Configurations Specification**
 ```
