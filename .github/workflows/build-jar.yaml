@@ -45,26 +45,26 @@ jobs:
           MAVENCENTRAL_AUTH_HEADER: ${{ secrets.MAVENCENTRAL_AUTH_HEADER }}
         run: |
           branch_name=$(git rev-parse --abbrev-ref HEAD)
-#          if [[ "$branch_name" == "release-v"* ]]; then
+          if [[ "$branch_name" == "release-v"* ]]; then
             version_number=${branch_name:9}
             echo "Publishing release branch"
             ./gradlew publish -PbuildRelease=true -Pversion=${version_number}
             ./gradlew signMavenJavaPublication -PbuildRelease=true -Pversion=${version_number}
             cd lakeview/build/staging-deploy/
             zip -r ai.onehouse-lakeview-${version_number}.zip .
-#            curl --request POST \
-#              --verbose \
-#              --header 'Authorization: Bearer ${{ secrets.MAVENCENTRAL_AUTH_HEADER }}' \
-#              --form bundle=@ai.onehouse-lakeview-${version_number}.zip \
-#              https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC
+            curl --request POST \
+              --verbose \
+              --header 'Authorization: Bearer ${{ secrets.MAVENCENTRAL_AUTH_HEADER }}' \
+              --form bundle=@ai.onehouse-lakeview-${version_number}.zip \
+              https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC
             cd ../../../
             cd lakeview-sync-tool/build/staging-deploy/
             zip -r ai.onehouse-lakeview-sync-tool-${version_number}.zip .
-#            curl --request POST \
-#              --verbose \
-#              --header 'Authorization: Bearer ${{ secrets.MAVENCENTRAL_AUTH_HEADER }}' \
-#              --form bundle=@ai.onehouse-lakeview-sync-tool-${version_number}.zip \
-#              https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC
+            curl --request POST \
+              --verbose \
+              --header 'Authorization: Bearer ${{ secrets.MAVENCENTRAL_AUTH_HEADER }}' \
+              --form bundle=@ai.onehouse-lakeview-sync-tool-${version_number}.zip \
+              https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC
             cd ../../../
 #          fi
 
