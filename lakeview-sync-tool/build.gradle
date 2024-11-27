@@ -6,7 +6,7 @@ plugins {
 
 group = 'ai.onehouse'
 version = '1.0-SNAPSHOT'
-description = 'lakeview-sync-tool'
+description = 'A sync tool to integrate hudi tables with onehouse lakeview'
 
 repositories {
     mavenCentral()
