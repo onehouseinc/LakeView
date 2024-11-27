@@ -48,7 +48,9 @@ jobs:
           version_number="test"
           echo "Publishing release branch"
           ./gradlew publish -PbuildRelease=true -Pversion=${version_number}
-          ./gradlew signing signMavenJavaPublication -PbuildRelease=true -Pversion=${version_number}
+          ./gradlew signMavenJavaPublication -PbuildRelease=true -Pversion=${version_number}
+          ls -lht lakeview/build/staging-deploy/ai/onehouse/lakeview/
+          ls -lht lakeview-sync-tool/build/staging-deploy/ai/onehouse/lakeview-sync-tool/
           cd lakeview/build/staging-deploy/
           zip -r ai.onehouse-lakeview-${version_number}.zip .
           cd ../../../
