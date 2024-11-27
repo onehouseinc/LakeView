@@ -192,6 +192,8 @@ subprojects {
         useInMemoryPgpKeys(System.getenv("GPG_KEY_ID"), System.getenv("GPG_SECRET_KEY"), System.getenv("GPG_PASSPHRASE"))
         sign publishing.publications.mavenJava
     }
+
+    signing.dependsOn publishing
 }
 
 // Configure Shadow plugin
