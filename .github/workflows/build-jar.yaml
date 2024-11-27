@@ -66,7 +66,7 @@ jobs:
               --form bundle=@ai.onehouse-lakeview-sync-tool-${version_number}.zip \
               https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC
             cd ../../../
-#          fi
+          fi
 
       - name: Upload lakeview jar file to Release
         uses: actions/upload-release-asset@v1
