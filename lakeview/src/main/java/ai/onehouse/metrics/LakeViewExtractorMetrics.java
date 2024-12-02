@@ -13,6 +13,7 @@ import lombok.Getter;
 public class LakeViewExtractorMetrics {
   private final Metrics metrics;
   private final Metrics.Gauge tablesDiscoveredGaugeMetric;
+  private final Metrics.Gauge tablesProcessedGaugeMetric;
   private final Config extractorConfig;
 
   static final String METRICS_COMMON_PREFIX = "lakeView_";
@@ -42,6 +43,11 @@ public class LakeViewExtractorMetrics {
         metrics.gauge(
             TablesDiscoveredGaugeMetricsMetadata.NAME,
             TablesDiscoveredGaugeMetricsMetadata.DESCRIPTION,
+            getDefaultTags());
+    this.tablesProcessedGaugeMetric =
+        metrics.gauge(
+            TablesProcessedGaugeMetricsMetadata.NAME,
+            TablesProcessedGaugeMetricsMetadata.DESCRIPTION,
             getDefaultTags());
   }
 
@@ -77,6 +83,14 @@ public class LakeViewExtractorMetrics {
     metrics.increment(TABLE_METADATA_PROCESSING_FAILURE_COUNTER, tags);
   }
 
+  public void resetTableProcessedGauge() {
+    tablesProcessedGaugeMetric.setValue(0L);
+  }
+
+  public void incrementTablesProcessedCounter() {
+    tablesProcessedGaugeMetric.increment();
+  }
+
   private List<Tag> getDefaultTags() {
     List<Tag> tags = new ArrayList<>();
     tags.add(Tag.of(CONFIG_VERSION_TAG_KEY, extractorConfig.getVersion().toString()));
@@ -91,5 +105,11 @@ public class LakeViewExtractorMetrics {
   private static class TablesDiscoveredGaugeMetricsMetadata {
     public static final String NAME = METRICS_COMMON_PREFIX + "discovered_tables";
     public static final String DESCRIPTION = "Number of tables discovered during extractor run";
+  }
+
+  @Getter
+  private static class TablesProcessedGaugeMetricsMetadata {
+    public static final String NAME = METRICS_COMMON_PREFIX + "processed_tables";
+    public static final String DESCRIPTION = "Number of tables processed during extractor run";
   }
 }

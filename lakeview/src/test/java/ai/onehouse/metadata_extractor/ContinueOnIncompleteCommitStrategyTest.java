@@ -250,6 +250,7 @@ class ContinueOnIncompleteCommitStrategyTest {
         checkpoint3,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     assertEquals(checkpoint3, response);
+    verify(hudiMetadataExtractorMetrics, times(1)).incrementTablesProcessedCounter();
   }
 
   private void mockListPage(

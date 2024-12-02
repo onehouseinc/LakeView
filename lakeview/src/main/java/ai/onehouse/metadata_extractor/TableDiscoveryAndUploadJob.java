@@ -110,6 +110,7 @@ public class TableDiscoveryAndUploadJob {
       }
       if (tables != null && !tables.isEmpty()) {
         log.debug("Uploading table metadata for discovered tables");
+        hudiMetadataExtractorMetrics.resetTableProcessedGauge();
         AtomicBoolean hasError = new AtomicBoolean(false);
         tableMetadataUploaderService
             .uploadInstantsInTables(tables)
