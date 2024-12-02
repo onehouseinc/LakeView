@@ -212,7 +212,9 @@ hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database2>.
 
 **Example S3 Configuration File for Hudi Streamer**
 ```
---hoodie-conf hoodie.base.path=s3://oh-table-optimizer-demo/data-lake/counts
+--hoodie-conf hoodie.base.path=s3://oh-table-optimizer-demo/data-lake/counts \
+--hoodie-conf hoodie.meta.sync.client.tool.class=ai.onehouse.lakeview.sync.LakeviewSyncTool \
+--hoodie-conf hoodie.deltastreamer.meta.sync.classes=ai.onehouse.lakeview.sync.LakeviewSyncTool \
 --hoodie-conf hoodie.datasource.lakeview_sync.enable=true \
 --hoodie-conf hoodie.meta.sync.lakeview.version=V1 \
 --hoodie-conf hoodie.meta.sync.lakeview.projectId=XXXX-XXXX-XXXX-XXXX-XXXX \
