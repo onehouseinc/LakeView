@@ -306,12 +306,11 @@ public class TimelineCommitInstantsUploader {
             "No batches found in current page for table {} timeline {}",
             table,
             commitTimelineType);
-        // This checkpoint has to be the next page
-        return CompletableFuture.completedFuture(checkpoint.toBuilder()
-                .lastUploadedFile(filesToUpload.get(filesToUpload.size()-1).getFilename())
-            .build());
-        // write a functionality to check if ther is an incomplete commit at the end of batch and return the file before that if it is present
-        // dont edit the checkpoint but return the file after which start after has to happen
+        return CompletableFuture.completedFuture(checkpoint);
+        // lastProcessedFile - return this - extractor must start from one before this,
+        // because 1. it cannot start from continuation token as that might lead to skipping
+        // commits on the boundaries of pagination
+        // 2. it must start from the last unprocessed file which will handle all cases
       }
       log.info(
           "Could not create batches with completed commits for table {} timeline {}",
