@@ -97,6 +97,10 @@ public class Metrics {
       value.set(val);
     }
 
+    public void increment() {
+      value.incrementAndGet();
+    }
+
     public void setMeterId(Meter.Id id) {
       Preconditions.checkArgument(this.meterId == null, "MeterId cannot be set more than once");
       this.meterId = id;

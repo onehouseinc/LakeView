@@ -90,6 +90,8 @@ class MetricsTest {
     assertEquals(0, gauge.get().intValue());
     gauge.setValue(10);
     assertEquals(10, gauge.get().intValue());
+    gauge.increment();
+    assertEquals(11, gauge.get().intValue());
 
     Metrics.Gauge sameGauge = metrics.gauge("test.gauge", "A test gauge", tags);
     assertEquals(gauge, sameGauge);

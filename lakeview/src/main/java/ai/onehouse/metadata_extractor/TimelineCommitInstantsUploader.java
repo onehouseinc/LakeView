@@ -204,6 +204,7 @@ public class TimelineCommitInstantsUploader {
                         updatedCheckpoint -> {
                           if (updatedCheckpoint == null) {
                             // no batches to process, returning existing checkpoint
+                            hudiMetadataExtractorMetrics.incrementTablesProcessedCounter();
                             return CompletableFuture.completedFuture(checkpoint);
                           }
                           if (StringUtils.isBlank(nextContinuationToken)) {
@@ -211,6 +212,7 @@ public class TimelineCommitInstantsUploader {
                                 "Reached end of instants in {} for table {}",
                                 commitTimelineType,
                                 table);
+                            hudiMetadataExtractorMetrics.incrementTablesProcessedCounter();
                             return CompletableFuture.completedFuture(updatedCheckpoint);
                           }
                           return executePaginatedBatchUpload(
@@ -225,6 +227,7 @@ public class TimelineCommitInstantsUploader {
                         executorService);
               } else {
                 log.info("Reached end of instants in {} for table {}", commitTimelineType, table);
+                hudiMetadataExtractorMetrics.incrementTablesProcessedCounter();
                 return CompletableFuture.completedFuture(checkpoint);
               }
             },

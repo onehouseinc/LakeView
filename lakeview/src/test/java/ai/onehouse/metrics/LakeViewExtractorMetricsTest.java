@@ -36,6 +36,7 @@ class LakeViewExtractorMetricsTest {
   private Config config;
 
   @Mock private Metrics.Gauge tablesDiscoveredGaugeMetric;
+  @Mock private Metrics.Gauge tablesProcessedGaugeMetric;
   private LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
 
   @BeforeEach
@@ -49,6 +50,11 @@ class LakeViewExtractorMetricsTest {
             "Number of tables discovered during extractor run",
             getDefaultTags()))
         .thenReturn(tablesDiscoveredGaugeMetric);
+    when(metrics.gauge(
+        METRICS_COMMON_PREFIX + "processed_tables",
+        "Number of tables processed during extractor run",
+        getDefaultTags()))
+        .thenReturn(tablesProcessedGaugeMetric);
 
     hudiMetadataExtractorMetrics = new LakeViewExtractorMetrics(metrics, configProvider);
   }
@@ -91,6 +97,18 @@ class LakeViewExtractorMetricsTest {
     List<Tag> tags = getDefaultTags();
     tags.add(Tag.of(METADATA_UPLOAD_FAILURE_REASON_TAG_KEY, reason.name()));
     verify(metrics).increment(TABLE_METADATA_PROCESSING_FAILURE_COUNTER, tags);
+  }
+
+  @Test
+  void testResetTableProcessedGauge() {
+    hudiMetadataExtractorMetrics.resetTableProcessedGauge();
+    verify(tablesProcessedGaugeMetric).setValue(0L);
+  }
+
+  @Test
+  void testIncrementTablesProcessedCounter() {
+    hudiMetadataExtractorMetrics.incrementTablesProcessedCounter();
+    verify(tablesProcessedGaugeMetric).increment();
   }
 
   private List<Tag> getDefaultTags() {

@@ -384,6 +384,7 @@ class TimelineCommitInstantsUploaderTest {
         checkpoint2,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     assertEquals(checkpoint2, response);
+    verify(hudiMetadataExtractorMetrics, times(1)).incrementTablesProcessedCounter();
   }
 
   @Tag("NonBlocking")
@@ -571,6 +572,7 @@ class TimelineCommitInstantsUploaderTest {
         checkpoint2,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     assertEquals(checkpoint2, response);
+    verify(hudiMetadataExtractorMetrics, times(1)).incrementTablesProcessedCounter();
   }
 
   static Stream<Arguments> getActiveTimeLineIngestCases() {
@@ -798,6 +800,7 @@ class TimelineCommitInstantsUploaderTest {
             .collect(Collectors.toList()),
         checkpoint3,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    verify(hudiMetadataExtractorMetrics, times(1)).incrementTablesProcessedCounter();
   }
 
   @Test
