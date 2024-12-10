@@ -130,6 +130,7 @@ class TableDiscoveryAndUploadJobTest {
       } else {
         verify(mockHudiMetadataExtractorMetrics).incrementTableSyncSuccessCounter();
       }
+      verify(mockHudiMetadataExtractorMetrics, times(1)).resetTableProcessedGauge();
     }
   }
 

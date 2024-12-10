@@ -175,21 +175,24 @@ spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientC
 ## Option 3: Deploy with LakeView SyncTool
 
 Install and run a LakeView SyncTool JAR in your existing Hudi jobs to push metadata to LakeView. This functions similarly to Hudi's catalog integrations, such as the [DataHub SyncTool](https://hudi.apache.org/docs/syncing_datahub/).
-1. Download the latest LakeView SyncTool JAR from the [LakeView Maven repository](https://repo1.maven.org/maven2/ai/onehouse/lakeview/).
+1. Download the LakeView SyncTool JAR named `lakeview-sync-tool-release-vX.X.X.jar` from the assets in the [latest LakeView release](https://github.com/onehouseinc/LakeView/releases).
 1. Run the SyncTool JAR asynchronously or in-line with the Hudi Streamer (examples below).
 
-**Class**
-`ai.onehouse.lakeview.sync.LakeviewSyncTool`
+**SyncTool Classes**
+- Run the standard SyncTool: `ai.onehouse.lakeview.sync.LakeviewSyncTool`
+- Run the SyncTool with Glue metastore sync: `ai.onehouse.lakeview.sync.LakeviewGlueSyncTool`
+- Run the SyncTool with Hive metastore sync: `ai.onehouse.lakeview.sync.LakeviewHiveSyncTool`
 
 **Configurations Specification**
 ```
+hoodie.datasource.lakeview_sync.enable=true
 hoodie.meta.sync.lakeview.version=V1
 hoodie.meta.sync.lakeview.project_id=<LakeView-project-id>
 hoodie.meta.sync.lakeview.api_key=<api-key>
 hoodie.meta.sync.lakeview.api_secret=<api-secret>
 hoodie.meta.sync.lakeview.user_id=<user-id>
 
-hoodie.datasource.lakeview_sync.timeout.seconds=optional>
+hoodie.datasource.lakeview_sync.timeout.seconds=<optional>
 
 hoodie.meta.sync.lakeview.s3.region=<aws-region>
 hoodie.meta.sync.lakeview.s3.access_key=<optional>
@@ -204,28 +207,23 @@ hoodie.meta.sync.lakeview.metadata_extractor.lakes.<lake1>.databases.<database1>
 hoodie.meta.sync.lakeview.metadata_extractor.lakes.<lake1>.databases.<database2>.base_paths=<path1>,<path2>
 ```
 
+> [!TIP]
+> You may include multiple comma-separated base paths for `hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database2>.basePaths=<path1>,<path2>` to make your configurations reusable; LakeView will only sync the basepath specified in the `hoodie.base.path` configuration. Also, your base paths should not contain trailing slashes.
+
 **Example S3 Configuration File for Hudi Streamer**
 ```
-hoodie.datasource.lakeview_sync.enable=true
-hoodie.base.path=s3://user-bucket/lake-1/database-1/table-2
-hoodie.meta.sync.lakeview.version=V1
-hoodie.meta.sync.lakeview.project_id=00000000-0000-0000-0000-000000000000
-hoodie.meta.sync.lakeview.api_key=9c0a5da7-56e9-4004-be0e-66c229a096d8
-hoodie.meta.sync.lakeview.api_secret=dummy-api-secret
-hoodie.meta.sync.lakeview.user_id=66a29172-dc7b-4571-9190-c200c0540360
-
-hoodie.datasource.lakeview_sync.timeout.seconds=30
-
-hoodie.meta.sync.lakeview.s3.region=s3
-hoodie.meta.sync.lakeview.s3.access_key=dummyS3AccessKey
-hoodie.meta.sync.lakeview.s3.access_secret=dummyS3AccessSecret
-
-hoodie.meta.sync.lakeview.metadata_extractor.path_exclusion_patterns=s3://user-bucket/lake-1/database-3,s3://user-bucket/lake-1/database-4,
-
-hoodie.meta.sync.lakeview.metadata_extractor.lakes.lake-1.databases.database-1.base_paths=s3://user-bucket/lake-1/database-1/table-1,s3://user-bucket/lake-1/database-1/table-2
-hoodie.meta.sync.lakeview.metadata_extractor.lakes.lake-1.databases.database-2.base_paths=s3://user-bucket/lake-1/database-2/table-1,s3://user-bucket/lake-1/database-2/table-2
-hoodie.meta.sync.lakeview.metadata_extractor.lakes.lake-2.databases.database-1.base_paths=s3://user-bucket/lake-2/database-1/table-1,s3://user-bucket/lake-2/database-1/table-2
-hoodie.meta.sync.lakeview.metadata_extractor.lakes.this-is-an-invalid-property=s3://user-bucket/lake-2/database-1/table-1,s3://user-bucket/lake-2/database-1/table-2
+--hoodie-conf hoodie.base.path=s3://oh-table-optimizer-demo/data-lake/counts \
+--hoodie-conf hoodie.meta.sync.client.tool.class=ai.onehouse.lakeview.sync.LakeviewSyncTool \
+--hoodie-conf hoodie.deltastreamer.meta.sync.classes=ai.onehouse.lakeview.sync.LakeviewSyncTool \
+--hoodie-conf hoodie.datasource.lakeview_sync.enable=true \
+--hoodie-conf hoodie.meta.sync.lakeview.version=V1 \
+--hoodie-conf hoodie.meta.sync.lakeview.project_id=XXXX-XXXX-XXXX-XXXX-XXXX \
+--hoodie-conf hoodie.meta.sync.lakeview.api_key=XXXXXXXXXX \
+--hoodie-conf hoodie.meta.sync.lakeview.api_secret=XXXXXXXXXX \
+--hoodie-conf hoodie.meta.sync.lakeview.user_id=XXXXXXXXXX \
+--hoodie-conf hoodie.datasource.lakeview_sync.timeout.seconds=1800 \
+--hoodie-conf hoodie.meta.sync.lakeview.s3.region=us-west-2 \
+--hoodie-conf hoodie.meta.sync.lakeview.metadata_extractor.lakes.demo_lake.databases.demo_database.base_paths=s3://oh-table-optimizer-demo/data-lake/counts,s3://oh-table-optimizer-demo/data-lake/transactions
 ```
 
 **Example Running Ad Hoc in Command Line**
