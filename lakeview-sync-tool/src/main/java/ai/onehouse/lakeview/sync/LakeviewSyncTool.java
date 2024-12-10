@@ -65,7 +65,7 @@ import static ai.onehouse.lakeview.sync.LakeviewSyncConfigHolder.LAKEVIEW_METADA
 public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(LakeviewSyncTool.class);
-  private static final Pattern LAKEVIEW_METADATA_EXTRACTOR_LAKE_PATHS_PATTERN = Pattern.compile("([^.]+)\\.databases\\.([^.]+)\\.basePaths");
+  private static final Pattern LAKEVIEW_METADATA_EXTRACTOR_LAKE_PATHS_PATTERN = Pattern.compile("([^.]+)\\.databases\\.([^.]+)\\.base_paths");
 
   private static final int HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS = 15;
   private static final int HTTP_CLIENT_MAX_RETRIES = 3;

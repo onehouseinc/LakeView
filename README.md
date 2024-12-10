@@ -187,24 +187,24 @@ Install and run a LakeView SyncTool JAR in your existing Hudi jobs to push metad
 ```
 hoodie.datasource.lakeview_sync.enable=true
 hoodie.meta.sync.lakeview.version=V1
-hoodie.meta.sync.lakeview.projectId=<LakeView-project-id>
-hoodie.meta.sync.lakeview.apiKey=<api-key>
-hoodie.meta.sync.lakeview.apiSecret=<api-secret>
-hoodie.meta.sync.lakeview.userId=<user-id>
+hoodie.meta.sync.lakeview.project_id=<LakeView-project-id>
+hoodie.meta.sync.lakeview.api_key=<api-key>
+hoodie.meta.sync.lakeview.api_secret=<api-secret>
+hoodie.meta.sync.lakeview.user_id=<user-id>
 
 hoodie.datasource.lakeview_sync.timeout.seconds=<optional>
 
 hoodie.meta.sync.lakeview.s3.region=<aws-region>
-hoodie.meta.sync.lakeview.s3.accessKey=<optional>
-hoodie.meta.sync.lakeview.s3.accessSecret=<optional>
+hoodie.meta.sync.lakeview.s3.access_key=<optional>
+hoodie.meta.sync.lakeview.s3.access_secret=<optional>
 
-hoodie.meta.sync.lakeview.gcs.projectId=<optional-projectId>
-hoodie.meta.sync.lakeview.gcs.gcpServiceAccountKeyPath=<optional-path_to_gcp_auth_key>
+hoodie.meta.sync.lakeview.gcs.project_id=<optional-projectId>
+hoodie.meta.sync.lakeview.gcs.gcp_service_account_key_path=<optional-path_to_gcp_auth_key>
 
-hoodie.meta.sync.lakeview.metadataExtractor.pathExclusionPatterns=<pattern1>,<pattern2>,...
+hoodie.meta.sync.lakeview.metadata_extractor.path_exclusion_patterns=<pattern1>,<pattern2>,...
 
-hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database1>.basePaths=<basepath11>,<basepath12>
-hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database2>.basePaths=<path1>,<path2>
+hoodie.meta.sync.lakeview.metadata_extractor.lakes.<lake1>.databases.<database1>.base_paths=<basepath11>,<basepath12>
+hoodie.meta.sync.lakeview.metadata_extractor.lakes.<lake1>.databases.<database2>.base_paths=<path1>,<path2>
 ```
 
 > [!TIP]
@@ -217,13 +217,13 @@ hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database2>.
 --hoodie-conf hoodie.deltastreamer.meta.sync.classes=ai.onehouse.lakeview.sync.LakeviewSyncTool \
 --hoodie-conf hoodie.datasource.lakeview_sync.enable=true \
 --hoodie-conf hoodie.meta.sync.lakeview.version=V1 \
---hoodie-conf hoodie.meta.sync.lakeview.projectId=XXXX-XXXX-XXXX-XXXX-XXXX \
---hoodie-conf hoodie.meta.sync.lakeview.apiKey=XXXXXXXXXX \
---hoodie-conf hoodie.meta.sync.lakeview.apiSecret=XXXXXXXXXX \
---hoodie-conf hoodie.meta.sync.lakeview.userId=XXXXXXXXXX \
+--hoodie-conf hoodie.meta.sync.lakeview.project_id=XXXX-XXXX-XXXX-XXXX-XXXX \
+--hoodie-conf hoodie.meta.sync.lakeview.api_key=XXXXXXXXXX \
+--hoodie-conf hoodie.meta.sync.lakeview.api_secret=XXXXXXXXXX \
+--hoodie-conf hoodie.meta.sync.lakeview.user_id=XXXXXXXXXX \
 --hoodie-conf hoodie.datasource.lakeview_sync.timeout.seconds=1800 \
 --hoodie-conf hoodie.meta.sync.lakeview.s3.region=us-west-2 \
---hoodie-conf hoodie.meta.sync.lakeview.metadataExtractor.lakes.demo_lake.databases.demo_database.basePaths=s3://oh-table-optimizer-demo/data-lake/counts,s3://oh-table-optimizer-demo/data-lake/transactions
+--hoodie-conf hoodie.meta.sync.lakeview.metadata_extractor.lakes.demo_lake.databases.demo_database.base_paths=s3://oh-table-optimizer-demo/data-lake/counts,s3://oh-table-optimizer-demo/data-lake/transactions
 ```
 
 **Example Running Ad Hoc in Command Line**
