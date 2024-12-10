@@ -29,22 +29,22 @@ public class LakeviewSyncConfigHolder {
       .withDocumentation("Lakeview version");
 
   public static final ConfigProperty<String> LAKEVIEW_PROJECT_ID = ConfigProperty
-      .key("hoodie.meta.sync.lakeview.projectId")
+      .key("hoodie.meta.sync.lakeview.project_id")
       .noDefaultValue()
       .withDocumentation("Project ID in lakeview");
 
   public static final ConfigProperty<String> LAKEVIEW_API_KEY = ConfigProperty
-      .key("hoodie.meta.sync.lakeview.apiKey")
+      .key("hoodie.meta.sync.lakeview.api_key")
       .noDefaultValue()
       .withDocumentation("API key to access lakeview");
 
   public static final ConfigProperty<String> LAKEVIEW_API_SECRET = ConfigProperty
-      .key("hoodie.meta.sync.lakeview.apiSecret")
+      .key("hoodie.meta.sync.lakeview.api_secret")
       .noDefaultValue()
       .withDocumentation("API secret to access lakeview");
 
   public static final ConfigProperty<String> LAKEVIEW_USERID = ConfigProperty
-      .key("hoodie.meta.sync.lakeview.userId")
+      .key("hoodie.meta.sync.lakeview.user_id")
       .noDefaultValue()
       .withDocumentation("UserId used for creating API key, secret in lakeview");
 
@@ -54,40 +54,40 @@ public class LakeviewSyncConfigHolder {
       .withDocumentation("S3 region associated with the table base path");
 
   public static final ConfigProperty<String> LAKEVIEW_S3_ACCESS_KEY = ConfigProperty
-      .key("hoodie.meta.sync.lakeview.s3.accessKey")
+      .key("hoodie.meta.sync.lakeview.s3.access_key")
       .noDefaultValue()
       .withDocumentation("[Optional]: Access key required to access table base paths present in S3");
 
   public static final ConfigProperty<String> LAKEVIEW_S3_ACCESS_SECRET = ConfigProperty
-      .key("hoodie.meta.sync.lakeview.s3.accessSecret")
+      .key("hoodie.meta.sync.lakeview.s3.access_secret")
       .noDefaultValue()
       .withDocumentation("[Optional]: Access secret required to access table base paths present in S3");
 
   public static final ConfigProperty<String> LAKEVIEW_GCS_PROJECT_ID = ConfigProperty
-      .key("hoodie.meta.sync.lakeview.gcs.projectId")
+      .key("hoodie.meta.sync.lakeview.gcs.project_id")
       .noDefaultValue()
       .withDocumentation("GCS Project ID the table base path belongs to");
 
   public static final ConfigProperty<String> LAKEVIEW_GCS_SERVICE_ACCOUNT_KEY_PATH = ConfigProperty
-      .key("hoodie.meta.sync.lakeview.gcs.gcpServiceAccountKeyPath")
+      .key("hoodie.meta.sync.lakeview.gcs.gcp_service_account_key_path")
       .noDefaultValue()
       .withDocumentation("[Optional]: GCS Service account key path to access the table base path present in GCS");
 
   public static final ConfigProperty<String> LAKEVIEW_METADATA_EXTRACTOR_PATH_EXCLUSION_PATTERNS = ConfigProperty
-      .key("hoodie.meta.sync.lakeview.metadataExtractor.pathExclusionPatterns")
+      .key("hoodie.meta.sync.lakeview.metadata_extractor.path_exclusion_patterns")
       .defaultValue("")
       .withDocumentation("List of pattens to be ignored by lakeview metadata extractor");
 
   /**
    * Eg properties:
    * <p>
-   * hoodie.meta.sync.lakeview.metadataExtractor.lakes.&lt;lake1&gt;.databases.&lt;database1&gt;.basePaths=&lt;basepath11&gt;,&lt;basepath12&gt;
-   * hoodie.meta.sync.lakeview.metadataExtractor.lakes.&lt;lake1&gt;.databases.&lt;database2&gt;.basePaths=&lt;basepath13&gt;,&lt;basepath14&gt;
+   * hoodie.meta.sync.lakeview.metadata_extractor.lakes.&lt;lake1&gt;.databases.&lt;database1&gt;.base_paths=&lt;basepath11&gt;,&lt;basepath12&gt;
+   * hoodie.meta.sync.lakeview.metadata_extractor.lakes.&lt;lake1&gt;.databases.&lt;database2&gt;.base_paths=&lt;basepath13&gt;,&lt;basepath14&gt;
    * <p>
-   * NOTE: multiple properties with hoodie.meta.sync.lakeview.metadataExtractor.lakes prefix can be included in the properties
+   * NOTE: multiple properties with hoodie.meta.sync.lakeview.metadata_extractor.lakes prefix can be included in the properties
    */
   public static final ConfigProperty<String> LAKEVIEW_METADATA_EXTRACTOR_LAKE_PATHS = ConfigProperty
-      .key("hoodie.meta.sync.lakeview.metadataExtractor.lakes")
+      .key("hoodie.meta.sync.lakeview.metadata_extractor.lakes")
       .noDefaultValue()
       .withDocumentation("Lake name & database name that should be applied to specified list of table base paths in lakeview metadata extractor");
 
@@ -142,7 +142,7 @@ public class LakeviewSyncConfigHolder {
     @Parameter(names = {"--path-exclusion-patterns"}, description = "Path exclusion patterns (comma separated)")
     public String pathExclusionPatterns;
 
-    @Parameter(names = {"--lake-paths"}, description = "Lake/Database paths (eg: <lake1>.databases.<database1>.basePaths=<basepath11>,<basepath12>)",
+    @Parameter(names = {"--lake-paths"}, description = "Lake/Database paths (eg: <lake1>.databases.<database1>.base_paths=<basepath11>,<basepath12>)",
         required = true, order = 5, splitter = IdentitySplitter.class)
     public List<String> lakePaths;
 

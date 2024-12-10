@@ -65,8 +65,7 @@ import static ai.onehouse.lakeview.sync.LakeviewSyncConfigHolder.LAKEVIEW_METADA
 public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(LakeviewSyncTool.class);
-  private static final Pattern LAKEVIEW_METADATA_EXTRACTOR_LAKE_PATHS_PATTERN = Pattern.compile("([^.]+)\\.databases\\.([^.]+)\\.basePaths",
-      Pattern.CASE_INSENSITIVE);
+  private static final Pattern LAKEVIEW_METADATA_EXTRACTOR_LAKE_PATHS_PATTERN = Pattern.compile("([^.]+)\\.databases\\.([^.]+)\\.base_paths");
 
   private static final int HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS = 15;
   private static final int HTTP_CLIENT_MAX_RETRIES = 3;
@@ -221,7 +220,7 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
   private List<ParserConfig> getParserConfig() {
     Map<String, ParserConfig> lakeNameToParserConfig = new HashMap<>();
     props.forEach((key, value) -> {
-      if (key.toString().toLowerCase().startsWith(LAKEVIEW_METADATA_EXTRACTOR_LAKE_PATHS.key().toLowerCase())) {
+      if (key.toString().startsWith(LAKEVIEW_METADATA_EXTRACTOR_LAKE_PATHS.key())) {
         String currentKey = key.toString();
         currentKey = currentKey.substring(LAKEVIEW_METADATA_EXTRACTOR_LAKE_PATHS.key().length() + 1);
         Matcher matcher = LAKEVIEW_METADATA_EXTRACTOR_LAKE_PATHS_PATTERN.matcher(currentKey);

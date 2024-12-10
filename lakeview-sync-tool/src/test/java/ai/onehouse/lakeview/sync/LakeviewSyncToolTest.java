@@ -199,9 +199,9 @@ class LakeviewSyncToolTest {
           "--api-key", "my-api-key",
           "--api-secret", "my-api-secret",
           "--userid", "my-userid",
-          "--lake-paths", "lake1.databases.database1.basePaths=s3://user-bucket/lake-1/database-1/table-1,"
+          "--lake-paths", "lake1.databases.database1.base_paths=s3://user-bucket/lake-1/database-1/table-1,"
           + "s3://user-bucket/lake-1/database-1/table-2",
-          "--lake-paths", "lake1.databases.database2.basePaths=s3://user-bucket/lake-1/database-2/table-1,"
+          "--lake-paths", "lake1.databases.database2.base_paths=s3://user-bucket/lake-1/database-2/table-1,"
           + "s3://user-bucket/lake-1/database-2/table-2",
           "--base-path", "s3://user-bucket/lake-1/database-1/table-2",
           "--s3-region", "us-west-2",
