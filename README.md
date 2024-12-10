@@ -195,8 +195,8 @@ hoodie.meta.sync.lakeview.s3.region=<aws-region>
 hoodie.meta.sync.lakeview.s3.access_key=<optional>
 hoodie.meta.sync.lakeview.s3.access_secret=<optional>
 
-hoodie.meta.sync.lakeview.gcs.projectId=<optional-projectId>
-hoodie.meta.sync.lakeview.gcs.gcpServiceAccountKeyPath=<optional-path_to_gcp_auth_key>
+hoodie.meta.sync.lakeview.gcs.project_id=<optional-projectId>
+hoodie.meta.sync.lakeview.gcs.gcp_service_account_key_path=<optional-path_to_gcp_auth_key>
 
 hoodie.meta.sync.lakeview.metadata_extractor.path_exclusion_patterns=<pattern1>,<pattern2>,...
 
