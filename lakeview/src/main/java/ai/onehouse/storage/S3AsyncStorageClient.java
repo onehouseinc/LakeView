@@ -1,6 +1,6 @@
 package ai.onehouse.storage;
 
-import ai.onehouse.exceptions.S3RateLimitException;
+import ai.onehouse.exceptions.RateLimitException;
 import com.google.inject.Inject;
 import ai.onehouse.storage.models.File;
 import ai.onehouse.storage.models.FileStreamData;
@@ -154,7 +154,7 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
   private void CheckAndThrowRateLimitException(Throwable ex, String operation, String path){
     if (ex instanceof AwsServiceException
         && AwsErrorCode.isThrottlingErrorCode(((AwsServiceException) ex).awsErrorDetails().errorCode())){
-        throw new S3RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
+        throw new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
     }
   }
 }
