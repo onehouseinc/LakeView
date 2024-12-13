@@ -3,6 +3,7 @@ package ai.onehouse.metadata_extractor;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static java.util.Collections.emptySet;
 
+import ai.onehouse.exceptions.RateLimitException;
 import com.google.inject.Inject;
 import ai.onehouse.config.ConfigProvider;
 import ai.onehouse.config.models.configv1.Database;
@@ -17,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
@@ -164,6 +166,9 @@ public class TableDiscoveryService {
               e -> {
                 log.error("Failed to discover tables in path: {}", path);
                 log.error(e.getMessage(), e);
+                if (e instanceof RateLimitException){
+                  throw new CompletionException(e);
+                }
                 return emptySet();
               });
     } catch (Exception e) {

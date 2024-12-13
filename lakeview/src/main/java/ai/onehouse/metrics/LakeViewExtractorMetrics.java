@@ -64,6 +64,12 @@ public class LakeViewExtractorMetrics {
     metrics.increment(TABLE_DISCOVERY_FAILURE_COUNTER, getDefaultTags());
   }
 
+  public void incrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons metadataUploadFailureReasons) {
+    List<Tag> tags = getDefaultTags();
+    tags.add(Tag.of(TABLE_DISCOVERY_FAILURE_COUNTER, metadataUploadFailureReasons.name()));
+    metrics.increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
+  }
+
   public void incrementTableSyncSuccessCounter() {
     metrics.increment(TABLE_SYNC_SUCCESS_COUNTER, getDefaultTags());
   }

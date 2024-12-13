@@ -1,5 +1,7 @@
 package ai.onehouse.metadata_extractor;
 
+import ai.onehouse.constants.MetricsConstants;
+import ai.onehouse.exceptions.RateLimitException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import ai.onehouse.config.Config;
@@ -90,7 +92,7 @@ public class TableDiscoveryAndUploadJob {
         .exceptionally(
             ex -> {
               log.error("Error discovering tables: ", ex);
-              hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter();
+              hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(GetFailureReason(ex));
               return null;
             })
         .join();
@@ -128,6 +130,14 @@ public class TableDiscoveryAndUploadJob {
         previousTableMetadataUploadRunStartTime = tableMetadataUploadRunStartTime;
       }
     }
+  }
+
+  private MetricsConstants.MetadataUploadFailureReasons GetFailureReason(Throwable ex){
+    if (ex instanceof RateLimitException){
+      return MetricsConstants.MetadataUploadFailureReasons.RateLimiting;
+    }
+
+    return MetricsConstants.MetadataUploadFailureReasons.UNKNOWN;
   }
 
   public void shutdown() {
