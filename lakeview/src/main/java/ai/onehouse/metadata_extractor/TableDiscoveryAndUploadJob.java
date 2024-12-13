@@ -18,6 +18,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 
+import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
+
 @Slf4j
 public class TableDiscoveryAndUploadJob {
   private final TableDiscoveryService tableDiscoveryService;
@@ -92,7 +94,11 @@ public class TableDiscoveryAndUploadJob {
         .exceptionally(
             ex -> {
               log.error("Error discovering tables: ", ex);
-              hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(GetFailureReason(ex));
+              hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(
+                getMetadataExtractorFailureReason(
+                  ex,
+                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN)
+              );
               return null;
             })
         .join();
@@ -130,14 +136,6 @@ public class TableDiscoveryAndUploadJob {
         previousTableMetadataUploadRunStartTime = tableMetadataUploadRunStartTime;
       }
     }
-  }
-
-  private MetricsConstants.MetadataUploadFailureReasons GetFailureReason(Throwable ex){
-    if (ex instanceof RateLimitException){
-      return MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING;
-    }
-
-    return MetricsConstants.MetadataUploadFailureReasons.UNKNOWN;
   }
 
   public void shutdown() {

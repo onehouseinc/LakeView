@@ -2,6 +2,7 @@ package ai.onehouse.metadata_extractor;
 
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_NAME_KEY;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_TYPE_KEY;
+import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 
 import ai.onehouse.exceptions.RateLimitException;
 import com.google.inject.Inject;
@@ -49,16 +50,12 @@ public class HoodiePropertiesReader {
         .exceptionally(
             throwable -> {
               log.error("Error encountered when reading hoodie properties file", throwable);
-              hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(GetFailureReason(throwable));
+              hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
+                getMetadataExtractorFailureReason(
+                    throwable,
+                    MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED)
+              );
               return null;
             });
-  }
-
-  private MetricsConstants.MetadataUploadFailureReasons GetFailureReason(Throwable ex){
-      if (ex instanceof RateLimitException){
-          return MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING;
-      }
-
-      return MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED;
   }
 }
