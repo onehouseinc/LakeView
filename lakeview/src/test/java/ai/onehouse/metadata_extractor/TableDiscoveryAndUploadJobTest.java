@@ -5,6 +5,7 @@ import static ai.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_I
 import static org.mockito.Mockito.*;
 
 import ai.onehouse.config.Config;
+import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import java.util.Collections;
@@ -120,7 +121,7 @@ class TableDiscoveryAndUploadJobTest {
     verify(mockTableDiscoveryService, times(1)).discoverTables();
 
     if (discoveryFailed) {
-      verify(mockHudiMetadataExtractorMetrics).incrementTableDiscoveryFailureCounter();
+      verify(mockHudiMetadataExtractorMetrics).incrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
     } else {
       verify(mockTableMetadataUploaderService, times(1))
           .uploadInstantsInTables(Collections.singleton(discoveredTable));
