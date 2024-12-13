@@ -3,12 +3,12 @@ package ai.onehouse.metadata_extractor;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static java.util.Collections.emptySet;
 
-import ai.onehouse.exceptions.RateLimitException;
 import com.google.inject.Inject;
 import ai.onehouse.config.ConfigProvider;
 import ai.onehouse.config.models.configv1.Database;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.config.models.configv1.ParserConfig;
+import ai.onehouse.exceptions.RateLimitException;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.storage.AsyncStorageClient;
 import ai.onehouse.storage.StorageUtils;

@@ -1,10 +1,10 @@
 package ai.onehouse.metadata_extractor;
 
-import ai.onehouse.constants.MetricsConstants;
-import ai.onehouse.exceptions.RateLimitException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import ai.onehouse.config.Config;
+import ai.onehouse.constants.MetricsConstants;
+import ai.onehouse.exceptions.RateLimitException;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import java.time.Duration;
