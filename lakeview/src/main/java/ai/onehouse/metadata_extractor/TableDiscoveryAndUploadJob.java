@@ -134,7 +134,7 @@ public class TableDiscoveryAndUploadJob {
 
   private MetricsConstants.MetadataUploadFailureReasons GetFailureReason(Throwable ex){
     if (ex instanceof RateLimitException){
-      return MetricsConstants.MetadataUploadFailureReasons.RateLimiting;
+      return MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING;
     }
 
     return MetricsConstants.MetadataUploadFailureReasons.UNKNOWN;

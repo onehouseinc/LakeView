@@ -14,7 +14,7 @@ public class MetricsConstants {
     API_FAILURE_SYSTEM_ERROR,
     HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED,
     PRESIGNED_URL_UPLOAD_FAILURE,
-    RateLimiting,
+    RATE_LIMITING,
     UNKNOWN,
   }
 }
