@@ -74,8 +74,7 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
             executorService)
         .exceptionally(
             ex -> {
-              CheckAndThrowRateLimitException(ex, "fetchObjectsByPage", bucketName);
-              throw new CompletionException(ex);
+              throw clientException(ex, "fetchObjectsByPage", bucketName);
             }
         );
   }
@@ -122,8 +121,7 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
                     .build())
         .exceptionally(
                 ex -> {
-                  CheckAndThrowRateLimitException(ex, "streamFileAsync", s3Uri);
-                  throw new CompletionException(ex);
+                    throw clientException(ex, "streamFileAsync", s3Uri);
                 }
         );
   }
@@ -138,8 +136,7 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         .thenApplyAsync(BytesWrapper::asByteArray)
         .exceptionally(
                 ex -> {
-                  CheckAndThrowRateLimitException(ex, "readFileAsBytes", s3Uri);
-                  throw new CompletionException(ex);
+                    throw clientException(ex, "readFileAsBytes", s3Uri);
                 }
         );
   }
@@ -151,10 +148,11 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         .build();
   }
 
-  private void CheckAndThrowRateLimitException(Throwable ex, String operation, String path){
+  private RuntimeException clientException(Throwable ex, String operation, String path){
     if (ex instanceof AwsServiceException
         && AwsErrorCode.isThrottlingErrorCode(((AwsServiceException) ex).awsErrorDetails().errorCode())){
-        throw new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
+        return new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
     }
+      return new CompletionException(ex);
   }
 }
