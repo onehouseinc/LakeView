@@ -149,10 +149,11 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
   }
 
   private RuntimeException clientException(Throwable ex, String operation, String path){
-    if (ex instanceof AwsServiceException
-        && AwsErrorCode.isThrottlingErrorCode(((AwsServiceException) ex).awsErrorDetails().errorCode())){
+    Throwable wrappedException = ex.getCause();
+    if (wrappedException instanceof AwsServiceException
+        && AwsErrorCode.isThrottlingErrorCode(((AwsServiceException) wrappedException).awsErrorDetails().errorCode())){
         return new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
     }
-      return new CompletionException(ex);
+      return new CompletionException(wrappedException);
   }
 }
