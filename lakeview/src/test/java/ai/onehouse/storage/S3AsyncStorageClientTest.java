@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.ResponseBytes;
@@ -156,12 +158,50 @@ class S3AsyncStorageClientTest {
 
   @Test
   void testReadFileAsBytesWithS3RateLimiting() throws ExecutionException, InterruptedException {
+    CompletableFuture<GetObjectResponse> futureResponse = new CompletableFuture<>();
+    futureResponse.completeExceptionally(buildS3Exception());
 
+    when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+            .thenReturn(futureResponse);
+
+    CompletionException executionException = assertThrows(CompletionException.class, () -> {
+      s3AsyncStorageClient.readFileAsBytes(S3_URI).join();
+    });
+
+    // Unwrap the exception to get to the root cause
+    Throwable cause = executionException.getCause();
+
+    // Verify the exception is RateLimitException
+    assertInstanceOf(RateLimitException.class, cause);
+    assertEquals("Throttled by S3 for operation : readFileAsBytes on path : s3://" + TEST_BUCKET + "/" + TEST_KEY,
+            cause.getMessage());
   }
 
+  @MockitoSettings(strictness = Strictness.LENIENT)
   @Test
   void testfetchObjectsByPageWithS3RateLimiting() throws ExecutionException, InterruptedException {
+    CompletableFuture<ListObjectsV2Response> futureResponse = new CompletableFuture<>();
+    futureResponse.completeExceptionally(buildS3Exception());
 
+    when(mockS3AsyncClient.listObjectsV2(any(ListObjectsV2Request.class)))
+            .thenReturn(futureResponse);
+
+    CompletionException executionException = assertThrows(CompletionException.class, () -> {
+      s3AsyncStorageClient.fetchObjectsByPage(
+        TEST_BUCKET,
+        "prefix",
+        "ct",
+        "startAfter")
+      .join();
+    });
+
+    // Unwrap the exception to get to the root cause
+    Throwable cause = executionException.getCause();
+
+    // Verify the exception is RateLimitException
+    assertInstanceOf(RateLimitException.class, cause);
+    assertEquals("Throttled by S3 for operation : fetchObjectsByPage on path : " + TEST_BUCKET,
+            cause.getMessage());
   }
 
   private void stubStreamFileFromS3(byte[] fileContent, long contentLength) throws IOException {

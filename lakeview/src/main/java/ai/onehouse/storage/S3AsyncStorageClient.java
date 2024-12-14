@@ -154,6 +154,6 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         && AwsErrorCode.isThrottlingErrorCode(((AwsServiceException) wrappedException).awsErrorDetails().errorCode())){
         return new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
     }
-      return new CompletionException(wrappedException);
+      return (RuntimeException) wrappedException;
   }
 }

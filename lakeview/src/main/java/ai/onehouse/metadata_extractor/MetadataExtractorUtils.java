@@ -9,7 +9,7 @@ public final class MetadataExtractorUtils {
         Throwable ex,
         MetricsConstants.MetadataUploadFailureReasons defaultReason){
 
-        if (ex instanceof RateLimitException){
+        if (ex.getCause() instanceof RateLimitException){
             return MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING;
         }
 
