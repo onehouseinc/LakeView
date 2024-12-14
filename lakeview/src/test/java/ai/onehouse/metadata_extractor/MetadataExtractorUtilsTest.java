@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.concurrent.CompletionException;
+
 import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -15,7 +17,7 @@ public class MetadataExtractorUtilsTest {
     @Test
     void testGetMetadataExtractorFailureReasonWithRateLimitException(){
         MetricsConstants.MetadataUploadFailureReasons reason = getMetadataExtractorFailureReason(
-            new RateLimitException(""),
+            new CompletionException(new RateLimitException("")),
             MetricsConstants.MetadataUploadFailureReasons.UNKNOWN
         );
         assertEquals(MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING, reason);
@@ -24,7 +26,7 @@ public class MetadataExtractorUtilsTest {
     @Test
     void testGetMetadataExtractorFailureReasonWithRuntimeException(){
         MetricsConstants.MetadataUploadFailureReasons reason = getMetadataExtractorFailureReason(
-            new RuntimeException(""),
+            new CompletionException(new RuntimeException("")),
             MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED
         );
         assertEquals(MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED, reason);
