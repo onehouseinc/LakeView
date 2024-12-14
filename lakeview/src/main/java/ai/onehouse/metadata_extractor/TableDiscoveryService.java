@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
@@ -166,9 +165,7 @@ public class TableDiscoveryService {
               e -> {
                 log.error("Failed to discover tables in path: {}", path);
                 log.error(e.getMessage(), e);
-                if (e instanceof RateLimitException){
-                  throw new CompletionException(e);
-                }
+                checkAndThrowHandledException(e);
                 return emptySet();
               });
     } catch (Exception e) {
@@ -188,5 +185,13 @@ public class TableDiscoveryService {
 
   private boolean isExcluded(String filePath, List<String> excludedPathPatterns) {
     return excludedPathPatterns.stream().anyMatch(filePath::matches);
+  }
+
+  private void checkAndThrowHandledException(Throwable e) throws RuntimeException{
+    Throwable wrappedException = e.getCause();
+
+    if (wrappedException instanceof RateLimitException){
+      throw (RateLimitException) wrappedException;
+    }
   }
 }

@@ -23,6 +23,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -68,11 +70,14 @@ class LakeViewExtractorMetricsTest {
     verify(metrics).increment(TABLE_DISCOVERY_SUCCESS_COUNTER, getDefaultTags());
   }
 
-  @Test
-  void testIncrementTableDiscoveryFailureCounter() {
-    hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter();
-
-    verify(metrics).increment(TABLE_DISCOVERY_FAILURE_COUNTER, getDefaultTags());
+  @ParameterizedTest
+  @EnumSource(value = MetricsConstants.MetadataUploadFailureReasons.class,
+          names = {"RATE_LIMITING", "API_FAILURE_USER_ERROR", "UNKNOWN"})
+  void testIncrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons reason) {
+    hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(reason);
+    List<Tag> tags = getDefaultTags();
+    tags.add(Tag.of(TABLE_DISCOVERY_FAILURE_COUNTER, reason.name()));
+    verify(metrics).increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
   }
 
   @Test
