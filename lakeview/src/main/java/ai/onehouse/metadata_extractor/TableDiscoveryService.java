@@ -1,15 +1,17 @@
 package ai.onehouse.metadata_extractor;
 
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
+import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 import static java.util.Collections.emptySet;
 
 import com.google.inject.Inject;
+import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.config.ConfigProvider;
 import ai.onehouse.config.models.configv1.Database;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.config.models.configv1.ParserConfig;
-import ai.onehouse.exceptions.RateLimitException;
 import ai.onehouse.metadata_extractor.models.Table;
+import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import ai.onehouse.storage.AsyncStorageClient;
 import ai.onehouse.storage.StorageUtils;
 import ai.onehouse.storage.models.File;
@@ -37,17 +39,19 @@ public class TableDiscoveryService {
   private final StorageUtils storageUtils;
   private final ExecutorService executorService;
   private final ConfigProvider configProvider;
+  private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
 
   @Inject
   public TableDiscoveryService(
       @Nonnull AsyncStorageClient asyncStorageClient,
       @Nonnull StorageUtils storageUtils,
       @Nonnull ConfigProvider configProvider,
-      @Nonnull ExecutorService executorService) {
+      @Nonnull ExecutorService executorService, LakeViewExtractorMetrics hudiMetadataExtractorMetrics) {
     this.asyncStorageClient = asyncStorageClient;
     this.storageUtils = storageUtils;
     this.executorService = executorService;
     this.configProvider = configProvider;
+    this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
@@ -165,7 +169,11 @@ public class TableDiscoveryService {
               e -> {
                 log.error("Failed to discover tables in path: {}", path);
                 log.error(e.getMessage(), e);
-                checkAndThrowHandledException(e);
+                hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(
+                  getMetadataExtractorFailureReason(
+                    e,
+                    MetricsConstants.MetadataUploadFailureReasons.UNKNOWN)
+                );
                 return emptySet();
               });
     } catch (Exception e) {
@@ -185,13 +193,5 @@ public class TableDiscoveryService {
 
   private boolean isExcluded(String filePath, List<String> excludedPathPatterns) {
     return excludedPathPatterns.stream().anyMatch(filePath::matches);
-  }
-
-  private void checkAndThrowHandledException(Throwable e) throws RuntimeException{
-    Throwable wrappedException = e.getCause();
-
-    if (wrappedException instanceof RateLimitException){
-      throw (RateLimitException) wrappedException;
-    }
   }
 }

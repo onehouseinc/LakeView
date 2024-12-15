@@ -121,7 +121,7 @@ class TableDiscoveryAndUploadJobTest {
     verify(mockTableDiscoveryService, times(1)).discoverTables();
 
     if (discoveryFailed) {
-      verify(mockHudiMetadataExtractorMetrics).incrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+      verify(mockHudiMetadataExtractorMetrics).incrementTableDiscoveryFailureCounter();
     } else {
       verify(mockTableMetadataUploaderService, times(1))
           .uploadInstantsInTables(Collections.singleton(discoveredTable));

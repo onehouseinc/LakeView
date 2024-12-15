@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 
-import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 
 @Slf4j
 public class TableDiscoveryAndUploadJob {
@@ -93,11 +92,7 @@ public class TableDiscoveryAndUploadJob {
         .exceptionally(
             ex -> {
               log.error("Error discovering tables: ", ex);
-              hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(
-                getMetadataExtractorFailureReason(
-                  ex,
-                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN)
-              );
+              hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter();
               return null;
             })
         .join();

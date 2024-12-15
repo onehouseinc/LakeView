@@ -60,7 +60,13 @@ public class LakeViewExtractorMetrics {
     metrics.increment(TABLE_DISCOVERY_SUCCESS_COUNTER, getDefaultTags());
   }
 
-  public void incrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons metadataUploadFailureReasons) {
+  public void incrementTableDiscoveryFailureCounter() {
+    metrics.increment(TABLE_DISCOVERY_FAILURE_COUNTER, getDefaultTags());
+  }
+
+
+  public void incrementTableDiscoveryFailureCounter(
+        MetricsConstants.MetadataUploadFailureReasons metadataUploadFailureReasons) {
     List<Tag> tags = getDefaultTags();
     tags.add(Tag.of(TABLE_DISCOVERY_FAILURE_COUNTER, metadataUploadFailureReasons.name()));
     metrics.increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
@@ -72,6 +78,13 @@ public class LakeViewExtractorMetrics {
 
   public void incrementTableSyncFailureCounter() {
     metrics.increment(TABLE_SYNC_ERROR_COUNTER, getDefaultTags());
+  }
+
+  public void incrementTableSyncFailureCounter(
+          MetricsConstants.MetadataUploadFailureReasons metadataSyncFailureReasons) {
+    List<Tag> tags = getDefaultTags();
+    tags.add(Tag.of(TABLE_SYNC_ERROR_COUNTER, metadataSyncFailureReasons.name()));
+    metrics.increment(TABLE_SYNC_ERROR_COUNTER, tags);
   }
 
   public void incrementMetadataUploadSuccessCounter() {

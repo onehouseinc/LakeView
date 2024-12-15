@@ -11,6 +11,7 @@ import ai.onehouse.config.models.configv1.Database;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.config.models.configv1.ParserConfig;
 import ai.onehouse.metadata_extractor.models.Table;
+import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import ai.onehouse.storage.AsyncStorageClient;
 import ai.onehouse.storage.S3AsyncStorageClient;
 import ai.onehouse.storage.StorageUtils;
@@ -42,6 +43,7 @@ class TableDiscoveryServiceTest {
   @Mock private AsyncStorageClient asyncStorageClient;
   @Mock private ConfigV1 config;
   @Mock private MetadataExtractorConfig metadataExtractorConfig;
+  @Mock private LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
 
   private static final String BASE_PATH = "s3://bucket/base_path/";
   private static final String BASE_PATH_2 = "s3://bucket/base_path_2/";
@@ -159,7 +161,8 @@ class TableDiscoveryServiceTest {
             asyncStorageClient,
             new StorageUtils(),
             new ConfigProvider(config),
-            ForkJoinPool.commonPool());
+            ForkJoinPool.commonPool(),
+            hudiMetadataExtractorMetrics);
 
     Set<Table> tableSet = tableDiscoveryService.discoverTables().get();
     List<Table> expectedResponseSet =
@@ -250,7 +253,8 @@ class TableDiscoveryServiceTest {
             asyncStorageClient,
             new StorageUtils(),
             new ConfigProvider(config),
-            ForkJoinPool.commonPool());
+            ForkJoinPool.commonPool(),
+            hudiMetadataExtractorMetrics);
 
     Set<Table> discoveredTables = tableDiscoveryService.discoverTables().join();
     assertEquals(emptySet(), discoveredTables);
@@ -287,7 +291,8 @@ class TableDiscoveryServiceTest {
             s3AsyncStorageClient,
             new StorageUtils(),
             new ConfigProvider(config),
-            ForkJoinPool.commonPool());
+            ForkJoinPool.commonPool(),
+            hudiMetadataExtractorMetrics);
     assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
   }
 
@@ -318,7 +323,8 @@ class TableDiscoveryServiceTest {
             asyncStorageClient,
             new StorageUtils(),
             new ConfigProvider(config),
-            ForkJoinPool.commonPool());
+            ForkJoinPool.commonPool(),
+            hudiMetadataExtractorMetrics);
     assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
   }
 
