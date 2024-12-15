@@ -3,7 +3,6 @@ package ai.onehouse.metadata_extractor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import ai.onehouse.config.Config;
-import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import java.time.Duration;
@@ -16,7 +15,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
-
 
 @Slf4j
 public class TableDiscoveryAndUploadJob {

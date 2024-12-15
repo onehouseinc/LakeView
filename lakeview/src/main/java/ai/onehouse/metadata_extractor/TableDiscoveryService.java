@@ -46,7 +46,8 @@ public class TableDiscoveryService {
       @Nonnull AsyncStorageClient asyncStorageClient,
       @Nonnull StorageUtils storageUtils,
       @Nonnull ConfigProvider configProvider,
-      @Nonnull ExecutorService executorService, LakeViewExtractorMetrics hudiMetadataExtractorMetrics) {
+      @Nonnull ExecutorService executorService,
+      @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics) {
     this.asyncStorageClient = asyncStorageClient;
     this.storageUtils = storageUtils;
     this.executorService = executorService;

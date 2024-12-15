@@ -5,7 +5,6 @@ import static ai.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_I
 import static org.mockito.Mockito.*;
 
 import ai.onehouse.config.Config;
-import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import java.util.Collections;

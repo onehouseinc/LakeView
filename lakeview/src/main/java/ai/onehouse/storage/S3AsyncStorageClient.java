@@ -134,9 +134,9 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         .getObject(getObjectRequest, AsyncResponseTransformer.toBytes())
         .thenApplyAsync(BytesWrapper::asByteArray)
         .exceptionally(
-                ex -> {
-                    throw clientException(ex, "readFileAsBytes", s3Uri);
-                }
+          ex -> {
+              throw clientException(ex, "readFileAsBytes", s3Uri);
+          }
         );
   }
 

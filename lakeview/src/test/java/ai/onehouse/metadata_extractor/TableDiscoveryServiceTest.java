@@ -10,6 +10,8 @@ import ai.onehouse.config.models.configv1.ConfigV1;
 import ai.onehouse.config.models.configv1.Database;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.config.models.configv1.ParserConfig;
+import ai.onehouse.constants.MetricsConstants;
+import ai.onehouse.exceptions.RateLimitException;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import ai.onehouse.storage.AsyncStorageClient;
@@ -326,6 +328,43 @@ class TableDiscoveryServiceTest {
             ForkJoinPool.commonPool(),
             hudiMetadataExtractorMetrics);
     assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
+  }
+
+  @Test
+  void testTableDiscoveryEncountersRateLimitException() {
+    String basePath = "s3://some-bucket/some-path";
+    when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
+    when(metadataExtractorConfig.getPathExclusionPatterns()).thenReturn(Optional.of(emptyList()));
+    when(metadataExtractorConfig.getParserConfig())
+            .thenReturn(
+                    Collections.singletonList(
+                            ParserConfig.builder()
+                                    .lake(LAKE)
+                                    .databases(
+                                            Collections.singletonList(
+                                                    Database.builder()
+                                                            .name(DATABASE)
+                                                            .basePaths(Collections.singletonList(basePath))
+                                                            .build()))
+                                    .build()));
+    CompletableFuture<List<File>> failedFuture = new CompletableFuture<>();
+    when(asyncStorageClient.listAllFilesInDir(basePath)).thenReturn(failedFuture);
+    failedFuture.completeExceptionally(new RateLimitException("some-error"));
+
+    tableDiscoveryService =
+            new TableDiscoveryService(
+                    asyncStorageClient,
+                    new StorageUtils(),
+                    new ConfigProvider(config),
+                    ForkJoinPool.commonPool(),
+                    hudiMetadataExtractorMetrics);
+
+    assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
+
+    // Verify the mock
+    verify(hudiMetadataExtractorMetrics)
+            .incrementTableDiscoveryFailureCounter(
+                    MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING);
   }
 
   private File generateFileObj(String fileName, boolean isDirectory) {
