@@ -136,12 +136,9 @@ class S3AsyncStorageClientTest {
   }
 
   @Test
-  void testStreamFileAsyncWithS3RateLimiting() throws ExecutionException, InterruptedException {
-    CompletableFuture<GetObjectResponse> futureResponse = new CompletableFuture<>();
-    futureResponse.completeExceptionally(buildS3Exception());
-
+  void testStreamFileAsyncWithS3RateLimiting() {
     when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
-            .thenReturn(futureResponse);
+            .thenReturn(buildS3Exception());
 
     CompletionException executionException = assertThrows(CompletionException.class, () -> {
       s3AsyncStorageClient.streamFileAsync(S3_URI).join();
@@ -157,12 +154,9 @@ class S3AsyncStorageClientTest {
   }
 
   @Test
-  void testReadFileAsBytesWithS3RateLimiting() throws ExecutionException, InterruptedException {
-    CompletableFuture<GetObjectResponse> futureResponse = new CompletableFuture<>();
-    futureResponse.completeExceptionally(buildS3Exception());
-
+  void testReadFileAsBytesWithS3RateLimiting() {
     when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
-            .thenReturn(futureResponse);
+            .thenReturn(buildS3Exception());
 
     CompletionException executionException = assertThrows(CompletionException.class, () -> {
       s3AsyncStorageClient.readFileAsBytes(S3_URI).join();
@@ -179,12 +173,9 @@ class S3AsyncStorageClientTest {
 
   @MockitoSettings(strictness = Strictness.LENIENT)
   @Test
-  void testfetchObjectsByPageWithS3RateLimiting() throws ExecutionException, InterruptedException {
-    CompletableFuture<ListObjectsV2Response> futureResponse = new CompletableFuture<>();
-    futureResponse.completeExceptionally(buildS3Exception());
-
+  void testfetchObjectsByPageWithS3RateLimiting() {
     when(mockS3AsyncClient.listObjectsV2(any(ListObjectsV2Request.class)))
-            .thenReturn(futureResponse);
+            .thenReturn(buildS3Exception());
 
     CompletionException executionException = assertThrows(CompletionException.class, () -> {
       s3AsyncStorageClient.fetchObjectsByPage(
@@ -241,11 +232,14 @@ class S3AsyncStorageClientTest {
     }
   }
 
-  private AwsServiceException buildS3Exception(){
-    return AwsServiceException.builder()
+  private <R> CompletableFuture<R> buildS3Exception(){
+
+    CompletableFuture<R> futureResponse = new CompletableFuture<>();
+    futureResponse.completeExceptionally(AwsServiceException.builder()
             .awsErrorDetails(AwsErrorDetails.builder()
                     .errorCode("Throttling")
                     .build())
-            .build();
+            .build());
+    return futureResponse;
   }
 }
