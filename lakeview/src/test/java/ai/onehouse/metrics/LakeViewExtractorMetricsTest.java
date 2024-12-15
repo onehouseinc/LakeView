@@ -80,6 +80,16 @@ class LakeViewExtractorMetricsTest {
     verify(metrics).increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
   }
 
+  @ParameterizedTest
+  @EnumSource(value = MetricsConstants.MetadataUploadFailureReasons.class,
+          names = {"RATE_LIMITING", "API_FAILURE_USER_ERROR", "UNKNOWN"})
+  void testIncrementTableSyncFailureCounter(MetricsConstants.MetadataUploadFailureReasons reason) {
+    hudiMetadataExtractorMetrics.incrementTableSyncFailureCounter(reason);
+    List<Tag> tags = getDefaultTags();
+    tags.add(Tag.of(TABLE_SYNC_ERROR_COUNTER, reason.name()));
+    verify(metrics).increment(TABLE_SYNC_ERROR_COUNTER, tags);
+  }
+
   @Test
   void testIncrementTableSyncSuccessCounter() {
     hudiMetadataExtractorMetrics.incrementTableSyncSuccessCounter();

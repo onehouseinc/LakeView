@@ -171,6 +171,25 @@ class S3AsyncStorageClientTest {
             cause.getMessage());
   }
 
+  @Test
+  void testReadFileAsBytesWithRuntimeException() {
+    CompletableFuture<GetObjectResponse> futureResponse = new CompletableFuture<>();
+    futureResponse.completeExceptionally(new RuntimeException("Error"));
+
+    when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+            .thenReturn(futureResponse);
+
+    CompletionException executionException = assertThrows(CompletionException.class, () -> {
+      s3AsyncStorageClient.readFileAsBytes(S3_URI).join();
+    });
+
+    // Unwrap the exception to get to the root cause
+    Throwable cause = executionException.getCause();
+
+    // Verify the exception is RateLimitException
+    assertInstanceOf(RuntimeException.class, cause);
+  }
+
   @MockitoSettings(strictness = Strictness.LENIENT)
   @Test
   void testfetchObjectsByPageWithS3RateLimiting() {
