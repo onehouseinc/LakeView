@@ -39,7 +39,7 @@ public class TableDiscoveryService {
   private final StorageUtils storageUtils;
   private final ExecutorService executorService;
   private final ConfigProvider configProvider;
-  private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
+  private final LakeViewExtractorMetrics lakeviewExtractorMetrics;
 
   @Inject
   public TableDiscoveryService(
@@ -47,12 +47,12 @@ public class TableDiscoveryService {
       @Nonnull StorageUtils storageUtils,
       @Nonnull ConfigProvider configProvider,
       @Nonnull ExecutorService executorService,
-      @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics) {
+      @Nonnull LakeViewExtractorMetrics lakeviewExtractorMetrics) {
     this.asyncStorageClient = asyncStorageClient;
     this.storageUtils = storageUtils;
     this.executorService = executorService;
     this.configProvider = configProvider;
-    this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
+    this.lakeviewExtractorMetrics = lakeviewExtractorMetrics;
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
@@ -170,7 +170,7 @@ public class TableDiscoveryService {
               e -> {
                 log.error("Failed to discover tables in path: {}", path);
                 log.error(e.getMessage(), e);
-                hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(
+                lakeviewExtractorMetrics.incrementTableDiscoveryFailureCounter(
                   getMetadataExtractorFailureReason(
                     e,
                     MetricsConstants.MetadataUploadFailureReasons.UNKNOWN)

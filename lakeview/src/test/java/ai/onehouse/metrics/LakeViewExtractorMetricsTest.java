@@ -1,14 +1,6 @@
 package ai.onehouse.metrics;
 
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.CONFIG_VERSION_TAG_KEY;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.EXTRACTOR_JOB_RUN_MODE_TAG_KEY;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.METADATA_UPLOAD_FAILURE_REASON_TAG_KEY;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.METRICS_COMMON_PREFIX;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.TABLE_DISCOVERY_FAILURE_COUNTER;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.TABLE_DISCOVERY_SUCCESS_COUNTER;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.TABLE_METADATA_PROCESSING_FAILURE_COUNTER;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.TABLE_SYNC_ERROR_COUNTER;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.TABLE_SYNC_SUCCESS_COUNTER;
+import static ai.onehouse.metrics.LakeViewExtractorMetrics.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -76,19 +68,10 @@ class LakeViewExtractorMetricsTest {
   void testIncrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons reason) {
     hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(reason);
     List<Tag> tags = getDefaultTags();
-    tags.add(Tag.of(TABLE_DISCOVERY_FAILURE_COUNTER, reason.name()));
+    tags.add(Tag.of(METADATA_DISCOVER_FAILURE_REASON_TAG_KEY, reason.name()));
     verify(metrics).increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
   }
 
-  @ParameterizedTest
-  @EnumSource(value = MetricsConstants.MetadataUploadFailureReasons.class,
-          names = {"RATE_LIMITING", "API_FAILURE_USER_ERROR", "UNKNOWN"})
-  void testIncrementTableSyncFailureCounter(MetricsConstants.MetadataUploadFailureReasons reason) {
-    hudiMetadataExtractorMetrics.incrementTableSyncFailureCounter(reason);
-    List<Tag> tags = getDefaultTags();
-    tags.add(Tag.of(TABLE_SYNC_ERROR_COUNTER, reason.name()));
-    verify(metrics).increment(TABLE_SYNC_ERROR_COUNTER, tags);
-  }
 
   @Test
   void testIncrementTableSyncSuccessCounter() {

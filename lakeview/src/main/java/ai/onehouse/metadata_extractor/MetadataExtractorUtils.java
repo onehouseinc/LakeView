@@ -5,6 +5,8 @@ import ai.onehouse.exceptions.RateLimitException;
 
 public final class MetadataExtractorUtils {
 
+    private MetadataExtractorUtils(){}
+
     public static MetricsConstants.MetadataUploadFailureReasons getMetadataExtractorFailureReason(
         Throwable ex,
         MetricsConstants.MetadataUploadFailureReasons defaultReason){

@@ -140,9 +140,8 @@ class S3AsyncStorageClientTest {
     when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
             .thenReturn(buildS3Exception());
 
-    CompletionException executionException = assertThrows(CompletionException.class, () -> {
-      s3AsyncStorageClient.streamFileAsync(S3_URI).join();
-    });
+    CompletableFuture<FileStreamData> streamFileAsync = s3AsyncStorageClient.streamFileAsync(S3_URI);
+    CompletionException executionException = assertThrows(CompletionException.class, streamFileAsync::join);
 
     // Unwrap the exception to get to the root cause
     Throwable cause = executionException.getCause();
@@ -158,9 +157,8 @@ class S3AsyncStorageClientTest {
     when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
             .thenReturn(buildS3Exception());
 
-    CompletionException executionException = assertThrows(CompletionException.class, () -> {
-      s3AsyncStorageClient.readFileAsBytes(S3_URI).join();
-    });
+    CompletableFuture<byte[]> readFileAsBytes = s3AsyncStorageClient.readFileAsBytes(S3_URI);
+    CompletionException executionException = assertThrows(CompletionException.class, readFileAsBytes::join);
 
     // Unwrap the exception to get to the root cause
     Throwable cause = executionException.getCause();
