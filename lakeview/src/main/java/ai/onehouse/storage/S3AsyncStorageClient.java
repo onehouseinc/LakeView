@@ -1,5 +1,6 @@
 package ai.onehouse.storage;
 
+import ai.onehouse.exceptions.RateLimitException;
 import com.google.inject.Inject;
 import ai.onehouse.storage.models.File;
 import ai.onehouse.storage.models.FileStreamData;
@@ -14,6 +15,8 @@ import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.awscore.internal.AwsErrorCode;
 import software.amazon.awssdk.core.BytesWrapper;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -67,7 +70,12 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
                       : null;
               return CompletableFuture.completedFuture(Pair.of(newContinuationToken, files));
             },
-            executorService);
+            executorService)
+        .exceptionally(
+            ex -> {
+              throw clientException(ex, "fetchObjectsByPage", bucketName);
+            }
+        );
   }
 
   private List<File> processListObjectsV2Response(ListObjectsV2Response response, String prefix) {
@@ -109,7 +117,12 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
                 FileStreamData.builder()
                     .inputStream(responseResponseInputStream)
                     .fileSize(responseResponseInputStream.response().contentLength())
-                    .build());
+                    .build())
+        .exceptionally(
+                ex -> {
+                    throw clientException(ex, "streamFileAsync", s3Uri);
+                }
+        );
   }
 
   @Override
@@ -119,7 +132,12 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
     return s3AsyncClientProvider
         .getS3AsyncClient()
         .getObject(getObjectRequest, AsyncResponseTransformer.toBytes())
-        .thenApplyAsync(BytesWrapper::asByteArray);
+        .thenApplyAsync(BytesWrapper::asByteArray)
+        .exceptionally(
+          ex -> {
+              throw clientException(ex, "readFileAsBytes", s3Uri);
+          }
+        );
   }
 
   private GetObjectRequest getObjectRequest(String s3Uri) {
@@ -127,5 +145,14 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         .bucket(storageUtils.getBucketNameFromUri(s3Uri))
         .key(storageUtils.getPathFromUrl(s3Uri))
         .build();
+  }
+
+  private RuntimeException clientException(Throwable ex, String operation, String path){
+    Throwable wrappedException = ex.getCause();
+    if (wrappedException instanceof AwsServiceException
+        && AwsErrorCode.isThrottlingErrorCode(((AwsServiceException) wrappedException).awsErrorDetails().errorCode())){
+        return new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
+    }
+      return (RuntimeException) wrappedException;
   }
 }

@@ -1,14 +1,6 @@
 package ai.onehouse.metrics;
 
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.CONFIG_VERSION_TAG_KEY;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.EXTRACTOR_JOB_RUN_MODE_TAG_KEY;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.METADATA_UPLOAD_FAILURE_REASON_TAG_KEY;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.METRICS_COMMON_PREFIX;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.TABLE_DISCOVERY_FAILURE_COUNTER;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.TABLE_DISCOVERY_SUCCESS_COUNTER;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.TABLE_METADATA_PROCESSING_FAILURE_COUNTER;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.TABLE_SYNC_ERROR_COUNTER;
-import static ai.onehouse.metrics.LakeViewExtractorMetrics.TABLE_SYNC_SUCCESS_COUNTER;
+import static ai.onehouse.metrics.LakeViewExtractorMetrics.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -23,6 +15,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -68,12 +62,16 @@ class LakeViewExtractorMetricsTest {
     verify(metrics).increment(TABLE_DISCOVERY_SUCCESS_COUNTER, getDefaultTags());
   }
 
-  @Test
-  void testIncrementTableDiscoveryFailureCounter() {
-    hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter();
-
-    verify(metrics).increment(TABLE_DISCOVERY_FAILURE_COUNTER, getDefaultTags());
+  @ParameterizedTest
+  @EnumSource(value = MetricsConstants.MetadataUploadFailureReasons.class,
+          names = {"RATE_LIMITING", "API_FAILURE_USER_ERROR", "UNKNOWN"})
+  void testIncrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons reason) {
+    hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(reason);
+    List<Tag> tags = getDefaultTags();
+    tags.add(Tag.of(METADATA_DISCOVER_FAILURE_REASON_TAG_KEY, reason.name()));
+    verify(metrics).increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
   }
+
 
   @Test
   void testIncrementTableSyncSuccessCounter() {

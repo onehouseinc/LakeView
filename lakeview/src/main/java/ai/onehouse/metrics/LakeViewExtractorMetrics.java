@@ -22,6 +22,8 @@ public class LakeViewExtractorMetrics {
   static final String CONFIG_VERSION_TAG_KEY = "config_version";
   static final String EXTRACTOR_JOB_RUN_MODE_TAG_KEY = "extractor_job_run_mode";
   static final String METADATA_UPLOAD_FAILURE_REASON_TAG_KEY = "metadata_upload_failure_reason";
+  static final String METADATA_DISCOVER_FAILURE_REASON_TAG_KEY = "metadata_discover_failure_reason";
+
 
   // Metrics
   static final String TABLE_DISCOVERY_SUCCESS_COUNTER =
@@ -61,7 +63,15 @@ public class LakeViewExtractorMetrics {
   }
 
   public void incrementTableDiscoveryFailureCounter() {
-    metrics.increment(TABLE_DISCOVERY_FAILURE_COUNTER, getDefaultTags());
+    incrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+  }
+
+
+  public void incrementTableDiscoveryFailureCounter(
+        MetricsConstants.MetadataUploadFailureReasons metadataUploadFailureReasons) {
+    List<Tag> tags = getDefaultTags();
+    tags.add(Tag.of(METADATA_DISCOVER_FAILURE_REASON_TAG_KEY, metadataUploadFailureReasons.name()));
+    metrics.increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
   }
 
   public void incrementTableSyncSuccessCounter() {

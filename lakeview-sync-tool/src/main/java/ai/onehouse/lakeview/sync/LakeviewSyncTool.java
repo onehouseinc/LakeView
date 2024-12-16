@@ -247,10 +247,12 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
     StorageUtils storageUtils = new StorageUtils();
     AsyncStorageClient asyncStorageClient = getAsyncStorageClient(config, executorService, storageUtils);
     ConfigProvider configProvider = new ConfigProvider(config);
-    TableDiscoveryService tableDiscoveryService = new TableDiscoveryService(asyncStorageClient, storageUtils,
-        configProvider, executorService);
+
     LakeViewExtractorMetrics lakeViewExtractorMetrics = new LakeViewExtractorMetrics(Metrics.getInstance(),
         configProvider);
+
+    TableDiscoveryService tableDiscoveryService = new TableDiscoveryService(asyncStorageClient, storageUtils,
+            configProvider, executorService, lakeViewExtractorMetrics);
     HoodiePropertiesReader hoodiePropertiesReader = new HoodiePropertiesReader(asyncStorageClient,
         lakeViewExtractorMetrics);
     OnehouseApiClient onehouseApiClient = new OnehouseApiClient(asyncHttpClientWithRetry, config,
@@ -262,6 +264,7 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
         lakeViewExtractorMetrics, config);
     TableMetadataUploaderService tableMetadataUploaderService = new TableMetadataUploaderService(hoodiePropertiesReader,
         onehouseApiClient, timelineCommitInstantsUploader, lakeViewExtractorMetrics, executorService);
+
     return new TableDiscoveryAndUploadJob(tableDiscoveryService, tableMetadataUploaderService, lakeViewExtractorMetrics);
   }
 

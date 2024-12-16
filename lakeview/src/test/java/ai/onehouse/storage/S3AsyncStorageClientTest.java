@@ -1,9 +1,9 @@
 package ai.onehouse.storage;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import ai.onehouse.exceptions.RateLimitException;
 import ai.onehouse.storage.models.File;
 import ai.onehouse.storage.models.FileStreamData;
 import ai.onehouse.storage.providers.S3AsyncClientProvider;
@@ -15,13 +15,20 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
@@ -130,6 +137,80 @@ class S3AsyncStorageClientTest {
     assertArrayEquals(fileContent, resultBytes);
   }
 
+  @Test
+  void testStreamFileAsyncWithS3RateLimiting() {
+    when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+            .thenReturn(buildS3Exception());
+
+    CompletableFuture<FileStreamData> streamFileAsync = s3AsyncStorageClient.streamFileAsync(S3_URI);
+    CompletionException executionException = assertThrows(CompletionException.class, streamFileAsync::join);
+
+    // Unwrap the exception to get to the root cause
+    Throwable cause = executionException.getCause();
+
+    // Verify the exception is RateLimitException
+    assertInstanceOf(RateLimitException.class, cause);
+    assertEquals("Throttled by S3 for operation : streamFileAsync on path : s3://" + TEST_BUCKET + "/" + TEST_KEY,
+            cause.getMessage());
+  }
+
+  @Test
+  void testReadFileAsBytesWithS3RateLimiting() {
+    when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+            .thenReturn(buildS3Exception());
+
+    CompletableFuture<byte[]> readFileAsBytes = s3AsyncStorageClient.readFileAsBytes(S3_URI);
+    CompletionException executionException = assertThrows(CompletionException.class, readFileAsBytes::join);
+
+    // Unwrap the exception to get to the root cause
+    Throwable cause = executionException.getCause();
+
+    // Verify the exception is RateLimitException
+    assertInstanceOf(RateLimitException.class, cause);
+    assertEquals("Throttled by S3 for operation : readFileAsBytes on path : s3://" + TEST_BUCKET + "/" + TEST_KEY,
+            cause.getMessage());
+  }
+
+  @Test
+  void testReadFileAsBytesWithRuntimeException() {
+    CompletableFuture<GetObjectResponse> futureResponse = new CompletableFuture<>();
+    futureResponse.completeExceptionally(new RuntimeException("Error"));
+
+    when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+            .thenReturn(futureResponse);
+
+    CompletableFuture<byte[]> readFileAsBytes = s3AsyncStorageClient.readFileAsBytes(S3_URI);
+    CompletionException executionException = assertThrows(CompletionException.class, readFileAsBytes::join);
+
+    // Unwrap the exception to get to the root cause
+    Throwable cause = executionException.getCause();
+
+    // Verify the exception is RateLimitException
+    assertInstanceOf(RuntimeException.class, cause);
+  }
+
+  @MockitoSettings(strictness = Strictness.LENIENT)
+  @Test
+  void testfetchObjectsByPageWithS3RateLimiting() {
+    when(mockS3AsyncClient.listObjectsV2(any(ListObjectsV2Request.class)))
+            .thenReturn(buildS3Exception());
+
+    CompletableFuture<Pair<String, List<File>>> fetchObjects = s3AsyncStorageClient.fetchObjectsByPage(
+            TEST_BUCKET,
+            "prefix",
+            "ct",
+            "startAfter");
+    CompletionException executionException = assertThrows(CompletionException.class, fetchObjects::join);
+
+    // Unwrap the exception to get to the root cause
+    Throwable cause = executionException.getCause();
+
+    // Verify the exception is RateLimitException
+    assertInstanceOf(RateLimitException.class, cause);
+    assertEquals("Throttled by S3 for operation : fetchObjectsByPage on path : " + TEST_BUCKET,
+            cause.getMessage());
+  }
+
   private void stubStreamFileFromS3(byte[] fileContent, long contentLength) throws IOException {
     GetObjectRequest expectedRequest =
         GetObjectRequest.builder().bucket(TEST_BUCKET).key(TEST_KEY).build();
@@ -165,5 +246,16 @@ class S3AsyncStorageClientTest {
       }
       return baos.toByteArray();
     }
+  }
+
+  private <R> CompletableFuture<R> buildS3Exception(){
+
+    CompletableFuture<R> futureResponse = new CompletableFuture<>();
+    futureResponse.completeExceptionally(AwsServiceException.builder()
+            .awsErrorDetails(AwsErrorDetails.builder()
+                    .errorCode("Throttling")
+                    .build())
+            .build());
+    return futureResponse;
   }
 }

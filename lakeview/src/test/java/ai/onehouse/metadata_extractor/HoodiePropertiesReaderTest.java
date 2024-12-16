@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import ai.onehouse.api.models.request.TableType;
 import ai.onehouse.constants.MetricsConstants;
+import ai.onehouse.exceptions.RateLimitException;
 import ai.onehouse.metadata_extractor.models.ParsedHudiProperties;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import ai.onehouse.storage.AsyncStorageClient;
@@ -79,6 +80,21 @@ class HoodiePropertiesReaderTest {
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
             MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED);
+  }
+
+  @Test
+  void testReadHoodiePropertiesEncountersRateLimitException() {
+    String path = "some/path/to/properties/file";
+
+    when(asyncStorageClient.streamFileAsync(path))
+            .thenReturn(failedFuture(new RateLimitException("File not found")));
+    CompletableFuture<ParsedHudiProperties> futureResult =
+            hoodiePropertiesReader.readHoodieProperties(path);
+
+    assertNull(futureResult.join());
+    verify(hudiMetadataExtractorMetrics)
+            .incrementTableMetadataProcessingFailureCounter(
+                    MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING);
   }
 
   public static <R> CompletableFuture<R> failedFuture(Throwable error) {
