@@ -18,6 +18,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -177,9 +179,8 @@ class S3AsyncStorageClientTest {
     when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
             .thenReturn(futureResponse);
 
-    CompletionException executionException = assertThrows(CompletionException.class, () -> {
-      s3AsyncStorageClient.readFileAsBytes(S3_URI).join();
-    });
+    CompletableFuture<byte[]> readFileAsBytes = s3AsyncStorageClient.readFileAsBytes(S3_URI);
+    CompletionException executionException = assertThrows(CompletionException.class, readFileAsBytes::join);
 
     // Unwrap the exception to get to the root cause
     Throwable cause = executionException.getCause();
@@ -194,14 +195,12 @@ class S3AsyncStorageClientTest {
     when(mockS3AsyncClient.listObjectsV2(any(ListObjectsV2Request.class)))
             .thenReturn(buildS3Exception());
 
-    CompletionException executionException = assertThrows(CompletionException.class, () -> {
-      s3AsyncStorageClient.fetchObjectsByPage(
-        TEST_BUCKET,
-        "prefix",
-        "ct",
-        "startAfter")
-      .join();
-    });
+    CompletableFuture<Pair<String, List<File>>> fetchObjects = s3AsyncStorageClient.fetchObjectsByPage(
+            TEST_BUCKET,
+            "prefix",
+            "ct",
+            "startAfter");
+    CompletionException executionException = assertThrows(CompletionException.class, fetchObjects::join);
 
     // Unwrap the exception to get to the root cause
     Throwable cause = executionException.getCause();
