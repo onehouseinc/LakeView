@@ -19,6 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 @Slf4j
 public class Main {
 
@@ -118,6 +121,10 @@ public class Main {
 
   @VisibleForTesting
   void shutdown() {
+    log.info("Scheduling JVM shutdown after 300 seconds");
+    Executors.newSingleThreadScheduledExecutor()
+        .schedule(
+            () -> System.exit(0), 300, TimeUnit.SECONDS);
     asyncHttpClientWithRetry.shutdownScheduler();
     job.shutdown();
     metricsServer.shutdown();
