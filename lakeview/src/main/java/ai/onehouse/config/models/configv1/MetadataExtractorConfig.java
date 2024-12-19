@@ -6,6 +6,7 @@ import static ai.onehouse.constants.MetadataExtractorConstants.PRESIGNED_URL_REQ
 import static ai.onehouse.constants.MetadataExtractorConstants.PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS;
 import static ai.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_INTERVAL_MINUTES;
 import static ai.onehouse.constants.MetadataExtractorConstants.TABLE_METADATA_UPLOAD_INTERVAL_MINUTES;
+import static ai.onehouse.constants.MetadataExtractorConstants.WAIT_TIME_BEFORE_SHUTDOWN;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,6 +46,8 @@ public class MetadataExtractorConfig {
   private int tableMetadataUploadIntervalMinutes = TABLE_METADATA_UPLOAD_INTERVAL_MINUTES;
 
   @Builder.Default private int fileUploadStreamBatchSize = DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE;
+
+  @Builder.Default private int waitTimeBeforeShutdown = WAIT_TIME_BEFORE_SHUTDOWN;
 
   public enum JobRunMode {
     CONTINUOUS,
