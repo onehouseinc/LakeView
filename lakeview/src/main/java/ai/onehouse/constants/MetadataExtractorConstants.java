@@ -32,7 +32,7 @@ public class MetadataExtractorConstants {
           50,
           Integer.parseInt(
               System.getenv().getOrDefault("EXTRACTOR_TABLE_PROCESSING_BATCH_SIZE", "20")));
-  public static final int TABLE_DISCOVERY_INTERVAL_MINUTES = 120;
+  public static final int TABLE_DISCOVERY_INTERVAL_MINUTES = 30;
   public static final int TABLE_METADATA_UPLOAD_INTERVAL_MINUTES = 5;
   // Default batch size will be 5 MB
   public static final int DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE =
