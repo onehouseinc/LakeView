@@ -1,4 +1,5 @@
 metadataExtractorConfig:
+  waitTimeBeforeShutdown: 0
   pathExclusionPatterns:
     - s3://lake_bucket/tables/excluded1
   parserConfig:

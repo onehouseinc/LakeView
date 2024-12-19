@@ -25,6 +25,8 @@ public class MetadataExtractorConstants {
   // but metadata will be uploaded only if TABLE_METADATA_UPLOAD_INTERVAL_MINUTES amount of time has
   // passed since last run
   public static final int PROCESS_TABLE_METADATA_SYNC_DURATION_SECONDS = 30;
+  // Wait time so prometheus(if any) is able to scrape metrics in single run mode
+  public static final int WAIT_TIME_BEFORE_SHUTDOWN = 120;
   public static final int TABLE_PROCESSING_BATCH_SIZE =
       Math.min(
           50,
