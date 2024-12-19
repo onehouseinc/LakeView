@@ -70,6 +70,7 @@ class MainTest {
             MetadataExtractorConfig.builder()
                 .jobRunMode(MetadataExtractorConfig.JobRunMode.ONCE)
                 .parserConfig(Collections.emptyList())
+                .waitTimeBeforeShutdown(0)
                 .build());
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
@@ -97,6 +98,7 @@ class MainTest {
             MetadataExtractorConfig.builder()
                 .jobRunMode(MetadataExtractorConfig.JobRunMode.ONCE)
                 .parserConfig(Collections.emptyList())
+                .waitTimeBeforeShutdown(0)
                 .build());
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))

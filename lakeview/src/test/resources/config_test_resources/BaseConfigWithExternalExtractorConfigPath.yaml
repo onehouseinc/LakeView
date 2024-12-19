@@ -14,6 +14,7 @@ metadataExtractorConfigPath:  src/test/resources/config_test_resources/validExtr
 
 metadataExtractorConfig:
   jobRunMode: ONCE
+  waitTimeBeforeShutdown: 0
   pathExclusionPatterns:
     - s3://lake_bucket/tables/excluded
   parserConfig:
