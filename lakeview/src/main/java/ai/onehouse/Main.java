@@ -124,7 +124,6 @@ public class Main {
       Thread.sleep(config.getMetadataExtractorConfig().getWaitTimeBeforeShutdown() * 1000L);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      log.warn("Shutdown delay interrupted", e);
     }
     asyncHttpClientWithRetry.shutdownScheduler();
     job.shutdown();
