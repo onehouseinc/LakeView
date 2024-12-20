@@ -70,6 +70,7 @@ class MainTest {
             MetadataExtractorConfig.builder()
                 .jobRunMode(MetadataExtractorConfig.JobRunMode.ONCE)
                 .parserConfig(Collections.emptyList())
+                .waitTimeBeforeShutdown(0)
                 .build());
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
@@ -97,6 +98,7 @@ class MainTest {
             MetadataExtractorConfig.builder()
                 .jobRunMode(MetadataExtractorConfig.JobRunMode.ONCE)
                 .parserConfig(Collections.emptyList())
+                .waitTimeBeforeShutdown(0)
                 .build());
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
@@ -162,6 +164,7 @@ class MainTest {
         .thenReturn(
             MetadataExtractorConfig.builder()
                 .jobRunMode(MetadataExtractorConfig.JobRunMode.CONTINUOUS)
+                .waitTimeBeforeShutdown(0)
                 .parserConfig(Collections.emptyList())
                 .build());
     when(mockInjector.getInstance(TableDiscoveryAndUploadJob.class)).thenReturn(mockJob);
@@ -173,7 +176,7 @@ class MainTest {
         .when(() -> Guice.createInjector(any(RuntimeModule.class), any(MetricsModule.class)))
         .thenReturn(mockInjector);
     main.start(args);
-    main.shutdown();
+    main.shutdown(mockConfig);
 
     verify(mockConfigLoader).loadConfigFromString("configYamlString");
     verify(mockJob).runInContinuousMode(mockConfig);
