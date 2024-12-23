@@ -118,12 +118,14 @@ public class Main {
 
   @VisibleForTesting
   void shutdown(Config config) {
-    log.info(String.format("Scheduling JVM shutdown after %d seconds",
-        config.getMetadataExtractorConfig().getWaitTimeBeforeShutdown()));
-    try {
-      Thread.sleep(config.getMetadataExtractorConfig().getWaitTimeBeforeShutdown() * 1000L);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
+    if (config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE)) {
+      log.info(String.format("Scheduling JVM shutdown after %d seconds",
+          config.getMetadataExtractorConfig().getWaitTimeBeforeShutdown()));
+      try {
+        Thread.sleep(config.getMetadataExtractorConfig().getWaitTimeBeforeShutdown() * 1000L);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
     }
     asyncHttpClientWithRetry.shutdownScheduler();
     job.shutdown();
