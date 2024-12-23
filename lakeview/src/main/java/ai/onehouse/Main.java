@@ -108,16 +108,25 @@ public class Main {
         job.runInContinuousMode(config);
       } else {
         job.runOnce();
-        shutdown();
+        shutdown(config);
       }
     } catch (Exception e) {
       log.error(e.getMessage(), e);
-      shutdown();
+      shutdown(config);
     }
   }
 
   @VisibleForTesting
-  void shutdown() {
+  void shutdown(Config config) {
+    if (config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE)) {
+      log.info(String.format("Scheduling JVM shutdown after %d seconds",
+          config.getMetadataExtractorConfig().getWaitTimeBeforeShutdown()));
+      try {
+        Thread.sleep(config.getMetadataExtractorConfig().getWaitTimeBeforeShutdown() * 1000L);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
     asyncHttpClientWithRetry.shutdownScheduler();
     job.shutdown();
     metricsServer.shutdown();
