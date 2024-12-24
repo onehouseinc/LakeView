@@ -5,6 +5,7 @@ import static ai.onehouse.constants.ApiConstants.GENERATE_COMMIT_METADATA_UPLOAD
 import static ai.onehouse.constants.ApiConstants.GET_TABLE_METRICS_CHECKPOINT;
 import static ai.onehouse.constants.ApiConstants.INITIALIZE_TABLE_METRICS_CHECKPOINT;
 import static ai.onehouse.constants.ApiConstants.LINK_UID_KEY;
+import static ai.onehouse.constants.ApiConstants.MAINTENANCE_MODE_KEY;
 import static ai.onehouse.constants.ApiConstants.ONEHOUSE_API_ENDPOINT;
 import static ai.onehouse.constants.ApiConstants.ONEHOUSE_API_KEY;
 import static ai.onehouse.constants.ApiConstants.ONEHOUSE_API_SECRET_KEY;
@@ -113,6 +114,9 @@ public class OnehouseApiClient {
     }
     if (StringUtils.isNotEmpty(onehouseClientConfig.getRegion())) {
       headersBuilder.add(ONEHOUSE_REGION_KEY, onehouseClientConfig.getRegion());
+    }
+    if (onehouseClientConfig.getMaintenanceMode() != null && onehouseClientConfig.getMaintenanceMode().equals(Boolean.TRUE)) {
+      headersBuilder.add(MAINTENANCE_MODE_KEY, Boolean.TRUE.toString());
     }
     return headersBuilder.build();
   }
