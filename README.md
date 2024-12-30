@@ -65,6 +65,8 @@ LakeView supports three deployment models:
 
 ## Option 1: Deploy with Pull Model (Recommended)
 
+[**🎬 Pull Model demo video**](https://www.youtube.com/watch?v=A_0n8HXaKjs)
+
 With the Pull Model, you will grant LakeView access to your Hudi metadata files with an IAM role template. LakeView will continuously pull the latest metadata.
 1. **Create Role:** Create an IAM Role (AWS) or Service Account (GCP) for LakeView.
    * **AWS:** In the AWS console, create a new IAM Role. Under the "Trust relationships", add the following JSON:
@@ -98,6 +100,8 @@ After you complete these steps, LakeView will continuously pull metadata for you
 **Note: New tables may initially take up to 6 hours to appear in the Onehouse UI.**
 
 ## Option 2: Deploy with Push Model
+
+[**🎬 Push Model demo video**](https://www.youtube.com/watch?v=6VGkWSLSnOw)
 
 With the Push Model, you will install and run the metadata extractor software within your cloud environment to push metadata to LakeView.
 1. **Create Onehouse API Key:** In the [LakeView console](https://cloud.onehouse.ai/lakeview/signup), create an API Key. In the sidebar, open Settings > API Settings, then generate a new token.
@@ -173,6 +177,8 @@ spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientC
   ```
 
 ## Option 3: Deploy with LakeView SyncTool
+
+[**🎬 LakeView SyncTool demo video**](https://www.youtube.com/watch?v=ULPyG7GUD6o)
 
 Install and run a LakeView SyncTool JAR in your existing Hudi jobs to push metadata to LakeView. This functions similarly to Hudi's catalog integrations, such as the [DataHub SyncTool](https://hudi.apache.org/docs/syncing_datahub/).
 1. Download the LakeView SyncTool JAR named `lakeview-sync-tool-release-vX.X.X.jar` from the assets in the [latest LakeView release](https://github.com/onehouseinc/LakeView/releases).
