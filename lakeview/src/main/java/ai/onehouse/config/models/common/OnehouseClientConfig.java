@@ -20,4 +20,5 @@ public class OnehouseClientConfig {
   @Nullable private String apiSecret;
   @Nullable private String userId;
   @Nullable private String file;
+  @Nullable private Boolean maintenanceMode;
 }
