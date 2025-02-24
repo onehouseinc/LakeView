@@ -15,7 +15,6 @@ import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import ai.onehouse.storage.AsyncStorageClient;
 import ai.onehouse.storage.StorageUtils;
 import ai.onehouse.storage.models.File;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -172,9 +170,9 @@ public class TableDiscoveryService {
               e -> {
                 log.error("Failed to discover tables in path: {}", path, e);
                 lakeviewExtractorMetrics.incrementTableDiscoveryFailureCounter(
-                    getMetadataExtractorFailureReason(
-                        e,
-                        MetricsConstants.MetadataUploadFailureReasons.UNKNOWN)
+                  getMetadataExtractorFailureReason(
+                    e,
+                    MetricsConstants.MetadataUploadFailureReasons.UNKNOWN)
                 );
                 return emptySet();
               });
