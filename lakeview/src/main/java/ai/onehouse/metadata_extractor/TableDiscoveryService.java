@@ -168,8 +168,7 @@ public class TableDiscoveryService {
               executorService)
           .exceptionally(
               e -> {
-                log.error("Failed to discover tables in path: {}", path);
-                log.error(e.getMessage(), e);
+                log.error("Failed to discover tables in path: {}", path, e);
                 lakeviewExtractorMetrics.incrementTableDiscoveryFailureCounter(
                   getMetadataExtractorFailureReason(
                     e,
@@ -178,8 +177,7 @@ public class TableDiscoveryService {
                 return emptySet();
               });
     } catch (Exception e) {
-      log.error("Failed to discover tables in path: {}", path);
-      log.error(e.getMessage(), e);
+      log.error("Failed to discover tables in path: {}", path, e);
       return CompletableFuture.completedFuture(emptySet());
     }
   }
