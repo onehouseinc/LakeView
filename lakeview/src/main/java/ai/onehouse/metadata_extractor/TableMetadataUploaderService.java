@@ -235,7 +235,7 @@ public class TableMetadataUploaderService {
                     if (initializeSingleTableMetricsCheckpointRequestList.isEmpty()) {
                       log.error("No valid table to initialise");
                       hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
-                          MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+                          MetricsConstants.MetadataUploadFailureReasons.NO_TABLES_TO_INITIALIZE);
                       return CompletableFuture.completedFuture(null);
                     }
 
