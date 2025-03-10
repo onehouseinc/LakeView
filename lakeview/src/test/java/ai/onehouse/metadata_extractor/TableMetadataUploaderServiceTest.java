@@ -164,7 +164,7 @@ class TableMetadataUploaderServiceTest {
             eq(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE));
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
-            MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+            MetricsConstants.MetadataUploadFailureReasons.NO_TABLES_TO_INITIALIZE);
   }
 
   private void setupInitialiseTableMetricsCheckpointSuccessMocks(
