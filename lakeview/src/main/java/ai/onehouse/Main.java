@@ -1,5 +1,6 @@
 package ai.onehouse;
 
+import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -25,6 +26,7 @@ public class Main {
   private TableDiscoveryAndUploadJob job;
   private AsyncHttpClientWithRetry asyncHttpClientWithRetry;
   private MetricsServer metricsServer;
+  private LakeViewExtractorMetrics lakeViewExtractorMetrics;
   private final CliParser parser;
   private final ConfigLoader configLoader;
   private ConfigRefresher configRefresher;
@@ -65,6 +67,7 @@ public class Main {
     asyncHttpClientWithRetry = injector.getInstance(AsyncHttpClientWithRetry.class);
     ConfigProvider configProvider = injector.getInstance(ConfigProvider.class);
     metricsServer = injector.getInstance(MetricsServer.class);
+    lakeViewExtractorMetrics = injector.getInstance(LakeViewExtractorMetrics.class);
 
     // If metadata extractor config is provided externally, then override and refresh config
     // periodically.
@@ -81,6 +84,7 @@ public class Main {
                 configProvider);
         configRefresher.start();
       } catch (Exception ex) {
+        lakeViewExtractorMetrics.incrementExtractorConfigLoadCounter();
         log.error("Failed to override metadata extractor config", ex);
       }
     }

@@ -32,6 +32,7 @@ public class LakeViewExtractorMetrics {
       METRICS_COMMON_PREFIX + "table_discovery_failure";
   static final String TABLE_SYNC_SUCCESS_COUNTER = METRICS_COMMON_PREFIX + "table_sync_success";
   static final String TABLE_SYNC_ERROR_COUNTER = METRICS_COMMON_PREFIX + "table_sync_failure";
+  static final String EXTRACTOR_CONFIG_LOAD_COUNTER = METRICS_COMMON_PREFIX + "extractor_config_load";
   static final String METADATA_UPLOAD_SUCCESS_COUNTER = METRICS_COMMON_PREFIX + "metadata_upload";
   static final String TABLE_METADATA_PROCESSING_FAILURE_COUNTER =
       METRICS_COMMON_PREFIX + "table_metadata_processing_failure";
@@ -80,6 +81,10 @@ public class LakeViewExtractorMetrics {
 
   public void incrementTableSyncFailureCounter() {
     metrics.increment(TABLE_SYNC_ERROR_COUNTER, getDefaultTags());
+  }
+
+  public void incrementExtractorConfigLoadCounter() {
+    metrics.increment(EXTRACTOR_CONFIG_LOAD_COUNTER, getDefaultTags());
   }
 
   public void incrementMetadataUploadSuccessCounter() {
