@@ -109,6 +109,12 @@ class LakeViewExtractorMetricsTest {
     verify(tablesProcessedGaugeMetric).increment();
   }
 
+  @Test
+  void testIncrementFailedOverrideConfigCounter() {
+    hudiMetadataExtractorMetrics.incrementFailedOverrideConfigCounter();
+    verify(metrics).increment(FAILED_OVERRIDE_CONFIG_COUNTER, getDefaultTags());
+  }
+
   private List<Tag> getDefaultTags() {
     List<Tag> tags = new ArrayList<>();
     tags.add(Tag.of(CONFIG_VERSION_TAG_KEY, ConfigVersion.V1.toString()));

@@ -3,6 +3,7 @@ package ai.onehouse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import ai.onehouse.api.AsyncHttpClientWithRetry;
@@ -28,6 +29,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -44,6 +48,7 @@ class MainTest {
   @Mock private AsyncHttpClientWithRetry mockAsyncHttpClientWithRetry;
   @Mock private ConfigV1 mockConfig;
   @Mock private MetricsServer mockMetricsServer;
+  @Mock private LakeViewExtractorMetrics lakeViewExtractorMetrics;
   MockedStatic<Guice> guiceMockedStatic;
 
   private Main main;
@@ -116,8 +121,9 @@ class MainTest {
     verifyShutdown();
   }
 
-  @Test
-  void testConfigOverride() throws IOException {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testConfigOverride(boolean isFailure) throws IOException {
     String[] args = {"-p", "configFilePath"};
     String baseConfigPath =
         "src/test/resources/config_test_resources/BaseConfigWithExternalExtractorConfigPath.yaml";
@@ -125,9 +131,14 @@ class MainTest {
         "src/test/resources/config_test_resources/validExtractorConfigV1S3Filesystem.yaml";
     when(mockParser.getConfigFilePath()).thenReturn(baseConfigPath);
     String extractorConfig = getFileAsString(extractorConfigPath);
-    when(mockAsyncStorageClient.readFileAsBytes(extractorConfigPath))
-        .thenReturn(
-            CompletableFuture.completedFuture(extractorConfig.getBytes(StandardCharsets.UTF_8)));
+
+    if (isFailure) {
+      when(mockAsyncStorageClient.readFileAsBytes(extractorConfigPath)).thenThrow(new RuntimeException("Could not read file"));
+    } else {
+      when(mockAsyncStorageClient.readFileAsBytes(extractorConfigPath))
+          .thenReturn(
+              CompletableFuture.completedFuture(extractorConfig.getBytes(StandardCharsets.UTF_8)));
+    }
 
     ConfigLoader configLoader = new ConfigLoader();
     Config baseConfig = configLoader.loadConfigFromConfigFile(baseConfigPath);
@@ -138,6 +149,7 @@ class MainTest {
         .thenReturn(mockAsyncHttpClientWithRetry);
     when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(configProvider);
     when(mockInjector.getInstance(AsyncStorageClient.class)).thenReturn(mockAsyncStorageClient);
+    when(mockInjector.getInstance(LakeViewExtractorMetrics.class)).thenReturn(lakeViewExtractorMetrics);
     guiceMockedStatic
         .when(() -> Guice.createInjector(any(RuntimeModule.class), any(MetricsModule.class)))
         .thenReturn(mockInjector);
@@ -149,6 +161,9 @@ class MainTest {
     verify(mockAsyncStorageClient, times(1)).readFileAsBytes(extractorConfigPath);
 
     verify(mockJob).runOnce();
+    if (isFailure) {
+      verify(lakeViewExtractorMetrics).incrementFailedOverrideConfigCounter();
+    }
     verifyShutdown();
   }
 
