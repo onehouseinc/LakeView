@@ -65,7 +65,7 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
                 File.builder()
                     .filename(blob.getName().replaceFirst(prefix, ""))
                     .lastModifiedAt(
-                        Instant.ofEpochMilli(!blob.isDirectory() ? blob.getUpdateTime() : 0))
+                        Instant.ofEpochMilli(!blob.isDirectory() ? blob.getCreateTime() : 0))
                     .isDirectory(blob.isDirectory())
                     .build());
           }

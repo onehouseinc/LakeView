@@ -1,5 +1,6 @@
 package ai.onehouse.metadata_extractor;
 
+import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.getActiveTimeLineInstant;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
@@ -12,6 +13,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -571,13 +573,14 @@ class ActiveTimelineInstantBatcherTest {
     return instant;
   }
 
-  @Tag("NonBlocking")
+  @Tag("Blocking")
   @Test
   void test() {
     String filePath = "/Users/karanmittal/Documents/Repos/LakeView/lakeview/src/test/resources/debug/cndr.txt";
     List<String> entries = new ArrayList<>();
     List<File> files = new ArrayList<>();
 
+    int misCount = 0;
     try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
       String line;
       while ((line = br.readLine()) != null) {
@@ -591,6 +594,23 @@ class ActiveTimelineInstantBatcherTest {
           entries.add("Date: " + date + ", File Name: " + fileName);
           File f = File.builder().filename(fileName).isDirectory(false).lastModifiedAt(convert(date)).build();
           files.add(f);
+
+          String timestamp = getFileTimestamp(fileName);
+          DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+          LocalDateTime localDateTime = LocalDateTime.parse(timestamp, formatter);
+          Instant instant1 = localDateTime.toInstant(ZoneOffset.UTC);
+//          DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+//          LocalDateTime localDateTime2 = LocalDateTime.parse(timestamp, formatter2);
+//          Instant instant2 = localDateTime2.toInstant(ZoneOffset.UTC);
+
+          Duration duration = Duration.between(convert(date), instant1);
+
+          // Check if the difference is more than 2 days
+          long daysDifference = Math.abs(duration.toDays());
+          if (daysDifference > 1) {
+            misCount++;
+          }
+
         }
       }
     } catch (IOException e) {
@@ -610,15 +630,29 @@ class ActiveTimelineInstantBatcherTest {
     System.out.println(cp);
   }
 
+  String getFileTimestamp(String fileName) {
+    String timestamp = fileName.split("\\.")[0];
+    timestamp = timestamp.substring(0, 14);
+    return timestamp;
+  }
+
 
   @Tag("Blocking")
   @Test
   void test2() {
-    String fName = "apna2";
+    //String fName = "core_job_hoodie";//"apna2";
+    String fName = "apna2";//"apna2";
+
+    boolean datePattern = fName.equals("apna2") || fName.equals("apna2");
 
     String filePath = String.format("/Users/karanmittal/Documents/Repos/LakeView/lakeview/src/test/resources/debug/%s.txt", fName);  // Replace with your file path
     List<File> files = new ArrayList<>();
     int count = 0;
+    int misCount = 0;
+    int misCount2 = 0;
+    long maxMiss = 0;
+    List<String> missedFiles = new ArrayList<>();
+    Checkpoint startCp = getCP3(false);
     try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
       String line;
       String filePathLine = null;
@@ -631,7 +665,7 @@ class ActiveTimelineInstantBatcherTest {
       Pattern creationTimePattern = Pattern.compile("Creation Time:\\s+(\\S+)");
       Pattern updateTimePattern = Pattern.compile("Update Time:\\s+(\\S+)");
 
-      if (fName.equals("apna2")) {
+      if (datePattern) {
         creationTimePattern = Pattern.compile("Creation time:\\s*(.*)");
         updateTimePattern = Pattern.compile("Update time:\\s*(.*)");
       }
@@ -672,12 +706,35 @@ class ActiveTimelineInstantBatcherTest {
         // Print and reset data at the end of each block (empty line signals end of current block)
         if (filePathLine != null && creationTime != null && updateTime != null) {
           String fileName = filePathLine.substring(filePathLine.lastIndexOf('/') + 1);
+          //if (fileName.equals(
           System.out.println(filePathLine.substring(filePathLine.lastIndexOf('/') + 1) + " | Creation Time: " + creationTime + " | Update Time: " + updateTime);
-          File f = File.builder().filename(fileName).isDirectory(false).lastModifiedAt(parseToInstant(updateTime)).build();
-          files.add(f);
+          File f = File.builder().filename(fileName).isDirectory(false).lastModifiedAt(parseToInstant(creationTime)).build();
+
+          if (getActiveTimeLineInstant(f.getFilename()).getTimestamp()
+              .compareTo(startCp.getLastUploadedFile()) > 0) {
+            files.add(f);
+            if (!creationTime.equals(updateTime)) {
+              misCount++;
+              missedFiles.add(fileName);
+            }
+          }
+
+          String timestamp = getFileTimestamp(fileName);
+          DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+          LocalDateTime localDateTime = LocalDateTime.parse(timestamp, formatter);
+          Instant instant1 = localDateTime.toInstant(ZoneOffset.UTC);
+          Duration duration = Duration.between(parseToInstant(creationTime), instant1);
+          // Check if the difference is more than 2 days
+          long daysDifference = Math.abs(duration.toMillis());
+          maxMiss = Math.max(maxMiss, daysDifference);
+          if (daysDifference/(1000*60*60*24)  > 1) {
+            misCount2++;
+          }
+
           filePathLine = null;
           creationTime = null;
           updateTime = null;
+
 
         }
       }
@@ -685,9 +742,10 @@ class ActiveTimelineInstantBatcherTest {
       e.printStackTrace();
     }
 
+    System.out.println(misCount);
     List<File> truncatedFIles = files.subList(0, files.size());
     Triple<String, List<List<File>>, String> actualBatches =
-        activeTimelineInstantBatcher.createBatches(truncatedFIles, 20, getCP3());
+        activeTimelineInstantBatcher.createBatches(truncatedFIles, 20, startCp);
     List<List<File>> batches = actualBatches.getMiddle();
     String cp = actualBatches.getLeft();
     System.out.println(batches);
@@ -698,6 +756,7 @@ class ActiveTimelineInstantBatcherTest {
     // 1001 ... 2000
     // 2001 ... 3000
     System.out.println(cp);
+    System.out.println(missedFiles);
 
 
     // xyx
@@ -827,12 +886,15 @@ class ActiveTimelineInstantBatcherTest {
   }
   // 20241019044830704
 
-  static Checkpoint getCP3() {
+  static Checkpoint getCP3(boolean filter) {
     Instant instant = Instant.EPOCH;
+    if (filter) {
+      instant = Instant.ofEpochSecond(1721020388); //Monday, July 15, 2024 5:13:08 AM
+    }
     return Checkpoint.builder()
         .checkpointTimestamp(instant)
         .batchId(0)
-        .lastUploadedFile("2021015011323784.deltacommit")
+        .lastUploadedFile("20240715011323784.deltacommit")
         .firstIncompleteCommitFile("")
         .archivedCommitsProcessed(true)
         .build();
@@ -845,4 +907,9 @@ class ActiveTimelineInstantBatcherTest {
     // Parse and convert to Instant
     return Instant.from(formatter.parse(dateTime));
   }
+  private static Instant parseToInstant2(String dateTime) {
+    // Use the built-in ISO_INSTANT formatter for parsing ISO 8601 dates
+    return Instant.parse(dateTime);
+  }
+
 }

@@ -158,6 +158,7 @@ public class ActiveTimelineInstantBatcher {
           groupSize = 1;
         } else {
           shouldStopIteration = true;
+          lastUnprocessedFile = instant1.getTimestamp();
         }
       }
 
