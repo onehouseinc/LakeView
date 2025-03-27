@@ -1,5 +1,6 @@
 package ai.onehouse.metadata_extractor;
 
+import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.getActiveTimeLineInstant;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
@@ -7,17 +8,33 @@ import static org.mockito.Mockito.when;
 import ai.onehouse.config.Config;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import ai.onehouse.metadata_extractor.models.Checkpoint;
 import ai.onehouse.storage.models.File;
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -64,9 +81,11 @@ class ActiveTimelineInstantBatcherTest {
         Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
+
+
 
   @Test
   void testIncompleteInitialCommit() {
@@ -82,7 +101,7 @@ class ActiveTimelineInstantBatcherTest {
         Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -118,7 +137,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("333.clean.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -151,7 +170,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.compaction.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -180,7 +199,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.savepoint"), generateFileObj("222.savepoint.inflight")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -211,7 +230,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.clean.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -245,7 +264,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.clean.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -279,7 +298,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.clean.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -313,7 +332,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("555.rollback.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -347,7 +366,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("444.savepoint"), generateFileObj("444.savepoint.inflight")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -381,7 +400,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("555.inflight")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -414,7 +433,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("333.clean.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -444,7 +463,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("333.clean.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -468,7 +487,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("111.inflight")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -491,7 +510,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("111.inflight")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -513,7 +532,7 @@ class ActiveTimelineInstantBatcherTest {
   @MethodSource("createBatchTestCases")
   void testCreateBatchJustHoodieProperties(List<File> instants, List<List<File>> expectedBatches) {
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(instants, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(instants, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -534,10 +553,228 @@ class ActiveTimelineInstantBatcherTest {
       List<List<File>> expectedBatches,
       Checkpoint inputCheckpoint,
       String expectedFirstIncompleteCommit) {
-    Pair<String, List<List<File>>> incompleteCommitBatchesPair =
+    Triple<String, List<List<File>>, String> incompleteCommitBatchesPair =
         activeTimelineInstantBatcher.createBatches(inputFiles, 4, inputCheckpoint);
-    assertEquals(expectedBatches, incompleteCommitBatchesPair.getRight());
+    assertEquals(expectedBatches, incompleteCommitBatchesPair.getMiddle());
     assertEquals(expectedFirstIncompleteCommit, incompleteCommitBatchesPair.getLeft());
+  }
+
+  Instant convert(String t) {
+    //String dateTimeString = "2024-10-14 07:39:50";
+
+    // Define the formatter matching the input string format
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    // Parse the string to LocalDateTime
+    LocalDateTime localDateTime = LocalDateTime.parse(t, formatter);
+
+    // Convert to Instant using UTC (ZoneOffset.UTC)
+    Instant instant = localDateTime.toInstant(ZoneOffset.UTC);
+    return instant;
+  }
+
+  @Tag("Blocking")
+  @Test
+  void test() {
+    String filePath = "/Users/karanmittal/Documents/Repos/LakeView/lakeview/src/test/resources/debug/cndr.txt";
+    List<String> entries = new ArrayList<>();
+    List<File> files = new ArrayList<>();
+
+    int misCount = 0;
+    try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+      String line;
+      while ((line = br.readLine()) != null) {
+        // Split the line by spaces
+        String[] parts = line.trim().split("\\s+");
+        if (parts.length >= 3) {
+          // Extract the date (first two parts) and the file name (last part)
+          String date = parts[0] + " " + parts[1];
+          String fileName = parts[3];
+          System.out.println("Date: " + date + ", File Name: " + fileName);
+          entries.add("Date: " + date + ", File Name: " + fileName);
+          File f = File.builder().filename(fileName).isDirectory(false).lastModifiedAt(convert(date)).build();
+          files.add(f);
+
+          String timestamp = getFileTimestamp(fileName);
+          DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+          LocalDateTime localDateTime = LocalDateTime.parse(timestamp, formatter);
+          Instant instant1 = localDateTime.toInstant(ZoneOffset.UTC);
+//          DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+//          LocalDateTime localDateTime2 = LocalDateTime.parse(timestamp, formatter2);
+//          Instant instant2 = localDateTime2.toInstant(ZoneOffset.UTC);
+
+          Duration duration = Duration.between(convert(date), instant1);
+
+          // Check if the difference is more than 2 days
+          long daysDifference = Math.abs(duration.toDays());
+          if (daysDifference > 1) {
+            misCount++;
+          }
+
+        }
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    //Checkpoint cp = getCP2();
+    List<File> truncatedFIles = files.subList(0, files.size());
+    Triple<String, List<List<File>>, String> actualBatches =
+        activeTimelineInstantBatcher.createBatches(truncatedFIles, 4, getCP2());
+    List<List<File>> batches = actualBatches.getMiddle();
+    String cp = actualBatches.getLeft();
+    System.out.println(batches);
+    // 0 ... 1000 -> firstIncomplete = 0th
+    // 1001 ... 2000
+    // 2001 ... 3000
+    System.out.println(cp);
+  }
+
+  String getFileTimestamp(String fileName) {
+    String timestamp = fileName.split("\\.")[0];
+    timestamp = timestamp.substring(0, 14);
+    return timestamp;
+  }
+
+
+  @Tag("Blocking")
+  @Test
+  void test2() {
+    //String fName = "core_job_hoodie";//"apna2";
+    String fName = "apna2";//"apna2";
+
+    boolean datePattern = fName.equals("apna2") || fName.equals("apna2");
+
+    String filePath = String.format("/Users/karanmittal/Documents/Repos/LakeView/lakeview/src/test/resources/debug/%s.txt", fName);  // Replace with your file path
+    List<File> files = new ArrayList<>();
+    int count = 0;
+    int misCount = 0;
+    int misCount2 = 0;
+    long maxMiss = 0;
+    List<String> missedFiles = new ArrayList<>();
+    Checkpoint startCp = getCP3(false);
+    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+      String line;
+      String filePathLine = null;
+      String creationTime = null;
+      String updateTime = null;
+
+      // Patterns for matching lines
+      Pattern filePathPattern = Pattern.compile("^gs://prod-apna-data/(.+):$");
+
+      Pattern creationTimePattern = Pattern.compile("Creation Time:\\s+(\\S+)");
+      Pattern updateTimePattern = Pattern.compile("Update Time:\\s+(\\S+)");
+
+      if (datePattern) {
+        creationTimePattern = Pattern.compile("Creation time:\\s*(.*)");
+        updateTimePattern = Pattern.compile("Update time:\\s*(.*)");
+      }
+
+
+      while ((line = reader.readLine()) != null) {
+        line = line.trim();
+        // Check for file path line
+        Matcher filePathMatcher = filePathPattern.matcher(line);
+        if (filePathMatcher.find()) {
+          count++;
+          filePathLine = "data/" + filePathMatcher.group(1); // Format the path as requested
+        }
+
+        // Check for creation time line
+        Matcher creationMatcher = creationTimePattern.matcher(line);
+        if (creationMatcher.find()) {
+          creationTime = creationMatcher.group(1);
+        }
+
+        // Check for first update time line
+        Matcher updateMatcher = updateTimePattern.matcher(line);
+        if (updateMatcher.find() && updateTime == null) {  // Capture only the first Update Time
+          updateTime = updateMatcher.group(1);
+        }
+
+//        if(fName.equals("apna2")) {
+//          if (line.startsWith("Creation time:")) {
+//            creationTime = line.split(":")[1].trim();
+//          }
+//
+//          if (line.startsWith("Update time:")) {
+//            updateTime = line.split(":")[1].trim();
+//          }
+//        }
+
+
+        // Print and reset data at the end of each block (empty line signals end of current block)
+        if (filePathLine != null && creationTime != null && updateTime != null) {
+          String fileName = filePathLine.substring(filePathLine.lastIndexOf('/') + 1);
+          //if (fileName.equals(
+          System.out.println(filePathLine.substring(filePathLine.lastIndexOf('/') + 1) + " | Creation Time: " + creationTime + " | Update Time: " + updateTime);
+          File f = File.builder().filename(fileName).isDirectory(false).lastModifiedAt(parseToInstant(creationTime)).build();
+
+          if (getActiveTimeLineInstant(f.getFilename()).getTimestamp()
+              .compareTo(startCp.getLastUploadedFile()) > 0) {
+            files.add(f);
+            if (!creationTime.equals(updateTime)) {
+              misCount++;
+              missedFiles.add(fileName);
+            }
+          }
+
+          String timestamp = getFileTimestamp(fileName);
+          DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+          LocalDateTime localDateTime = LocalDateTime.parse(timestamp, formatter);
+          Instant instant1 = localDateTime.toInstant(ZoneOffset.UTC);
+          Duration duration = Duration.between(parseToInstant(creationTime), instant1);
+          // Check if the difference is more than 2 days
+          long daysDifference = Math.abs(duration.toMillis());
+          maxMiss = Math.max(maxMiss, daysDifference);
+          if (daysDifference/(1000*60*60*24)  > 1) {
+            misCount2++;
+          }
+
+          filePathLine = null;
+          creationTime = null;
+          updateTime = null;
+
+
+        }
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    System.out.println(misCount);
+    List<File> truncatedFIles = files.subList(0, files.size());
+    Triple<String, List<List<File>>, String> actualBatches =
+        activeTimelineInstantBatcher.createBatches(truncatedFIles, 20, startCp);
+    List<List<File>> batches = actualBatches.getMiddle();
+    String cp = actualBatches.getLeft();
+    System.out.println(batches);
+    long sum =  batches.stream()
+        .mapToInt(List::size)
+        .sum();
+    // 0 ... 1000 -> firstIncomplete = 0th
+    // 1001 ... 2000
+    // 2001 ... 3000
+    System.out.println(cp);
+    System.out.println(missedFiles);
+
+
+    // xyx
+    // xyz.requested
+    // xyz.inflight
+
+
+    //Checkpoint cp = getCP2();
+//    List<File> truncatedFIles = files.subList(0, files.size());
+//    Pair<String, List<List<File>>> actualBatches =
+//        activeTimelineInstantBatcher.createBatches(truncatedFIles, 4, getCP2());
+//    List<List<File>> batches = actualBatches.getMiddle();
+//    String cp = actualBatches.getLeft();
+//    System.out.println(batches);
+//    // 0 ... 1000 -> firstIncomplete = 0th
+//    // 1001 ... 2000
+//    // 2001 ... 3000
+//    System.out.println(cp);
   }
 
   static Stream<Arguments> createNonBlockingModeTestCases() {
@@ -636,4 +873,43 @@ class ActiveTimelineInstantBatcherTest {
         .archivedCommitsProcessed(true)
         .build();
   }
+
+  static Checkpoint getCP2() {
+    Instant instant = Instant.ofEpochSecond(1728954815);
+    return Checkpoint.builder()
+        .checkpointTimestamp(instant)
+        .batchId(0)
+        .lastUploadedFile("20241015011323784.deltacommit")
+        .firstIncompleteCommitFile("")
+        .archivedCommitsProcessed(true)
+        .build();
+  }
+  // 20241019044830704
+
+  static Checkpoint getCP3(boolean filter) {
+    Instant instant = Instant.EPOCH;
+    if (filter) {
+      instant = Instant.ofEpochSecond(1721020388); //Monday, July 15, 2024 5:13:08 AM
+    }
+    return Checkpoint.builder()
+        .checkpointTimestamp(instant)
+        .batchId(0)
+        .lastUploadedFile("20240715011323784.deltacommit")
+        .firstIncompleteCommitFile("")
+        .archivedCommitsProcessed(true)
+        .build();
+  }
+
+  private static Instant parseToInstant(String dateTime) {
+    // Define the formatter for parsing the date string
+    DateTimeFormatter formatter =  DateTimeFormatter
+        .ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
+    // Parse and convert to Instant
+    return Instant.from(formatter.parse(dateTime));
+  }
+  private static Instant parseToInstant2(String dateTime) {
+    // Use the built-in ISO_INSTANT formatter for parsing ISO 8601 dates
+    return Instant.parse(dateTime);
+  }
+
 }

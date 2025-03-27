@@ -15,6 +15,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Arrays;
 import javax.annotation.Nonnull;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -41,6 +42,7 @@ public class GcsClientProvider {
     logger.debug("Instantiating GCS storage client");
     validateGcsConfig(gcsConfig);
 
+    String targetServiceAccount = "onehouse-core-sa-fffeab52@apnatime-onehouse.iam.gserviceaccount.com";
     // Use Google Default ADC if serviceAccountJson not provided
     // https://cloud.google.com/docs/authentication/provide-credentials-adc
     if (gcsConfig.getGcpServiceAccountKeyPath().isPresent()) {
@@ -60,6 +62,16 @@ public class GcsClientProvider {
           storageOptionsBuilder.setCredentials(GoogleCredentials.fromStream(serviceAccountStream));
         }
 
+        ImpersonatedCredentials impersonatedCredentials = ImpersonatedCredentials.create(
+            GoogleCredentials.fromStream(serviceAccountStream),
+            targetServiceAccount,
+            null, // Delegate accounts if needed (optional)
+            Arrays.asList("https://www.googleapis.com/auth/cloud-platform"),
+            3600 // Lifetime of the impersonated token in seconds (max 3600 seconds)
+        );
+
+        storageOptionsBuilder.setCredentials(impersonatedCredentials);
+        // storageOptionsBuilder.setCredentials(GoogleCredentials.fromStream(serviceAccountStream));
         if (gcsConfig.getProjectId().isPresent()) {
           storageOptionsBuilder.setProjectId(gcsConfig.getProjectId().get());
         }
