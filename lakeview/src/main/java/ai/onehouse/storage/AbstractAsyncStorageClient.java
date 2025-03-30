@@ -1,10 +1,13 @@
 package ai.onehouse.storage;
 
+import ai.onehouse.exceptions.ObjectStorageClientException;
 import ai.onehouse.storage.models.File;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -29,18 +32,21 @@ public abstract class AbstractAsyncStorageClient implements AsyncStorageClient {
   }
 
   protected CompletableFuture<List<File>> listAllObjectsStorage(
-      String bucketName, String prefix, String continuationToken, List<File> files) {
+    String bucketName, String prefix, String continuationToken, List<File> files) {
     return fetchObjectsByPage(bucketName, prefix, continuationToken, null)
-        .thenComposeAsync(
-            continuationTokenAndFiles -> {
-              String newContinuationToken = continuationTokenAndFiles.getLeft();
-              files.addAll(continuationTokenAndFiles.getRight());
-              if (newContinuationToken != null) {
-                return listAllObjectsStorage(bucketName, prefix, newContinuationToken, files);
-              } else {
-                return CompletableFuture.completedFuture(files);
-              }
-            },
-            executorService);
+      .thenComposeAsync(
+        continuationTokenAndFiles -> {
+          String newContinuationToken = continuationTokenAndFiles.getLeft();
+          files.addAll(continuationTokenAndFiles.getRight());
+          if (newContinuationToken != null) {
+            return listAllObjectsStorage(bucketName, prefix, newContinuationToken, files);
+          } else {
+            return CompletableFuture.completedFuture(files);
+          }
+        },
+        executorService).exceptionally(throwable -> {
+        log.error("Failed to list objects from storage", throwable);
+        throw new ObjectStorageClientException(throwable);
+      });
   }
 }
