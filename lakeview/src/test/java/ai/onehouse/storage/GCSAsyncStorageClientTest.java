@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import ai.onehouse.exceptions.ObjectStorageClientException;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.Blob;
@@ -22,6 +23,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +58,7 @@ class GCSAsyncStorageClientTest {
   }
 
   @Test
-  void testListAllFilesInDir() throws ExecutionException, InterruptedException {
+  void testListAllFilesInDir() {
     String fileName = "file1";
     String dirName = "dir1/";
     String pageToken = "page_2";
@@ -65,7 +67,8 @@ class GCSAsyncStorageClientTest {
             TEST_BUCKET,
             Storage.BlobListOption.prefix(TEST_KEY + "/"),
             Storage.BlobListOption.delimiter("/")))
-        .thenReturn(mockPage1);
+        .thenReturn(mockPage1)
+      .thenThrow(new RuntimeException("error-message"));
     when(mockGcsClient.list(
             TEST_BUCKET,
             Storage.BlobListOption.prefix(TEST_KEY + "/"),
@@ -83,7 +86,7 @@ class GCSAsyncStorageClientTest {
     when(mockBlob2.isDirectory()).thenReturn(true);
     when(mockBlob1.getUpdateTime()).thenReturn(0L);
 
-    List<File> result = gcsAsyncStorageClient.listAllFilesInDir(GCS_URI).get();
+    List<File> result = gcsAsyncStorageClient.listAllFilesInDir(GCS_URI).join();
 
     List<File> expectedFiles =
         Arrays.asList(
@@ -99,14 +102,21 @@ class GCSAsyncStorageClientTest {
                 .build());
 
     assertEquals(expectedFiles, result);
+    CompletionException exception = assertThrows(CompletionException.class, gcsAsyncStorageClient.listAllFilesInDir(GCS_URI)::join);
+    assertInstanceOf(ObjectStorageClientException.class, exception.getCause());
   }
 
   @Test
-  void testReadBlob() throws ExecutionException, InterruptedException, IOException {
-    when(mockGcsClient.get(BlobId.of(TEST_BUCKET, TEST_KEY))).thenReturn(mockBlob1);
+  void testReadBlob() {
+    when(mockGcsClient.get(BlobId.of(TEST_BUCKET, TEST_KEY)))
+      .thenReturn(mockBlob1)
+      .thenThrow(new RuntimeException("some-error"));
 
-    Blob blob = gcsAsyncStorageClient.readBlob(GCS_URI).get();
+    Blob blob = gcsAsyncStorageClient.readBlob(GCS_URI).join();
     assertNotNull(blob);
+
+    CompletionException exception = assertThrows(CompletionException.class, gcsAsyncStorageClient.readBlob(GCS_URI)::join);
+    assertInstanceOf(ObjectStorageClientException.class, exception.getCause());
   }
 
   @Test
