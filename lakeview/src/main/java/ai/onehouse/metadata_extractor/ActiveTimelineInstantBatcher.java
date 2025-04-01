@@ -188,7 +188,6 @@ public class ActiveTimelineInstantBatcher {
       BigInteger decrementedNumber = number.subtract(BigInteger.ONE);
       return decrementedNumber.toString();
     } catch (NumberFormatException ex) {
-      System.out.println("test");
       return "";
     }
 
