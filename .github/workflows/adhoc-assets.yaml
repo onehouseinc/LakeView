@@ -7,7 +7,7 @@ on:
 jobs:
   generate-tags:
     if: contains(github.event.review.body, '/push-image') || contains(github.event.review.body, '/push-jar')
-    runs-on: ubuntu-latest
+    runs-on: arc-4-cores-spot-staging-arm
     outputs:
       tags: ${{ steps.tags.outputs.tags }}
     steps:

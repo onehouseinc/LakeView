@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: arc-4-cores-ondemand-staging-arm
 
     steps:
       - name: Fail if image tags is empty
