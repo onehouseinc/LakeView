@@ -215,7 +215,7 @@ public class TimelineCommitInstantsUploader {
                           }
                           if (StringUtils.isBlank(nextContinuationToken)) {
                             log.info(
-                                "Reached end of instants in {} for table {}",
+                                "Reached end of instants in {} for table {} in last page",
                                 commitTimelineType,
                                 table);
                             hudiMetadataExtractorMetrics.incrementTablesProcessedCounter();
@@ -465,7 +465,7 @@ public class TimelineCommitInstantsUploader {
       Optional<Long> maxLastModified = uploadedFiles.stream()
           .map(UploadedFile::getLastModifiedAt)
           .max(Long::compare);
-      if (maxLastModified.isPresent()) {
+      if (maxLastModified.isPresent() && maxLastModified.get() > lastModified.toEpochMilli()) {
         // max of last modified time so that this can be used to filter out the processed commits
         lastModified = Instant.ofEpochMilli(maxLastModified.get());
       }
@@ -658,7 +658,8 @@ public class TimelineCommitInstantsUploader {
       return null;
     }
 
-    // Extractor blocks on incomplete commits, startAfter is the last processed file
+    // In case of blocking on incomplete commit, we always start from the last processed file
+    // otherwise, we start from the lastUnprocessedFile file if present after the first fetch
     if (extractorConfig
         .getUploadStrategy()
         .equals(MetadataExtractorConfig.UploadStrategy.BLOCK_ON_INCOMPLETE_COMMIT)
