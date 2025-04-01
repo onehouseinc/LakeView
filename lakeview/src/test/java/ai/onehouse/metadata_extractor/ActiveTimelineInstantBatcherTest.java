@@ -17,7 +17,7 @@ import java.util.stream.Stream;
 
 import ai.onehouse.metadata_extractor.models.Checkpoint;
 import ai.onehouse.storage.models.File;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -64,7 +64,7 @@ class ActiveTimelineInstantBatcherTest {
         Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -82,7 +82,7 @@ class ActiveTimelineInstantBatcherTest {
         Arrays.asList(Collections.singletonList(generateFileObj("hoodie.properties")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -118,7 +118,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("333.clean.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -151,7 +151,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.compaction.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -180,7 +180,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.savepoint"), generateFileObj("222.savepoint.inflight")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -211,7 +211,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.clean.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -245,7 +245,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.clean.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -279,7 +279,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("222.clean.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -313,7 +313,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("555.rollback.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -347,7 +347,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("444.savepoint"), generateFileObj("444.savepoint.inflight")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -381,7 +381,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("555.inflight")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -414,7 +414,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("333.clean.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -444,7 +444,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("333.clean.requested")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -468,7 +468,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("111.inflight")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -491,7 +491,7 @@ class ActiveTimelineInstantBatcherTest {
                 generateFileObj("111.inflight")));
 
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -513,7 +513,7 @@ class ActiveTimelineInstantBatcherTest {
   @MethodSource("createBatchTestCases")
   void testCreateBatchJustHoodieProperties(List<File> instants, List<List<File>> expectedBatches) {
     List<List<File>> actualBatches =
-        activeTimelineInstantBatcher.createBatches(instants, 4, getCheckpoint()).getRight();
+        activeTimelineInstantBatcher.createBatches(instants, 4, getCheckpoint()).getMiddle();
     assertEquals(expectedBatches, actualBatches);
   }
 
@@ -534,9 +534,9 @@ class ActiveTimelineInstantBatcherTest {
       List<List<File>> expectedBatches,
       Checkpoint inputCheckpoint,
       String expectedFirstIncompleteCommit) {
-    Pair<String, List<List<File>>> incompleteCommitBatchesPair =
+    Triple<String, List<List<File>>, String> incompleteCommitBatchesPair =
         activeTimelineInstantBatcher.createBatches(inputFiles, 4, inputCheckpoint);
-    assertEquals(expectedBatches, incompleteCommitBatchesPair.getRight());
+    assertEquals(expectedBatches, incompleteCommitBatchesPair.getMiddle());
     assertEquals(expectedFirstIncompleteCommit, incompleteCommitBatchesPair.getLeft());
   }
 

@@ -52,6 +52,7 @@ import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -117,6 +118,7 @@ class TimelineCommitInstantsUploaderTest {
     timelineCommitInstantsUploader = getTimelineCommitInstantsUploader(testInfo);
   }
 
+  @Tag("Blocking")
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void testUploadInstantsInArchivedTimeline(boolean continueFromCheckpoint) {
@@ -583,6 +585,7 @@ class TimelineCommitInstantsUploaderTest {
         Arguments.of(false, true));
   }
 
+  @Tag("Blocking")
   @Test
   void testUploadInstantsInEmptyActiveTimelineWhenArchivedTimelineNotPresent() {
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
@@ -644,6 +647,7 @@ class TimelineCommitInstantsUploaderTest {
     assertEquals(checkpoint1, response);
   }
 
+  @Tag("Blocking")
   @Test
   void testUploadInstantsInActiveTimelineWithOnlySavepoint() {
     TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
@@ -870,6 +874,7 @@ class TimelineCommitInstantsUploaderTest {
             MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
   }
 
+  @Tag("Blocking")
   @Test
   @SneakyThrows
   void testUploadInstantFailureWhenUpdatingCheckpoint() {
@@ -1116,7 +1121,7 @@ class TimelineCommitInstantsUploaderTest {
                     }))
             .collect(Collectors.toList());
     when(activeTimelineInstantBatcher.createBatches(sortedFiles, 4, inputCheckpoint))
-        .thenReturn(Pair.of(firstIncompleteCommit, expectedBatches));
+        .thenReturn(Triple.of(firstIncompleteCommit, expectedBatches, ""));
   }
 
   private String addPrefixToFileName(String fileName, CommitTimelineType commitTimelineType) {
