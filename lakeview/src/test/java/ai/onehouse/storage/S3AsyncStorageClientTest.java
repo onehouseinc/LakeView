@@ -127,7 +127,7 @@ class S3AsyncStorageClientTest {
   }
 
   @Test
-  void testReadFileAsBytes() throws ExecutionException, InterruptedException, IOException {
+  void testReadFileAsBytes() throws ExecutionException, InterruptedException {
     byte[] fileContent = "file content".getBytes(StandardCharsets.UTF_8);
 
     stubReadFileFromS3(fileContent);
@@ -191,7 +191,7 @@ class S3AsyncStorageClientTest {
 
   @MockitoSettings(strictness = Strictness.LENIENT)
   @Test
-  void testfetchObjectsByPageWithS3RateLimiting() {
+  void testFetchObjectsByPageWithS3RateLimiting() {
     when(mockS3AsyncClient.listObjectsV2(any(ListObjectsV2Request.class)))
             .thenReturn(buildS3Exception());
 
@@ -211,7 +211,7 @@ class S3AsyncStorageClientTest {
             cause.getMessage());
   }
 
-  private void stubStreamFileFromS3(byte[] fileContent, long contentLength) throws IOException {
+  private void stubStreamFileFromS3(byte[] fileContent, long contentLength) {
     GetObjectRequest expectedRequest =
         GetObjectRequest.builder().bucket(TEST_BUCKET).key(TEST_KEY).build();
 

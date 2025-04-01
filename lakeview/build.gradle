@@ -51,6 +51,7 @@ dependencies {
     implementation 'software.amazon.awssdk:s3'
     implementation 'software.amazon.awssdk:sso'
     implementation 'software.amazon.awssdk:sts'
+    implementation 'software.amazon.awssdk:netty-nio-client'
     implementation ('com.google.cloud:google-cloud-storage:2.12.0') {
         exclude group: "com.google.protobuf", module: "protobuf-java"
         exclude group: "com.google.protobuf", module: "protobuf-java-utils"

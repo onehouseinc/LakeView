@@ -1,5 +1,6 @@
 package ai.onehouse.storage;
 
+import ai.onehouse.exceptions.ObjectStorageClientException;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -58,7 +59,7 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
           Page<Blob> blobs =
               gcsClientProvider
                   .getGcsClient()
-                  .list(bucketName, optionList.stream().toArray(Storage.BlobListOption[]::new));
+                  .list(bucketName, optionList.toArray(new Storage.BlobListOption[0]));
           List<File> files = new ArrayList<>();
           for (Blob blob : blobs.getValues()) {
             files.add(
@@ -72,7 +73,12 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
           String nextPageToken = blobs.hasNextPage() ? blobs.getNextPageToken() : null;
           return Pair.of(nextPageToken, files);
         },
-        executorService);
+      executorService).exceptionally(
+      ex -> {
+        log.error("Failed to fetch objects by page", ex);
+        throw new ObjectStorageClientException(ex);
+      }
+    );
   }
 
   @VisibleForTesting
@@ -90,10 +96,15 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
           if (blob != null) {
             return blob;
           } else {
-            throw new RuntimeException("Blob not found");
+            throw new ObjectStorageClientException("Blob not found");
           }
         },
-        executorService);
+        executorService).exceptionally(
+      ex -> {
+        log.error("Failed to read blob", ex);
+        throw new ObjectStorageClientException(ex);
+      }
+    );
   }
 
   @Override

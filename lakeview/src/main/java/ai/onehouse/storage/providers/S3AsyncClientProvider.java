@@ -5,6 +5,8 @@ import com.google.inject.Inject;
 import ai.onehouse.config.Config;
 import ai.onehouse.config.models.common.FileSystemConfiguration;
 import ai.onehouse.config.models.common.S3Config;
+
+import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -17,6 +19,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.SdkAdvancedAsyncClientOption;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
@@ -45,33 +48,37 @@ public class S3AsyncClientProvider {
     if (s3Config.getAccessKey().isPresent() && s3Config.getAccessSecret().isPresent()) {
       logger.debug("Using provided accessKey and accessSecret for authentication");
       AwsBasicCredentials awsCredentials =
-          AwsBasicCredentials.create(
-              s3Config.getAccessKey().get(), s3Config.getAccessSecret().get());
+        AwsBasicCredentials.create(
+          s3Config.getAccessKey().get(), s3Config.getAccessSecret().get());
       s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(awsCredentials));
-    } else if(s3Config.getArnToImpersonate().isPresent()) {
+    } else if (s3Config.getArnToImpersonate().isPresent()) {
       // Assume role of Destination ARN
       try (StsClient stsClient = StsClient.builder()
-          .region(Region.of(s3Config.getRegion()))
-          .build()) {
+        .region(Region.of(s3Config.getRegion()))
+        .build()) {
         AssumeRoleRequest assumeRoleRequest = AssumeRoleRequest.builder()
-            .roleArn(s3Config.getArnToImpersonate().get())
-            .roleSessionName(String.format("S3AsyncClientSession-%s", extractAccountIdFromArn(s3Config.getArnToImpersonate().get())))
-            .build();
+          .roleArn(s3Config.getArnToImpersonate().get())
+          .roleSessionName(String.format("S3AsyncClientSession-%s", extractAccountIdFromArn(s3Config.getArnToImpersonate().get())))
+          .build();
         AssumeRoleResponse assumeRoleResponse = stsClient.assumeRole(assumeRoleRequest);
         AwsSessionCredentials tempCredentials = AwsSessionCredentials.create(
-            assumeRoleResponse.credentials().accessKeyId(),
-            assumeRoleResponse.credentials().secretAccessKey(),
-            assumeRoleResponse.credentials().sessionToken()
+          assumeRoleResponse.credentials().accessKeyId(),
+          assumeRoleResponse.credentials().secretAccessKey(),
+          assumeRoleResponse.credentials().sessionToken()
         );
         s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(tempCredentials));
       }
     }
 
     return s3AsyncClientBuilder
-        .region(Region.of(s3Config.getRegion()))
-        .asyncConfiguration(
-            builder ->
-                builder.advancedOption(
+      .httpClient(NettyNioAsyncHttpClient.builder()
+        .maxConcurrency(100)
+        .connectionTimeout(Duration.ofSeconds(30L))
+        .build())
+      .region(Region.of(s3Config.getRegion()))
+      .asyncConfiguration(
+        builder ->
+          builder.advancedOption(
                     SdkAdvancedAsyncClientOption.FUTURE_COMPLETION_EXECUTOR, executorService))
         .build();
   }
