@@ -458,7 +458,7 @@ public class TimelineCommitInstantsUploader {
     // then last uploaded file stays the same
     // 2. Last modified time needs to be the max of all the files uploaded in the batch
     if (extractorConfig.getUploadStrategy().equals(MetadataExtractorConfig.UploadStrategy.CONTINUE_ON_INCOMPLETE_COMMIT)) {
-      if (!(previousCheckpoint.getLastUploadedFile().compareTo(lastUploadedFile.getFilename()) < 0)) {
+      if (previousCheckpoint.getLastUploadedFile().compareTo(lastUploadedFile.getFilename()) >= 0) {
         // if previous checkpoint last uploaded file is greater than or equal to the current last uploaded file
         lastUploadedFileActual = previousCheckpoint.getLastUploadedFile();
       }
