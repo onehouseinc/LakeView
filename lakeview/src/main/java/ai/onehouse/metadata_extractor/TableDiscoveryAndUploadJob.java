@@ -1,5 +1,11 @@
 package ai.onehouse.metadata_extractor;
 
+import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
+import com.cronutils.model.Cron;
+import com.cronutils.model.CronType;
+import com.cronutils.model.definition.CronDefinitionBuilder;
+import com.cronutils.model.time.ExecutionTime;
+import com.cronutils.parser.CronParser;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import ai.onehouse.config.Config;
@@ -7,7 +13,9 @@ import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,6 +34,7 @@ public class TableDiscoveryAndUploadJob {
 
   private Set<Table> tablesToProcess;
   private Instant previousTableMetadataUploadRunStartTime = Instant.EPOCH;
+  private final Instant firstCronRunStartTime;
 
   @Inject
   public TableDiscoveryAndUploadJob(
@@ -36,6 +45,7 @@ public class TableDiscoveryAndUploadJob {
     this.tableDiscoveryService = tableDiscoveryService;
     this.tableMetadataUploaderService = tableMetadataUploaderService;
     this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
+    this.firstCronRunStartTime = Instant.now();
   }
 
   /*
@@ -62,7 +72,11 @@ public class TableDiscoveryAndUploadJob {
    * Runs table discovery followed by metadata uploader once
    */
   public void runOnce() {
-    log.info("Running metadata-extractor one time");
+    runOnce(null, 1);
+  }
+
+  public void runOnce(Config config, int runCounter) {
+    log.info("Running metadata-extractor one time starting at: {}", firstCronRunStartTime);
     Boolean isSucceeded =
         tableDiscoveryService
             .discoverTables()
@@ -72,7 +86,35 @@ public class TableDiscoveryAndUploadJob {
       log.info("Run Completed");
     } else {
       log.error("Run failed");
+      if (config != null &&
+          config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE_PULL_MODEL)
+          && shouldRunAgainForRunOnceConfiguration(config)
+          && runCounter < config.getMetadataExtractorConfig().getMaxRunCountForPullModel()) {
+        log.info("Retrying job: Attempt {}/{} after waiting {} minutes",
+            runCounter + 1,
+            config.getMetadataExtractorConfig().getMaxRunCountForPullModel(),
+            config.getMetadataExtractorConfig().getWaitTimeRetryForPullModel());
+        try {
+          Thread.sleep( config.getMetadataExtractorConfig().getWaitTimeRetryForPullModel() * 60 * 1000);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          log.warn("Retry wait interrupted, proceeding with retry immediately");
+        }
+        runOnce(config, runCounter + 1);
+      }
     }
+  }
+
+  @VisibleForTesting
+  boolean shouldRunAgainForRunOnceConfiguration(Config config) {
+    Cron cron = new CronParser((CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX))).parse(config.getMetadataExtractorConfig().getCronScheduleForPullModel());
+    ExecutionTime executionTime = ExecutionTime.forCron(cron);
+    Optional<ZonedDateTime> nextExecutionTime = executionTime.nextExecution(ZonedDateTime.from(firstCronRunStartTime));
+    if (nextExecutionTime.isPresent() && Duration.between(firstCronRunStartTime, nextExecutionTime.get().toInstant()).toMinutes() < 30) {
+      log.info("Stopping the job as next scheduled run is less than 30 minutes away");
+      return false;
+    }
+    return true;
   }
 
   private void discoverTables() {
