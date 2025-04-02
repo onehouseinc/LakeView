@@ -17,4 +17,6 @@ public interface AsyncStorageClient {
       String bucketName, String prefix, String continuationToken, String startAfter);
 
   void refreshClient();
+
+  void initializeClient();
 }

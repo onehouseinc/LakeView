@@ -157,11 +157,21 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         && AwsErrorCode.isThrottlingErrorCode(((AwsServiceException) wrappedException).awsErrorDetails().errorCode())){
         return new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
     }
+    if (wrappedException instanceof  AwsServiceException) {
+      AwsServiceException awsServiceException = (AwsServiceException) wrappedException;
+      log.info("Error code s3 client: {}", awsServiceException.awsErrorDetails().errorCode());
+      log.info("Error message s3 client: {}", awsServiceException.awsErrorDetails().errorMessage());
+    }
     return new ObjectStorageClientException(ex);
   }
 
   @Override
   public void refreshClient() {
     s3AsyncClientProvider.refreshClient();
+  }
+
+  @Override
+  public void initializeClient() {
+    s3AsyncClientProvider.getS3AsyncClient();
   }
 }

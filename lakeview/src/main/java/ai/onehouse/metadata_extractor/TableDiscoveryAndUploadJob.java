@@ -14,7 +14,6 @@ import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.HashSet;
@@ -59,6 +58,7 @@ public class TableDiscoveryAndUploadJob {
    */
   public void runInContinuousMode(Config config) {
     log.debug("Running metadata-extractor in continuous mode");
+    asyncStorageClient.initializeClient();
     // Schedule table discovery
     scheduler.scheduleAtFixedRate(
         this::discoverTables,
@@ -78,11 +78,17 @@ public class TableDiscoveryAndUploadJob {
    * Runs table discovery followed by metadata uploader once
    */
   public void runOnce() {
+    asyncStorageClient.initializeClient();
     runOnce(null, 1);
   }
 
+  public void runOnce(Config config) {
+    asyncStorageClient.initializeClient();
+    runOnce(config, 1);
+  }
+
   public void runOnce(Config config, int runCounter) {
-    log.info("Running metadata-extractor one time starting at: {}", firstCronRunStartTime);
+    log.info("Running metadata-extractor starting at: {}", firstCronRunStartTime);
     Boolean isSucceeded =
         tableDiscoveryService
             .discoverTables()
@@ -92,20 +98,22 @@ public class TableDiscoveryAndUploadJob {
       log.info("Run Completed");
     } else {
       log.error("Run failed");
+      // TODO: Emit metrics and alert if this happens more than 3 times in 1 hr (sev1)
+      /*
+      * The retry is done in following known scenarios:
+      * 1. Session token expiry for pull model customer
+      * 2. Temporary network issues, sometimes external api call fails despite client retries
+      * 3, Issues related to throttling of calls to S3/GCS
+      * */
       if (config != null &&
-          config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE_PULL_MODEL)
+          config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE_WITH_RETRY)
           && shouldRunAgainForRunOnceConfiguration(config)
           && runCounter < config.getMetadataExtractorConfig().getMaxRunCountForPullModel()) {
         log.info("Retrying job: Attempt {}/{} after waiting {} minutes",
             runCounter + 1,
             config.getMetadataExtractorConfig().getMaxRunCountForPullModel(),
             config.getMetadataExtractorConfig().getWaitTimeRetryForPullModel());
-        try {
-          Thread.sleep( config.getMetadataExtractorConfig().getWaitTimeRetryForPullModel() * 60 * 1000);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          log.warn("Retry wait interrupted, proceeding with retry immediately");
-        }
+        // Handle client session timeout errors if any
         asyncStorageClient.refreshClient();
         runOnce(config, runCounter + 1);
       }

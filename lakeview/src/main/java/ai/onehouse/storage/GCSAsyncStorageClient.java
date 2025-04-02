@@ -127,4 +127,9 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
   public void refreshClient() {
     gcsClientProvider.refreshClient();
   }
+
+  @Override
+  public void initializeClient() {
+    gcsClientProvider.getGcsClient();
+  }
 }

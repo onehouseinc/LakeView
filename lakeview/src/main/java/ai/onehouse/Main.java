@@ -19,6 +19,7 @@ import ai.onehouse.storage.AsyncStorageClient;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 
 @Slf4j
 public class Main {
@@ -111,10 +112,23 @@ public class Main {
       if (MetadataExtractorConfig.JobRunMode.CONTINUOUS.equals(jobRunMode)) {
         job.runInContinuousMode(config);
       } else {
-        job.runOnce(config, 1);
+        job.runOnce(config);
         shutdown(config);
       }
     } catch (Exception e) {
+      // TODO: Add metric for assume role permission error
+      log.info("Failed to run metadata extractor job {} class {}", e.getMessage(), e.getClass());
+      if (e instanceof AwsServiceException) {
+        AwsServiceException awsServiceException = (AwsServiceException) e;
+        log.info("Error code sts main1: {}", awsServiceException.awsErrorDetails().errorCode());
+        log.info("Error message sts main1: {}", awsServiceException.awsErrorDetails().errorMessage());
+      }
+      Throwable wrappedException = e.getCause();
+      if (wrappedException instanceof AwsServiceException) {
+        AwsServiceException awsServiceException2 = (AwsServiceException) wrappedException;
+        log.info("Error code sts main2: {}", awsServiceException2.awsErrorDetails().errorCode());
+        log.info("Error message sts main2: {}", awsServiceException2.awsErrorDetails().errorMessage());
+      }
       log.error(e.getMessage(), e);
       shutdown(config);
     }
@@ -122,7 +136,8 @@ public class Main {
 
   @VisibleForTesting
   void shutdown(Config config) {
-    if (config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE)) {
+    if (config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE)
+    || config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE_WITH_RETRY)) {
       log.info(String.format("Scheduling JVM shutdown after %d seconds",
           config.getMetadataExtractorConfig().getWaitTimeBeforeShutdown()));
       try {

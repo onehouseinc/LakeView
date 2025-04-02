@@ -56,7 +56,7 @@ public class MetadataExtractorConfig {
   public enum JobRunMode {
     CONTINUOUS,
     ONCE,
-    ONCE_PULL_MODEL
+    ONCE_WITH_RETRY
   }
 
   public enum UploadStrategy {
