@@ -162,6 +162,12 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
       log.info("Error code s3 client: {}", awsServiceException.awsErrorDetails().errorCode());
       log.info("Error message s3 client: {}", awsServiceException.awsErrorDetails().errorMessage());
     }
+
+    if (ex instanceof  AwsServiceException) {
+      AwsServiceException awsServiceException = (AwsServiceException) ex;
+      log.info("Error code s3 client2: {}", awsServiceException.awsErrorDetails().errorCode());
+      log.info("Error message s3 client2: {}", awsServiceException.awsErrorDetails().errorMessage());
+    }
     return new ObjectStorageClientException(ex);
   }
 
