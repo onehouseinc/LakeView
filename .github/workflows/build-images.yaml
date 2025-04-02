@@ -50,7 +50,7 @@ jobs:
       - name: Build images
         run: | 
           cd lakeview 
-          CMD = "docker buildx --platform linux/arm64,linux/amd64 . --push"
+          CMD="docker buildx --platform linux/arm64,linux/amd64 . --push"
           for tag in ${{ inputs.tags }}; do
             CMD+=" -t ${{ secrets.DOCKER_USERNAME }}/lake-view:${tag}"
             if [[ $tag == release-* ]]; then
