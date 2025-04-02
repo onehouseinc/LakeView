@@ -145,7 +145,8 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
       StorageException storageException = (StorageException) wrappedException;
       log.info("Error in gcs2 operation2 : {} on path : {} code : {} message : {}",
           operation, path, storageException.getCode(), storageException.getMessage());
-      if (storageException.getCode() == 403) {
+      if (storageException.getCode() == 403 || storageException.getCode() == 401
+          || storageException.getMessage().equals("Error requesting access token")) {
         return new AccessDeniedException(
             String.format(
                 "AccessDenied for operation : %s on path : %s with message : %s",
