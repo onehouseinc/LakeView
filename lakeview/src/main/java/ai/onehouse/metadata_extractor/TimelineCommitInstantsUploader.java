@@ -206,16 +206,16 @@ public class TimelineCommitInstantsUploader {
                             hudiMetadataExtractorMetrics.incrementTablesProcessedCounter();
                             return CompletableFuture.completedFuture(checkpoint);
                           }
-                          if (StringUtils.isBlank(nextContinuationToken)) {
-                            log.info(
-                                "Reached end of instants in {} for table {}",
-                                commitTimelineType,
-                                table);
-                            hudiMetadataExtractorMetrics.incrementTablesProcessedCounter();
-                            return CompletableFuture.completedFuture(updatedCheckpoint);
-                          }
+//                          if (StringUtils.isBlank(nextContinuationToken)) {
+//                            log.info(
+//                                "Reached end of instants in {} for table {}",
+//                                commitTimelineType,
+//                                table);
+//                            hudiMetadataExtractorMetrics.incrementTablesProcessedCounter();
+//                            return CompletableFuture.completedFuture(updatedCheckpoint);
+//                          }
                           log.info(
-                              "Uploading instants in {} for table {}",
+                              "Uploading more instants in {} for table {}",
                               commitTimelineType,
                               table);
                           try {
