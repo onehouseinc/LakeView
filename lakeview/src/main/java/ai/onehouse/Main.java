@@ -126,6 +126,7 @@ public class Main {
     } catch (Exception e) {
       log.info("Error in runJob message : {} class : {}", e.getMessage(), e.getClass(), e.getCause());
       log.error(e.getMessage(), e);
+    } finally {
       shutdown(config);
     }
   }
