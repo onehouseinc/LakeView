@@ -14,20 +14,20 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - name: Fail if image tags is empty
         if: inputs.tags == ''
         run: exit 1
       - name: Checkout repository (with submodules)
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           token: ${{ github.token }}
           fetch-depth: 0
       - name: Set up JDK 11
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
           java-version: '8'
           distribution: 'adopt'
@@ -43,21 +43,32 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_KEY }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Build images
-        run: cd lakeview && docker build -t lake-view . && cd ..
+        run: | 
+          cd lakeview 
+          CMD="docker buildx --platform linux/arm64,linux/amd64 . --push"
+          for tag in ${{ inputs.tags }}; do
+            CMD+=" -t ${{ secrets.DOCKER_USERNAME }}/lake-view:${tag}"
+            if [[ $tag == release-* ]]; then
+              CMD+=" -t ${{ secrets.DOCKER_USERNAME }}/lake-view:latest"
+            fi
+          done
+          echo "Executing command:"
+          echo "$CMD"
+          eval "$CMD"
+          cd ..
       - name: Tag and push image
         env:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
         run: |
           for input_tag in ${{ inputs.tags }}; do
-            docker tag lake-view:latest ${{ secrets.DOCKER_USERNAME }}/lake-view:$input_tag
-            docker push ${{ secrets.DOCKER_USERNAME }}/lake-view:$input_tag
             cosign sign --key env://COSIGN_PRIVATE_KEY ${{ secrets.DOCKER_USERNAME }}/lake-view:$input_tag -y
-          
             if [[ $input_tag == release-* ]]; then
-              docker tag lake-view:latest ${{ secrets.DOCKER_USERNAME }}/lake-view:latest
-              docker push ${{ secrets.DOCKER_USERNAME }}/lake-view:latest
               cosign sign --key env://COSIGN_PRIVATE_KEY ${{ secrets.DOCKER_USERNAME }}/lake-view:latest -y
             fi
           done
