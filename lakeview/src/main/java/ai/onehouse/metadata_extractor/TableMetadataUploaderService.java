@@ -5,6 +5,7 @@ import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAM
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static ai.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
 import static ai.onehouse.constants.MetadataExtractorConstants.TABLE_PROCESSING_BATCH_SIZE;
+import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -175,7 +176,9 @@ public class TableMetadataUploaderService {
             throwable -> {
               log.error("Encountered exception when uploading instants", throwable);
               hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
-                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+                  getMetadataExtractorFailureReason(
+                      throwable,
+                      MetricsConstants.MetadataUploadFailureReasons.UNKNOWN));
               return false;
             });
   }

@@ -1,5 +1,6 @@
 package ai.onehouse.storage;
 
+import ai.onehouse.exceptions.AccessDeniedException;
 import ai.onehouse.exceptions.ObjectStorageClientException;
 import ai.onehouse.exceptions.RateLimitException;
 import com.google.inject.Inject;
@@ -74,7 +75,6 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         .exceptionally(
             ex -> {
               log.error("Failed to fetch objects by page", ex);
-              log.error("Error message {} and cause: ", ex.getMessage(), ex.getCause());
               throw clientException(ex, "fetchObjectsByPage", bucketName);
             }
         );
@@ -151,22 +151,23 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         .build();
   }
 
-  private RuntimeException clientException(Throwable ex, String operation, String path){
+  @Override
+  protected RuntimeException clientException(Throwable ex, String operation, String path) {
     Throwable wrappedException = ex.getCause();
-    if (wrappedException instanceof AwsServiceException
-        && AwsErrorCode.isThrottlingErrorCode(((AwsServiceException) wrappedException).awsErrorDetails().errorCode())){
-        return new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
-    }
-    if (wrappedException instanceof  AwsServiceException) {
+    log.info("Error in s3 operation : {} on path : {} message : {} class1 : {} class2 : {}",
+        operation, path, ex.getMessage(), ex.getClass(), wrappedException.getClass(), ex.getCause());
+    if (wrappedException instanceof AwsServiceException) {
       AwsServiceException awsServiceException = (AwsServiceException) wrappedException;
-      log.info("Error code s3 client: {}", awsServiceException.awsErrorDetails().errorCode());
-      log.info("Error message s3 client: {}", awsServiceException.awsErrorDetails().errorMessage());
-    }
-
-    if (ex instanceof  AwsServiceException) {
-      AwsServiceException awsServiceException = (AwsServiceException) ex;
-      log.info("Error code s3 client2: {}", awsServiceException.awsErrorDetails().errorCode());
-      log.info("Error message s3 client2: {}", awsServiceException.awsErrorDetails().errorMessage());
+      log.info("AWS Service Exception Message: {} Code : {}",
+          awsServiceException.awsErrorDetails().errorMessage(), awsServiceException.awsErrorDetails().errorCode());
+      if (AwsErrorCode.isThrottlingErrorCode(awsServiceException.awsErrorDetails().errorCode())) {
+        return new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
+      }
+      if (awsServiceException.awsErrorDetails().errorCode().equals("AccessDenied")) {
+        return new AccessDeniedException(
+            String.format("AccessDenied for operation : %s on path : %s with message : %s",
+                operation, path, awsServiceException.awsErrorDetails().errorMessage()));
+      }
     }
     return new ObjectStorageClientException(ex);
   }

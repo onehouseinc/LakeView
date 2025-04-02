@@ -1,5 +1,6 @@
 package ai.onehouse;
 
+import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Guice;
@@ -115,20 +116,15 @@ public class Main {
         job.runOnce(config);
         shutdown(config);
       }
+    } catch (AwsServiceException e) {
+      log.info("Failed to run job with errorCode : {} and errorMessage : {}",
+          e.awsErrorDetails().errorCode(), e.awsErrorDetails().errorMessage());
+      if (e.awsErrorDetails().errorCode().equals("AccessDenied")) {
+        lakeViewExtractorMetrics
+            .incrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons.ACCESS_DENIED);
+      }
     } catch (Exception e) {
-      // TODO: Add metric for assume role permission error
-      log.info("Failed to run metadata extractor job {} class {}", e.getMessage(), e.getClass());
-      if (e instanceof AwsServiceException) {
-        AwsServiceException awsServiceException = (AwsServiceException) e;
-        log.info("Error code sts main1: {}", awsServiceException.awsErrorDetails().errorCode());
-        log.info("Error message sts main1: {}", awsServiceException.awsErrorDetails().errorMessage());
-      }
-      Throwable wrappedException = e.getCause();
-      if (wrappedException instanceof AwsServiceException) {
-        AwsServiceException awsServiceException2 = (AwsServiceException) wrappedException;
-        log.info("Error code sts main2: {}", awsServiceException2.awsErrorDetails().errorCode());
-        log.info("Error message sts main2: {}", awsServiceException2.awsErrorDetails().errorMessage());
-      }
+      log.info("Error in runJob message : {} class : {}", e.getMessage(), e.getClass(), e.getCause());
       log.error(e.getMessage(), e);
       shutdown(config);
     }
