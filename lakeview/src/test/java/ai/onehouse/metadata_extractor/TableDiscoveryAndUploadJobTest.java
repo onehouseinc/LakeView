@@ -165,6 +165,12 @@ class TableDiscoveryAndUploadJobTest {
     verify(mockScheduler).shutdown();
   }
 
+  @Test
+  void testShouldRunAgainForRunOnceConfiguration() {
+    when(config.getMetadataExtractorConfig().getCronScheduleForPullModel()).thenReturn("0 */6 * * *");
+    job.shouldRunAgainForRunOnceConfiguration(config);
+  }
+
   public static <R> CompletableFuture<R> failedFuture(Throwable error) {
     CompletableFuture<R> future = new CompletableFuture<>();
     future.completeExceptionally(error);

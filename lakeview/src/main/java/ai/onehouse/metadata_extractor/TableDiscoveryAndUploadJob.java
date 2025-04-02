@@ -14,6 +14,8 @@ import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.Optional;
@@ -114,7 +116,7 @@ public class TableDiscoveryAndUploadJob {
   boolean shouldRunAgainForRunOnceConfiguration(Config config) {
     Cron cron = new CronParser((CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX))).parse(config.getMetadataExtractorConfig().getCronScheduleForPullModel());
     ExecutionTime executionTime = ExecutionTime.forCron(cron);
-    Optional<ZonedDateTime> nextExecutionTime = executionTime.nextExecution(ZonedDateTime.from(firstCronRunStartTime));
+    Optional<ZonedDateTime> nextExecutionTime = executionTime.nextExecution(firstCronRunStartTime.atZone(ZoneOffset.UTC));
     if (nextExecutionTime.isPresent() && Duration.between(firstCronRunStartTime, nextExecutionTime.get().toInstant()).toMinutes() < 30) {
       log.info("Stopping the job as next scheduled run is less than 30 minutes away");
       return false;
