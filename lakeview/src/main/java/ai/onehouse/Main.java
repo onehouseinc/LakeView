@@ -111,7 +111,7 @@ public class Main {
       if (MetadataExtractorConfig.JobRunMode.CONTINUOUS.equals(jobRunMode)) {
         job.runInContinuousMode(config);
       } else {
-        job.runOnce();
+        job.runOnce(config, 1);
         shutdown(config);
       }
     } catch (Exception e) {

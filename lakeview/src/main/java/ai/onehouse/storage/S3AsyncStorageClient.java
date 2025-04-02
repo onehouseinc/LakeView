@@ -74,6 +74,7 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         .exceptionally(
             ex -> {
               log.error("Failed to fetch objects by page", ex);
+              log.error("Error message {} and cause: ", ex.getMessage(), ex.getCause());
               throw clientException(ex, "fetchObjectsByPage", bucketName);
             }
         );
@@ -157,5 +158,10 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         return new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
     }
     return new ObjectStorageClientException(ex);
+  }
+
+  @Override
+  public void refreshClient() {
+    s3AsyncClientProvider.refreshClient();
   }
 }

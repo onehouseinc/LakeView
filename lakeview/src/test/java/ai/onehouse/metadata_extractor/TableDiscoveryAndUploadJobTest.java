@@ -12,6 +12,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
+
+import ai.onehouse.storage.AsyncStorageClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +36,8 @@ class TableDiscoveryAndUploadJobTest {
 
   @Mock private ScheduledExecutorService mockScheduler;
 
+  @Mock private AsyncStorageClient asyncStorageClient;
+
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private Config config;
 
@@ -49,7 +53,8 @@ class TableDiscoveryAndUploadJobTest {
         new TableDiscoveryAndUploadJob(
             mockTableDiscoveryService,
             mockTableMetadataUploaderService,
-            mockHudiMetadataExtractorMetrics) {
+            mockHudiMetadataExtractorMetrics,
+            asyncStorageClient) {
           @Override
           ScheduledExecutorService getScheduler() {
             return mockScheduler;

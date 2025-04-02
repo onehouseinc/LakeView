@@ -122,4 +122,9 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
   public CompletableFuture<byte[]> readFileAsBytes(String gcsUri) {
     return readBlob(gcsUri).thenApply(Blob::getContent);
   }
+
+  @Override
+  public void refreshClient() {
+    gcsClientProvider.refreshClient();
+  }
 }

@@ -1,6 +1,7 @@
 package ai.onehouse.metadata_extractor;
 
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
+import ai.onehouse.storage.AsyncStorageClient;
 import com.cronutils.model.Cron;
 import com.cronutils.model.CronType;
 import com.cronutils.model.definition.CronDefinitionBuilder;
@@ -31,6 +32,7 @@ public class TableDiscoveryAndUploadJob {
   private final ScheduledExecutorService scheduler;
   private final Object lock = new Object();
   private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
+  private final AsyncStorageClient asyncStorageClient;
 
   private Set<Table> tablesToProcess;
   private Instant previousTableMetadataUploadRunStartTime = Instant.EPOCH;
@@ -40,12 +42,14 @@ public class TableDiscoveryAndUploadJob {
   public TableDiscoveryAndUploadJob(
       @Nonnull TableDiscoveryService tableDiscoveryService,
       @Nonnull TableMetadataUploaderService tableMetadataUploaderService,
-      @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics) {
+      @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics,
+      @Nonnull AsyncStorageClient asyncStorageClient) {
     this.scheduler = getScheduler();
     this.tableDiscoveryService = tableDiscoveryService;
     this.tableMetadataUploaderService = tableMetadataUploaderService;
     this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
     this.firstCronRunStartTime = Instant.now();
+    this.asyncStorageClient = asyncStorageClient;
   }
 
   /*
@@ -100,6 +104,7 @@ public class TableDiscoveryAndUploadJob {
           Thread.currentThread().interrupt();
           log.warn("Retry wait interrupted, proceeding with retry immediately");
         }
+        asyncStorageClient.refreshClient();
         runOnce(config, runCounter + 1);
       }
     }

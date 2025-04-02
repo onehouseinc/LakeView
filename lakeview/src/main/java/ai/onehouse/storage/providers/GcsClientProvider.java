@@ -79,6 +79,10 @@ public class GcsClientProvider {
     return gcsClient;
   }
 
+  public void refreshClient() {
+    gcsClient = createGcsClient();
+  }
+
   private void validateGcsConfig(GCSConfig gcsConfig) {
     if (gcsConfig.getProjectId().isPresent()
         && !gcsConfig.getProjectId().get().matches(GCP_RESOURCE_NAME_FORMAT)) {

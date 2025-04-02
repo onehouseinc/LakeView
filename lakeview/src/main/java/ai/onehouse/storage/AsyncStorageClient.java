@@ -15,4 +15,6 @@ public interface AsyncStorageClient {
 
   CompletableFuture<Pair<String, List<File>>> fetchObjectsByPage(
       String bucketName, String prefix, String continuationToken, String startAfter);
+
+  void refreshClient();
 }
