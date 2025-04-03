@@ -138,12 +138,9 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
   @Override
   protected RuntimeException clientException(Throwable ex, String operation, String path) {
     Throwable wrappedException = ex.getCause();
-    // TODO: Remove this logging after testing
-    log.info("Error in gcs operation : {} on path : {} message : {} class1 : {} class2 : {}",
-        operation, path, ex.getMessage(), ex.getClass(), wrappedException.getClass(), ex.getCause());
     if (wrappedException instanceof StorageException) {
       StorageException storageException = (StorageException) wrappedException;
-      log.info("Error in gcs2 operation2 : {} on path : {} code : {} message : {}",
+      log.info("Error in GCS operation : {} on path : {} code : {} message : {}",
           operation, path, storageException.getCode(), storageException.getMessage());
       if (storageException.getCode() == 403 || storageException.getCode() == 401
           || storageException.getMessage().equals("Error requesting access token")) {

@@ -27,6 +27,9 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 
 @Slf4j
 public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
+  public static final String ACCESS_DENIED_ERROR_CODE = "AccessDenied";
+  public static final String EXPIRED_TOKEN_ERROR_CODE = "ExpiredToken";
+
   private final S3AsyncClientProvider s3AsyncClientProvider;
 
   @Inject
@@ -154,19 +157,17 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
   @Override
   protected RuntimeException clientException(Throwable ex, String operation, String path) {
     Throwable wrappedException = ex.getCause();
-    log.info("Error in s3 operation : {} on path : {} message : {} class1 : {} class2 : {}",
-        operation, path, ex.getMessage(), ex.getClass(), wrappedException.getClass(), ex.getCause());
     if (wrappedException instanceof AwsServiceException) {
       AwsServiceException awsServiceException = (AwsServiceException) wrappedException;
-      log.info("AWS Service Exception Message: {} Code : {}",
-          awsServiceException.awsErrorDetails().errorMessage(), awsServiceException.awsErrorDetails().errorCode());
+      log.info("Error in GCS operation : {} on path : {} code : {} message : {}", operation, path,
+          awsServiceException.awsErrorDetails().errorCode(), awsServiceException.awsErrorDetails().errorMessage());
 
       if (AwsErrorCode.isThrottlingErrorCode(awsServiceException.awsErrorDetails().errorCode())) {
         return new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
       }
 
-      if (awsServiceException.awsErrorDetails().errorCode().equals("AccessDenied")
-          || awsServiceException.awsErrorDetails().errorCode().equals("ExpiredToken")) {
+      if (awsServiceException.awsErrorDetails().errorCode().equals(ACCESS_DENIED_ERROR_CODE)
+          || awsServiceException.awsErrorDetails().errorCode().equals(EXPIRED_TOKEN_ERROR_CODE)) {
         return new AccessDeniedException(
             String.format("AccessDenied for operation : %s on path : %s with message : %s",
                 operation, path, awsServiceException.awsErrorDetails().errorMessage()));
