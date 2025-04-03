@@ -176,8 +176,8 @@ class S3AsyncStorageClientTest {
                 TEST_BUCKET, TEST_KEY, "error")),
         Arguments.of("InternalError",
             new ObjectStorageClientException("error"),
-            String.format("AccessDenied for operation : streamFileAsync on path : s3://%s/%s with message : %s",
-                TEST_BUCKET, TEST_KEY, "error")));
+            "java.util.concurrent.CompletionException: software.amazon.awssdk.awscore.exception.AwsServiceException: " +
+                "error (Service: null, Status Code: 0, Request ID: null)"));
   }
 
   @Test
