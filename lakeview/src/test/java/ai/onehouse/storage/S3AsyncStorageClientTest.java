@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import ai.onehouse.exceptions.AccessDeniedException;
+import ai.onehouse.exceptions.ObjectStorageClientException;
 import ai.onehouse.exceptions.RateLimitException;
 import ai.onehouse.storage.models.File;
 import ai.onehouse.storage.models.FileStreamData;
@@ -167,6 +168,14 @@ class S3AsyncStorageClientTest {
                 TEST_BUCKET, TEST_KEY)),
         Arguments.of("AccessDenied",
             new AccessDeniedException("error"),
+            String.format("AccessDenied for operation : streamFileAsync on path : s3://%s/%s with message : %s",
+                TEST_BUCKET, TEST_KEY, "error")),
+        Arguments.of("ExpiredToken",
+            new AccessDeniedException("error"),
+            String.format("AccessDenied for operation : streamFileAsync on path : s3://%s/%s with message : %s",
+                TEST_BUCKET, TEST_KEY, "error")),
+        Arguments.of("InternalError",
+            new ObjectStorageClientException("error"),
             String.format("AccessDenied for operation : streamFileAsync on path : s3://%s/%s with message : %s",
                 TEST_BUCKET, TEST_KEY, "error")));
   }

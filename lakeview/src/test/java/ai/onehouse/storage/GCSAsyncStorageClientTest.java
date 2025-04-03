@@ -131,7 +131,7 @@ class GCSAsyncStorageClientTest {
   @MethodSource("generateTestCases")
   void testReadBlobExceptions(Integer errorCode, String errorMessage, Throwable throwable) {
     when(mockGcsClient.get(BlobId.of(TEST_BUCKET, TEST_KEY)))
-        .thenThrow(new StorageException(403, "Some Error"));
+        .thenThrow(new StorageException(errorCode, errorMessage));
 
     CompletionException exception = assertThrows(CompletionException.class, gcsAsyncStorageClient.readBlob(GCS_URI)::join);
     assertInstanceOf(throwable.getClass(), exception.getCause());
@@ -147,7 +147,10 @@ class GCSAsyncStorageClientTest {
             new AccessDeniedException("error")),
         Arguments.of(0,
             "Error requesting access token",
-            new AccessDeniedException("error")));
+            new AccessDeniedException("error")),
+        Arguments.of(500,
+            "Internal",
+            new ObjectStorageClientException("error")));
   }
 
   @Test
