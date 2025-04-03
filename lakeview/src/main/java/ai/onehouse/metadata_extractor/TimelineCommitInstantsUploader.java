@@ -190,9 +190,8 @@ public class TimelineCommitInstantsUploader {
       Checkpoint checkpoint,
       CommitTimelineType commitTimelineType,
       String startAfter) {
-    return
-        asyncStorageClient.streamFileAsync("gs://km-kms-bucket/folder1/.hoodie/20230707104756907.deltacommit")
-        .thenCompose(ignore -> asyncStorageClient.fetchObjectsByPage(bucketName, prefix, null, startAfter))
+    return asyncStorageClient
+        .fetchObjectsByPage(bucketName, prefix, null, startAfter)
         .thenComposeAsync(
             continuationTokenAndFiles -> {
               String nextContinuationToken = continuationTokenAndFiles.getLeft();
