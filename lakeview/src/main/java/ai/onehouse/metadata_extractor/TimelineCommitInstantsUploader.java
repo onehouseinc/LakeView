@@ -31,6 +31,10 @@ import ai.onehouse.storage.PresignedUrlFileUploader;
 import ai.onehouse.storage.StorageUtils;
 import ai.onehouse.storage.models.File;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -192,7 +196,20 @@ public class TimelineCommitInstantsUploader {
       String startAfter) {
     return
         asyncStorageClient.streamFileAsync("gs://km-kms-bucket/folder1/.hoodie/20230707104756907.deltacommit")
-        .thenCompose(ignore -> asyncStorageClient.fetchObjectsByPage(bucketName, prefix, null, startAfter))
+        .thenCompose(file -> {
+          try (InputStream is = file.getInputStream();
+               BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+              log.info("Printing line : {}", line);
+            }
+
+          } catch (IOException e) {
+            log.info("Error Printing line", e);
+          }
+          return  asyncStorageClient.fetchObjectsByPage(bucketName, prefix, null, startAfter);
+        })
         .thenComposeAsync(
             continuationTokenAndFiles -> {
               String nextContinuationToken = continuationTokenAndFiles.getLeft();
