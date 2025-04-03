@@ -1,5 +1,6 @@
 package ai.onehouse.storage;
 
+import ai.onehouse.exceptions.AccessDeniedException;
 import ai.onehouse.exceptions.ObjectStorageClientException;
 import ai.onehouse.exceptions.RateLimitException;
 import com.google.inject.Inject;
@@ -26,6 +27,9 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 
 @Slf4j
 public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
+  public static final String ACCESS_DENIED_ERROR_CODE = "AccessDenied";
+  public static final String EXPIRED_TOKEN_ERROR_CODE = "ExpiredToken";
+
   private final S3AsyncClientProvider s3AsyncClientProvider;
 
   @Inject
@@ -150,12 +154,35 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         .build();
   }
 
-  private RuntimeException clientException(Throwable ex, String operation, String path){
+  @Override
+  protected RuntimeException clientException(Throwable ex, String operation, String path) {
     Throwable wrappedException = ex.getCause();
-    if (wrappedException instanceof AwsServiceException
-        && AwsErrorCode.isThrottlingErrorCode(((AwsServiceException) wrappedException).awsErrorDetails().errorCode())){
+    if (wrappedException instanceof AwsServiceException) {
+      AwsServiceException awsServiceException = (AwsServiceException) wrappedException;
+      log.info("Error in S3 operation : {} on path : {} code : {} message : {}", operation, path,
+          awsServiceException.awsErrorDetails().errorCode(), awsServiceException.awsErrorDetails().errorMessage());
+
+      if (AwsErrorCode.isThrottlingErrorCode(awsServiceException.awsErrorDetails().errorCode())) {
         return new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
+      }
+
+      if (awsServiceException.awsErrorDetails().errorCode().equals(ACCESS_DENIED_ERROR_CODE)
+          || awsServiceException.awsErrorDetails().errorCode().equals(EXPIRED_TOKEN_ERROR_CODE)) {
+        return new AccessDeniedException(
+            String.format("AccessDenied for operation : %s on path : %s with message : %s",
+                operation, path, awsServiceException.awsErrorDetails().errorMessage()));
+      }
     }
     return new ObjectStorageClientException(ex);
+  }
+
+  @Override
+  public void refreshClient() {
+    s3AsyncClientProvider.refreshClient();
+  }
+
+  @Override
+  public void initializeClient() {
+    s3AsyncClientProvider.getS3AsyncClient();
   }
 }
