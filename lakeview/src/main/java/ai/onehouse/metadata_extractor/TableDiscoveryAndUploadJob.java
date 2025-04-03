@@ -98,7 +98,6 @@ public class TableDiscoveryAndUploadJob {
       log.info("Run Completed");
     } else {
       log.error("Run failed");
-      // TODO: Emit metrics and alert if this happens more than 3 times in 1 hr (sev1)
       /*
       * The retry is done in following known scenarios:
       * 1. Session token expiry for pull model customer
@@ -109,10 +108,9 @@ public class TableDiscoveryAndUploadJob {
           config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE_WITH_RETRY)
           && shouldRunAgainForRunOnceConfiguration(config)
           && runCounter < config.getMetadataExtractorConfig().getMaxRunCountForPullModel()) {
-        log.info("Retrying job: Attempt {}/{} after waiting {} minutes",
+        log.info("Retrying job: Attempt {}/{}",
             runCounter + 1,
-            config.getMetadataExtractorConfig().getMaxRunCountForPullModel(),
-            config.getMetadataExtractorConfig().getWaitTimeRetryForPullModel());
+            config.getMetadataExtractorConfig().getMaxRunCountForPullModel());
         // Handle client session timeout errors if any
         asyncStorageClient.refreshClient();
         runOnce(config, runCounter + 1);
@@ -122,11 +120,14 @@ public class TableDiscoveryAndUploadJob {
 
   @VisibleForTesting
   boolean shouldRunAgainForRunOnceConfiguration(Config config) {
-    Cron cron = new CronParser((CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX))).parse(config.getMetadataExtractorConfig().getCronScheduleForPullModel());
+    Cron cron = new CronParser((CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX)))
+        .parse(config.getMetadataExtractorConfig().getCronScheduleForPullModel());
     ExecutionTime executionTime = ExecutionTime.forCron(cron);
-    Optional<ZonedDateTime> nextExecutionTime = executionTime.nextExecution(firstCronRunStartTime.atZone(ZoneOffset.UTC));
-    if (nextExecutionTime.isPresent() && Duration.between(firstCronRunStartTime, nextExecutionTime.get().toInstant()).toMinutes() < 30) {
-      log.info("Stopping the job as next scheduled run is less than 30 minutes away");
+    Optional<ZonedDateTime> nextExecutionTime =
+        executionTime.nextExecution(firstCronRunStartTime.atZone(ZoneOffset.UTC));
+    if (nextExecutionTime.isPresent() && Duration.between(firstCronRunStartTime,
+        nextExecutionTime.get().toInstant()).toMinutes() < 10) {
+      log.info("Stopping the job as next scheduled run is less than 10 minutes away");
       return false;
     }
     return true;

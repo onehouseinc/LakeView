@@ -123,10 +123,10 @@ public class Main {
         lakeViewExtractorMetrics
             .incrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons.ACCESS_DENIED);
       }
+      shutdown(config);
     } catch (Exception e) {
       log.info("Error in runJob message : {} class : {}", e.getMessage(), e.getClass(), e.getCause());
       log.error(e.getMessage(), e);
-    } finally {
       shutdown(config);
     }
   }

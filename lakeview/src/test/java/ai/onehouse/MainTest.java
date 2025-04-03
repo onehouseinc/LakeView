@@ -88,7 +88,7 @@ class MainTest {
     main.start(args);
 
     verify(mockConfigLoader).loadConfigFromConfigFile("configFilePath");
-    verify(mockJob).runOnce();
+    verify(mockJob).runOnce(mockConfig);
     verifyShutdown();
   }
 
@@ -117,7 +117,7 @@ class MainTest {
     main.start(args);
 
     verify(mockConfigLoader).loadConfigFromConfigFile("configFilePath");
-    verify(mockJob).runOnce();
+    verify(mockJob).runOnce(mockConfig);
     verifyShutdown();
   }
 
@@ -160,7 +160,7 @@ class MainTest {
     verify(mockInjector, times(1)).getInstance(AsyncStorageClient.class);
     verify(mockAsyncStorageClient, times(1)).readFileAsBytes(extractorConfigPath);
 
-    verify(mockJob).runOnce();
+    verify(mockJob).runOnce(configProvider.getConfig());
     if (isFailure) {
       verify(lakeViewExtractorMetrics).incrementFailedOverrideConfigCounter();
     }

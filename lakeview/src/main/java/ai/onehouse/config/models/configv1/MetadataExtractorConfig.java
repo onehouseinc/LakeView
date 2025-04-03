@@ -27,7 +27,6 @@ public class MetadataExtractorConfig {
   // This is used to estimate next run time for the job in pull model
   @Builder.Default private String cronScheduleForPullModel = "0 */1 * * *";
   @Builder.Default private Integer maxRunCountForPullModel = 5;
-  @Builder.Default private Integer waitTimeRetryForPullModel = 5; // TODO: remove
 
   @Builder.Default
   private UploadStrategy uploadStrategy = UploadStrategy.BLOCK_ON_INCOMPLETE_COMMIT;
