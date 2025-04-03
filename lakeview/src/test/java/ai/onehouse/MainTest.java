@@ -3,6 +3,7 @@ package ai.onehouse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -35,6 +36,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 
 @ExtendWith(MockitoExtension.class)
 class MainTest {
@@ -92,8 +95,9 @@ class MainTest {
     verifyShutdown();
   }
 
-  @Test
-  void testLoadConfigFromFileAndRunOnceFail() {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testLoadConfigFromFileAndRunOnceFail(boolean isAccessDeniedException) {
     String[] args = {"-p", "configFilePath"};
     when(mockParser.getConfigFilePath()).thenReturn("configFilePath");
     when(mockConfigLoader.loadConfigFromConfigFile(anyString())).thenReturn(mockConfig);
@@ -110,12 +114,28 @@ class MainTest {
         .thenReturn(mockAsyncHttpClientWithRetry);
     when(mockInjector.getInstance(MetricsServer.class)).thenReturn(mockMetricsServer);
     when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(mockConfigProvider);
-    doThrow(new RuntimeException()).when(mockJob).runOnce();
+    when(mockInjector.getInstance(LakeViewExtractorMetrics.class)).thenReturn(lakeViewExtractorMetrics);
+    if (!isAccessDeniedException) {
+      doThrow(new RuntimeException()).when(mockJob).runOnce(mockConfig);
+    } else {
+      AwsServiceException awsServiceException = AwsServiceException.builder()
+          .awsErrorDetails(AwsErrorDetails.builder()
+              .errorCode("AccessDenied")
+              .errorMessage("AccessDenied")
+              .build())
+          .build();
+      doThrow(awsServiceException).when(mockJob).runOnce(mockConfig);
+    }
+
     guiceMockedStatic
         .when(() -> Guice.createInjector(any(RuntimeModule.class), any(MetricsModule.class)))
         .thenReturn(mockInjector);
     main.start(args);
 
+    if (isAccessDeniedException) {
+      verify(lakeViewExtractorMetrics)
+          .incrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons.ACCESS_DENIED);
+    }
     verify(mockConfigLoader).loadConfigFromConfigFile("configFilePath");
     verify(mockJob).runOnce(mockConfig);
     verifyShutdown();

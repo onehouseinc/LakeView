@@ -52,6 +52,19 @@ class GcsClientProviderTest {
   }
 
   @Test
+  void testRefreshGcpClient() {
+    when(fileSystemConfiguration.getGcsConfig()).thenReturn(gcsConfig);
+    GcsClientProvider gcsClientProviderSpy = Mockito.spy(new GcsClientProvider(config));
+    doReturn(mockStorage).when(gcsClientProviderSpy).createGcsClient();
+
+    gcsClientProviderSpy.refreshClient();
+
+    // Assert
+    verify(gcsClientProviderSpy, times(1))
+        .createGcsClient(); // Verify that createGcsClient was called
+  }
+
+  @Test
   void throwExceptionWhenProjectIdIsInvalid() {
     when(fileSystemConfiguration.getGcsConfig()).thenReturn(gcsConfig);
     when(gcsConfig.getProjectId()).thenReturn(Optional.of("#invalid-project-id"));

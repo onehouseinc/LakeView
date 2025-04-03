@@ -10,12 +10,16 @@ import ai.onehouse.config.models.common.FileSystemConfiguration;
 import ai.onehouse.config.models.common.S3Config;
 import ai.onehouse.config.models.configv1.ConfigV1;
 
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
@@ -67,8 +71,8 @@ class S3AsyncClientProviderTest {
   }
 
   @ParameterizedTest
-  @ValueSource(booleans = {true, false})
-  void testCreateS3AsyncClientWithCredentialsWhenProvided(boolean isAssumedRoleFlow) {
+  @MethodSource("generateTestCases")
+  void testCreateS3AsyncClientWithCredentialsWhenProvided(boolean isAssumedRoleFlow, boolean isRefreshSession) {
     when(config.getFileSystemConfiguration()).thenReturn(fileSystemConfiguration);
     when(fileSystemConfiguration.getS3Config()).thenReturn(s3Config);
     if (isAssumedRoleFlow) {
@@ -92,13 +96,24 @@ class S3AsyncClientProviderTest {
       S3AsyncClientProvider s3AsyncClientProviderSpy =
           Mockito.spy(new S3AsyncClientProvider(config, executorService));
       S3AsyncClientProvider.resetS3AsyncClient();
-      S3AsyncClient result = s3AsyncClientProviderSpy.getS3AsyncClient();
+      if (!isRefreshSession) {
+        S3AsyncClient result = s3AsyncClientProviderSpy.getS3AsyncClient();
+        assertNotNull(result);
+      } else {
+        s3AsyncClientProviderSpy.refreshClient();
+      }
 
-      assertNotNull(result);
       if (isAssumedRoleFlow) {
         verify(stsClient, times(1)).assumeRole(any(AssumeRoleRequest.class));
       }
       verify(s3AsyncClientProviderSpy, times(1)).createS3AsyncClient();
     }
+  }
+
+  static Stream<Arguments> generateTestCases() {
+    return Stream.of(
+        Arguments.of(true, false),
+        Arguments.of(false, false),
+        Arguments.of(false,true));
   }
 }

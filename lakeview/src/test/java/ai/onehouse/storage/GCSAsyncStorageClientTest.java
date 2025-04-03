@@ -5,12 +5,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import ai.onehouse.exceptions.AccessDeniedException;
 import ai.onehouse.exceptions.ObjectStorageClientException;
+import ai.onehouse.exceptions.RateLimitException;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageException;
 import com.google.common.collect.ImmutableList;
 import ai.onehouse.storage.models.File;
 import ai.onehouse.storage.models.FileStreamData;
@@ -26,9 +29,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -117,6 +125,29 @@ class GCSAsyncStorageClientTest {
 
     CompletionException exception = assertThrows(CompletionException.class, gcsAsyncStorageClient.readBlob(GCS_URI)::join);
     assertInstanceOf(ObjectStorageClientException.class, exception.getCause());
+  }
+
+  @ParameterizedTest
+  @MethodSource("generateTestCases")
+  void testReadBlobExceptions(Integer errorCode, String errorMessage, Throwable throwable) {
+    when(mockGcsClient.get(BlobId.of(TEST_BUCKET, TEST_KEY)))
+        .thenThrow(new StorageException(403, "Some Error"));
+
+    CompletionException exception = assertThrows(CompletionException.class, gcsAsyncStorageClient.readBlob(GCS_URI)::join);
+    assertInstanceOf(throwable.getClass(), exception.getCause());
+  }
+
+  static Stream<Arguments> generateTestCases() {
+    return Stream.of(
+        Arguments.of(403,
+            "List permission missing",
+            new AccessDeniedException("error")),
+        Arguments.of(401,
+            "Unauthorized",
+            new AccessDeniedException("error")),
+        Arguments.of(0,
+            "Error requesting access token",
+            new AccessDeniedException("error")));
   }
 
   @Test

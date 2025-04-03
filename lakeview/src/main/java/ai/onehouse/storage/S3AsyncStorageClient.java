@@ -159,7 +159,7 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
     Throwable wrappedException = ex.getCause();
     if (wrappedException instanceof AwsServiceException) {
       AwsServiceException awsServiceException = (AwsServiceException) wrappedException;
-      log.info("Error in GCS operation : {} on path : {} code : {} message : {}", operation, path,
+      log.info("Error in S3 operation : {} on path : {} code : {} message : {}", operation, path,
           awsServiceException.awsErrorDetails().errorCode(), awsServiceException.awsErrorDetails().errorMessage());
 
       if (AwsErrorCode.isThrottlingErrorCode(awsServiceException.awsErrorDetails().errorCode())) {
