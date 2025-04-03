@@ -3,7 +3,6 @@ package ai.onehouse.metadata_extractor;
 import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.exceptions.AccessDeniedException;
 import ai.onehouse.exceptions.RateLimitException;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;

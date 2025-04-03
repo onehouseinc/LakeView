@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 
 import ai.onehouse.exceptions.AccessDeniedException;
 import ai.onehouse.exceptions.ObjectStorageClientException;
-import ai.onehouse.exceptions.RateLimitException;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.Blob;
