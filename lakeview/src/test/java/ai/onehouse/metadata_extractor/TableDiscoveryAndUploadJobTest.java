@@ -54,7 +54,8 @@ class TableDiscoveryAndUploadJobTest {
 
   @BeforeEach
   void setUp(TestInfo info) {
-    Instant fixedInstant = Instant.parse(info.getDisplayName());
+    Instant fixedInstant =
+        info.getDisplayName().startsWith("2023") ? Instant.parse(info.getDisplayName()) : Instant.now();
     try (MockedStatic<Instant> mockedInstant =
              mockStatic(Instant.class, Answers.CALLS_REAL_METHODS)) {
       mockedInstant.when(Instant::now).thenReturn(fixedInstant);
