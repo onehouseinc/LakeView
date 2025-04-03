@@ -67,8 +67,9 @@ class MainTest {
     guiceMockedStatic.close();
   }
 
-  @Test
-  void testLoadConfigFromFileAndRunOnce() {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testLoadConfigFromFileAndRunOnce(boolean runWithRetry) {
     String[] args = {"-p", "configFilePath"};
     when(mockParser.getConfigFilePath()).thenReturn("configFilePath");
     when(mockConfigLoader.loadConfigFromConfigFile(anyString())).thenReturn(mockConfig);
@@ -76,7 +77,9 @@ class MainTest {
     when(mockConfig.getMetadataExtractorConfig())
         .thenReturn(
             MetadataExtractorConfig.builder()
-                .jobRunMode(MetadataExtractorConfig.JobRunMode.ONCE)
+                .jobRunMode(
+                    runWithRetry
+                        ? MetadataExtractorConfig.JobRunMode.ONCE_WITH_RETRY : MetadataExtractorConfig.JobRunMode.ONCE)
                 .parserConfig(Collections.emptyList())
                 .waitTimeBeforeShutdown(0)
                 .build());
