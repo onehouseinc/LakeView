@@ -201,7 +201,8 @@ public class TimelineCommitInstantsUploader {
                       continuationTokenAndFiles.getRight(), checkpoint, commitTimelineType, false);
 
               if (!filesToUpload.isEmpty()) {
-                return CompletableFuture.completedFuture(checkpoint)
+                return uploadInstantsInSequentialBatches(
+                    tableId, table, filesToUpload, checkpoint, commitTimelineType)
                     .thenComposeAsync(
                         updatedCheckpoint -> {
                           if (updatedCheckpoint == null) {
@@ -217,15 +218,6 @@ public class TimelineCommitInstantsUploader {
                             hudiMetadataExtractorMetrics.incrementTablesProcessedCounter();
                             return CompletableFuture.completedFuture(updatedCheckpoint);
                           }
-                          log.info(
-                              "Uploading instants in {} for table {}",
-                              commitTimelineType,
-                              table);
-                          try {
-                            Thread.sleep(60 * 5 * 1000); // sleep for 5 minutes
-                          } catch (InterruptedException e) {
-                            // Do nothing
-                          }
                           return executePaginatedBatchUpload(
                               tableId,
                               table,
@@ -233,7 +225,7 @@ public class TimelineCommitInstantsUploader {
                               prefix,
                               updatedCheckpoint,
                               commitTimelineType,
-                              null);
+                              getStartAfterString(prefix, updatedCheckpoint, false));
                         },
                         executorService);
               } else {
