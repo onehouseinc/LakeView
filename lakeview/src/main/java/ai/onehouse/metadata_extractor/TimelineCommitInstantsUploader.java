@@ -195,7 +195,7 @@ public class TimelineCommitInstantsUploader {
       CommitTimelineType commitTimelineType,
       String startAfter) {
     return
-        asyncStorageClient.streamFileAsync("s3://km-test-lakeview-kms1/km-folder/.hoodie/20230707104756907.deltacommit")
+        asyncStorageClient.streamFileAsync("s3://km-test-lakeview-kms1/folder4/.hoodie/20230707104756907.deltacommit")
         .thenCompose(file -> {
           try (InputStream is = file.getInputStream();
                BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
