@@ -1,5 +1,6 @@
 package ai.onehouse;
 
+import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Guice;
@@ -19,6 +20,7 @@ import ai.onehouse.storage.AsyncStorageClient;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 
 @Slf4j
 public class Main {
@@ -111,10 +113,19 @@ public class Main {
       if (MetadataExtractorConfig.JobRunMode.CONTINUOUS.equals(jobRunMode)) {
         job.runInContinuousMode(config);
       } else {
-        job.runOnce();
+        job.runOnce(config);
         shutdown(config);
       }
+    } catch (AwsServiceException e) {
+      log.info("Failed to run job with errorCode : {} and errorMessage : {}",
+          e.awsErrorDetails().errorCode(), e.awsErrorDetails().errorMessage());
+      if (e.awsErrorDetails().errorCode().equals("AccessDenied")) {
+        lakeViewExtractorMetrics
+            .incrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons.ACCESS_DENIED);
+      }
+      shutdown(config);
     } catch (Exception e) {
+      log.info("Error in runJob message : {} class : {}", e.getMessage(), e.getClass(), e.getCause());
       log.error(e.getMessage(), e);
       shutdown(config);
     }
@@ -122,7 +133,8 @@ public class Main {
 
   @VisibleForTesting
   void shutdown(Config config) {
-    if (config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE)) {
+    if (config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE)
+    || config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE_WITH_RETRY)) {
       log.info(String.format("Scheduling JVM shutdown after %d seconds",
           config.getMetadataExtractorConfig().getWaitTimeBeforeShutdown()));
       try {

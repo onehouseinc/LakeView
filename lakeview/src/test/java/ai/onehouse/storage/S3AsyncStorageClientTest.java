@@ -3,6 +3,8 @@ package ai.onehouse.storage;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import ai.onehouse.exceptions.AccessDeniedException;
+import ai.onehouse.exceptions.ObjectStorageClientException;
 import ai.onehouse.exceptions.RateLimitException;
 import ai.onehouse.storage.models.File;
 import ai.onehouse.storage.models.FileStreamData;
@@ -18,11 +20,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -137,10 +143,11 @@ class S3AsyncStorageClientTest {
     assertArrayEquals(fileContent, resultBytes);
   }
 
-  @Test
-  void testStreamFileAsyncWithS3RateLimiting() {
+  @ParameterizedTest
+  @MethodSource("generateTestCases")
+  void testStreamFileAsyncWithExceptions(String errorCode, Throwable throwable, String errorMessage) {
     when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
-            .thenReturn(buildS3Exception());
+            .thenReturn(buildS3Exception(errorCode));
 
     CompletableFuture<FileStreamData> streamFileAsync = s3AsyncStorageClient.streamFileAsync(S3_URI);
     CompletionException executionException = assertThrows(CompletionException.class, streamFileAsync::join);
@@ -149,15 +156,34 @@ class S3AsyncStorageClientTest {
     Throwable cause = executionException.getCause();
 
     // Verify the exception is RateLimitException
-    assertInstanceOf(RateLimitException.class, cause);
-    assertEquals("Throttled by S3 for operation : streamFileAsync on path : s3://" + TEST_BUCKET + "/" + TEST_KEY,
-            cause.getMessage());
+    assertInstanceOf(throwable.getClass(), cause);
+    assertEquals(errorMessage, cause.getMessage());
+  }
+
+  static Stream<Arguments> generateTestCases() {
+    return Stream.of(
+        Arguments.of("Throttling",
+            new RateLimitException("error"),
+            String.format("Throttled by S3 for operation : streamFileAsync on path : s3://%s/%s",
+                TEST_BUCKET, TEST_KEY)),
+        Arguments.of("AccessDenied",
+            new AccessDeniedException("error"),
+            String.format("AccessDenied for operation : streamFileAsync on path : s3://%s/%s with message : %s",
+                TEST_BUCKET, TEST_KEY, "error")),
+        Arguments.of("ExpiredToken",
+            new AccessDeniedException("error"),
+            String.format("AccessDenied for operation : streamFileAsync on path : s3://%s/%s with message : %s",
+                TEST_BUCKET, TEST_KEY, "error")),
+        Arguments.of("InternalError",
+            new ObjectStorageClientException("error"),
+            "java.util.concurrent.CompletionException: software.amazon.awssdk.awscore.exception.AwsServiceException: " +
+                "error (Service: null, Status Code: 0, Request ID: null)"));
   }
 
   @Test
   void testReadFileAsBytesWithS3RateLimiting() {
     when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
-            .thenReturn(buildS3Exception());
+            .thenReturn(buildS3Exception("Throttling"));
 
     CompletableFuture<byte[]> readFileAsBytes = s3AsyncStorageClient.readFileAsBytes(S3_URI);
     CompletionException executionException = assertThrows(CompletionException.class, readFileAsBytes::join);
@@ -193,7 +219,7 @@ class S3AsyncStorageClientTest {
   @Test
   void testFetchObjectsByPageWithS3RateLimiting() {
     when(mockS3AsyncClient.listObjectsV2(any(ListObjectsV2Request.class)))
-            .thenReturn(buildS3Exception());
+            .thenReturn(buildS3Exception("Throttling"));
 
     CompletableFuture<Pair<String, List<File>>> fetchObjects = s3AsyncStorageClient.fetchObjectsByPage(
             TEST_BUCKET,
@@ -248,12 +274,13 @@ class S3AsyncStorageClientTest {
     }
   }
 
-  private <R> CompletableFuture<R> buildS3Exception(){
+  private <R> CompletableFuture<R> buildS3Exception(String errorCode){
 
     CompletableFuture<R> futureResponse = new CompletableFuture<>();
     futureResponse.completeExceptionally(AwsServiceException.builder()
             .awsErrorDetails(AwsErrorDetails.builder()
-                    .errorCode("Throttling")
+                    .errorCode(errorCode)
+                    .errorMessage("error")
                     .build())
             .build());
     return futureResponse;

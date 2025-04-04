@@ -1,5 +1,6 @@
 package ai.onehouse.config.models.common;
 
+import java.util.List;
 import java.util.Optional;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -18,4 +19,5 @@ public class S3Config {
   @Builder.Default private Optional<String> accessKey = Optional.empty();
   @Builder.Default private Optional<String> accessSecret = Optional.empty();
   @Builder.Default private Optional<String> arnToImpersonate = Optional.empty();
+  @Builder.Default private Optional<List<String>> arnsKmsKeys = Optional.empty();
 }

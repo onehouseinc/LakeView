@@ -37,8 +37,9 @@ class GcsClientProviderTest {
     when(config.getFileSystemConfiguration()).thenReturn(fileSystemConfiguration);
   }
 
-  @Test
-  void testInstantiateGcsClient() {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testInstantiateGcsClient(boolean isRefreshClient) {
     when(fileSystemConfiguration.getGcsConfig()).thenReturn(gcsConfig);
 
     GcsClientProvider gcsClientProviderSpy = Mockito.spy(new GcsClientProvider(config));
@@ -46,7 +47,12 @@ class GcsClientProviderTest {
     doReturn(mockStorage).when(gcsClientProviderSpy).createGcsClient();
 
     // Assert
-    assertNotNull(gcsClientProviderSpy.getGcsClient());
+    if (!isRefreshClient) {
+      assertNotNull(gcsClientProviderSpy.getGcsClient());
+    } else {
+      gcsClientProviderSpy.refreshClient();
+
+    }
     verify(gcsClientProviderSpy, times(1))
         .createGcsClient(); // Verify that createGcsClient was called
   }

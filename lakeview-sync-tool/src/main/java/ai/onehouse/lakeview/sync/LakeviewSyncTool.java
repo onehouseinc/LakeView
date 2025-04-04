@@ -265,7 +265,7 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
     TableMetadataUploaderService tableMetadataUploaderService = new TableMetadataUploaderService(hoodiePropertiesReader,
         onehouseApiClient, timelineCommitInstantsUploader, lakeViewExtractorMetrics, executorService);
 
-    return new TableDiscoveryAndUploadJob(tableDiscoveryService, tableMetadataUploaderService, lakeViewExtractorMetrics);
+    return new TableDiscoveryAndUploadJob(tableDiscoveryService, tableMetadataUploaderService, lakeViewExtractorMetrics, asyncStorageClient);
   }
 
   private AsyncStorageClient getAsyncStorageClient(@Nonnull Config config, @Nonnull ExecutorService executorService,
@@ -299,7 +299,7 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
   @Override
   public void syncHoodieTable() {
     if (isLakeviewSyncToolEnabled && tableDiscoveryAndUploadJob != null) {
-      Future<?> future = executorService.submit(tableDiscoveryAndUploadJob::runOnce);
+      Future<?> future = executorService.submit(() -> tableDiscoveryAndUploadJob.runOnce());
       try {
         if (timeoutInSeconds > 0) {
           future.get(timeoutInSeconds, TimeUnit.SECONDS);

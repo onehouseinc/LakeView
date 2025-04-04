@@ -46,7 +46,9 @@ public abstract class AbstractAsyncStorageClient implements AsyncStorageClient {
         },
         executorService).exceptionally(throwable -> {
         log.error("Failed to list objects from storage", throwable);
-        throw new ObjectStorageClientException(throwable);
+        throw clientException(throwable, "listAllObjectsStorage", bucketName);
       });
   }
+
+  protected abstract RuntimeException clientException(Throwable ex, String operation, String path);
 }

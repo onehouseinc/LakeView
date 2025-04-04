@@ -95,6 +95,10 @@ public class S3AsyncClientProvider {
     return s3AsyncClient;
   }
 
+  public void refreshClient() {
+    s3AsyncClient = createS3AsyncClient();
+  }
+
   private void validateS3Config(S3Config s3Config) {
     if (s3Config == null) {
       throw new IllegalArgumentException("S3 Config not found");

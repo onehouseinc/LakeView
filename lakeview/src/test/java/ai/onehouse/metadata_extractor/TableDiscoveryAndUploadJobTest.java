@@ -5,15 +5,21 @@ import static ai.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_I
 import static org.mockito.Mockito.*;
 
 import ai.onehouse.config.Config;
+import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
+
+import java.time.Instant;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
+
+import ai.onehouse.storage.AsyncStorageClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -23,6 +29,7 @@ import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,6 +41,8 @@ class TableDiscoveryAndUploadJobTest {
 
   @Mock private ScheduledExecutorService mockScheduler;
 
+  @Mock private AsyncStorageClient asyncStorageClient;
+
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private Config config;
 
@@ -44,17 +53,24 @@ class TableDiscoveryAndUploadJobTest {
   private TableDiscoveryAndUploadJob job;
 
   @BeforeEach
-  void setUp() {
-    job =
-        new TableDiscoveryAndUploadJob(
-            mockTableDiscoveryService,
-            mockTableMetadataUploaderService,
-            mockHudiMetadataExtractorMetrics) {
-          @Override
-          ScheduledExecutorService getScheduler() {
-            return mockScheduler;
-          }
-        };
+  void setUp(TestInfo info) {
+    Instant fixedInstant =
+        info.getDisplayName().startsWith("2023") ? Instant.parse(info.getDisplayName()) : Instant.now();
+    try (MockedStatic<Instant> mockedInstant =
+             mockStatic(Instant.class, Answers.CALLS_REAL_METHODS)) {
+      mockedInstant.when(Instant::now).thenReturn(fixedInstant);
+      job =
+          new TableDiscoveryAndUploadJob(
+              mockTableDiscoveryService,
+              mockTableMetadataUploaderService,
+              mockHudiMetadataExtractorMetrics,
+              asyncStorageClient) {
+            @Override
+            ScheduledExecutorService getScheduler() {
+              return mockScheduler;
+            }
+          };
+    }
   }
 
   private static Stream<Arguments> continuousModeFailureCases() {
@@ -154,10 +170,54 @@ class TableDiscoveryAndUploadJobTest {
         .uploadInstantsInTables(Collections.singleton(discoveredTable));
   }
 
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("generateTestCases")
+  void testRunOnceWithRetry(String timeString, boolean isSucceeded, int numTries) {
+    Table discoveredTable =
+        Table.builder()
+            .absoluteTableUri("absolute_uri")
+            .lakeName("lake")
+            .databaseName("database")
+            .build();
+    when(mockTableDiscoveryService.discoverTables())
+        .thenReturn(CompletableFuture.completedFuture(Collections.singleton(discoveredTable)));
+    when(mockTableMetadataUploaderService.uploadInstantsInTables(
+        Collections.singleton(discoveredTable)))
+        .thenReturn(CompletableFuture.completedFuture(isSucceeded));
+    when(config.getMetadataExtractorConfig().getJobRunMode())
+        .thenReturn(MetadataExtractorConfig.JobRunMode.ONCE_WITH_RETRY);
+    if (!isSucceeded) {
+      when(config.getMetadataExtractorConfig().getCronScheduleForPullModel())
+          .thenReturn("0 */1 * * *");
+      if (numTries > 1) {
+        when(config.getMetadataExtractorConfig().getMaxRunCountForPullModel())
+            .thenReturn(5);
+      }
+    }
+    job.runOnce(config);
+    verify(mockTableDiscoveryService, times(numTries))
+        .discoverTables();
+    verify(mockTableMetadataUploaderService, times(numTries))
+        .uploadInstantsInTables(Collections.singleton(discoveredTable));
+  }
+
+  private static Stream<Arguments> generateTestCases() {
+    return Stream.of(
+        Arguments.of("2023-10-01T00:42:00Z", true, 1),
+        Arguments.of("2023-10-01T00:42:00Z", false, 5),
+        Arguments.of("2023-10-01T00:52:00Z", false, 1));
+  }
+
   @Test
   void testShutdown() {
     job.shutdown();
     verify(mockScheduler).shutdown();
+  }
+
+  @Test
+  void testShouldRunAgainForRunOnceConfiguration() {
+    when(config.getMetadataExtractorConfig().getCronScheduleForPullModel()).thenReturn("0 */6 * * *");
+    job.shouldRunAgainForRunOnceConfiguration(config);
   }
 
   public static <R> CompletableFuture<R> failedFuture(Throwable error) {
