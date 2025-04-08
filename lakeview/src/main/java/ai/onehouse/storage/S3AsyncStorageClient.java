@@ -166,8 +166,8 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         return new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
       }
 
-      if (awsServiceException.awsErrorDetails().errorCode().equals(ACCESS_DENIED_ERROR_CODE)
-          || awsServiceException.awsErrorDetails().errorCode().equals(EXPIRED_TOKEN_ERROR_CODE)) {
+      if (awsServiceException.awsErrorDetails().errorCode().equalsIgnoreCase(ACCESS_DENIED_ERROR_CODE)
+          || awsServiceException.awsErrorDetails().errorCode().equalsIgnoreCase(EXPIRED_TOKEN_ERROR_CODE)) {
         return new AccessDeniedException(
             String.format("AccessDenied for operation : %s on path : %s with message : %s",
                 operation, path, awsServiceException.awsErrorDetails().errorMessage()));

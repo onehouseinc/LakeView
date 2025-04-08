@@ -119,13 +119,13 @@ public class Main {
     } catch (AwsServiceException e) {
       log.info("Failed to run job with errorCode : {} and errorMessage : {}",
           e.awsErrorDetails().errorCode(), e.awsErrorDetails().errorMessage());
-      if (e.awsErrorDetails().errorCode().equals("AccessDenied")) {
+      if (e.awsErrorDetails().errorCode().equalsIgnoreCase("AccessDenied")) {
         lakeViewExtractorMetrics
             .incrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons.ACCESS_DENIED);
       }
       shutdown(config);
     } catch (Exception e) {
-      log.info("Error in runJob message : {} class : {}", e.getMessage(), e.getClass(), e.getCause());
+      log.info("Error in runJob message : {}}", e.getMessage(), e.getCause());
       log.error(e.getMessage(), e);
       shutdown(config);
     }

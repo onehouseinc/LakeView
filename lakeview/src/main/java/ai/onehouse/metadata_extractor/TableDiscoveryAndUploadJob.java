@@ -120,13 +120,14 @@ public class TableDiscoveryAndUploadJob {
 
   @VisibleForTesting
   boolean shouldRunAgainForRunOnceConfiguration(Config config) {
+    MetadataExtractorConfig metadataExtractorConfig = config.getMetadataExtractorConfig();
     Cron cron = new CronParser((CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX)))
-        .parse(config.getMetadataExtractorConfig().getCronScheduleForPullModel());
+        .parse(metadataExtractorConfig.getCronScheduleForPullModel());
     ExecutionTime executionTime = ExecutionTime.forCron(cron);
     Optional<ZonedDateTime> nextExecutionTime =
         executionTime.nextExecution(firstCronRunStartTime.atZone(ZoneOffset.UTC));
     if (nextExecutionTime.isPresent() && Duration.between(firstCronRunStartTime,
-        nextExecutionTime.get().toInstant()).toMinutes() < 10) {
+        nextExecutionTime.get().toInstant()).toMinutes() < metadataExtractorConfig.getMinIntervalMinutes()) {
       log.info("Stopping the job as next scheduled run is less than 10 minutes away");
       return false;
     }
