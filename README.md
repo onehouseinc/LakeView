@@ -139,7 +139,7 @@ glueContext = GlueContext(SparkContext.getOrCreate(conf=conf))
 
 spark_session = glueContext.spark_session
 spark_session.udf.registerJavaFunction(name="glue_wrapper", javaClassName="ai.onehouse.GlueWrapperMain", returnType=T.StringType())
-spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientConfig: {projectId: ${PROJECT_ID}, apiKey: ${API_KEY}, apiSecret: ${API_SECRET}, userId: ${USER_ID}}, fileSystemConfiguration: {s3Config: {region: ${REGION}}}, metadataExtractorConfig: {jobRunMode: ONCE, parserConfig: [{lake: ${LAKE_NAME}, databases: [{name: ${DATABASE_NAME}, base_paths: [${BASE_PATH_1}, ${BASE_PATH_2}]}]}]}}\"]') as answer").show()
+spark_session.sql("SELECT glue_wrapper('[\"-c\", \"{version: V1, onehouseClientConfig: {projectId: ${PROJECT_ID}, apiKey: ${API_KEY}, apiSecret: ${API_SECRET}, userId: ${USER_ID}}, fileSystemConfiguration: {s3Config: {region: ${REGION}}}, metadataExtractorConfig: {jobRunMode: ONCE, parserConfig: [{lake: ${LAKE_NAME}, databases: [{name: ${DATABASE_NAME}, basePaths: [${BASE_PATH_1}, ${BASE_PATH_2}]}]}]}}\"]') as answer").show()
 ```
 
 ### Option 2b: Install Docker Image to Push Metadata
@@ -214,7 +214,7 @@ hoodie.meta.sync.lakeview.metadata_extractor.lakes.<lake1>.databases.<database2>
 ```
 
 > [!TIP]
-> You may include multiple comma-separated base paths for `hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database2>.base_paths=<path1>,<path2>` to make your configurations reusable; LakeView will only sync the base path specified in the `hoodie.base.path` configuration. Also, your base paths should not contain trailing slashes.
+> You may include multiple comma-separated base paths for `hoodie.meta.sync.lakeview.metadata_extractor.lakes.<lake1>.databases.<database2>.base_paths=<path1>,<path2>` to make your configurations reusable; LakeView will only sync the base path specified in the `hoodie.base.path` configuration. Also, your base paths should not contain trailing slashes.
 
 **Example S3 Configuration File for Hudi Streamer**
 ```
@@ -255,7 +255,7 @@ Below are explanations for the superset of all configurations across the three d
 >   - **lake:** Name of the lake (optional, defaults to community-lake). This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
 >     - **databases:** List of databases and their respective base paths. This can be used to organize tables in the Onehouse console under the format Lake > Database > Table.
 >       - **name:** Database name (optional, defaults to community-db ).
->       - **base_paths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
+>       - **basePaths:** List of paths which the extractor needs to look into to find hudi tables. the paths can be paths to hudi tables or a path to a directory containing hudi tables. The paths should start with `s3://` when using S3 or `gs://` when using GCS.
 
 ### Push Model Configurations
 > [!IMPORTANT]
