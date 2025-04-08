@@ -22,6 +22,8 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 
+import static ai.onehouse.storage.S3AsyncStorageClient.ACCESS_DENIED_ERROR_CODE;
+
 @Slf4j
 public class Main {
 
@@ -119,7 +121,7 @@ public class Main {
     } catch (AwsServiceException e) {
       log.info("Failed to run job with errorCode : {} and errorMessage : {}",
           e.awsErrorDetails().errorCode(), e.awsErrorDetails().errorMessage());
-      if (e.awsErrorDetails().errorCode().equalsIgnoreCase("AccessDenied")) {
+      if (e.awsErrorDetails().errorCode().equalsIgnoreCase(ACCESS_DENIED_ERROR_CODE)) {
         lakeViewExtractorMetrics
             .incrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons.ACCESS_DENIED);
       }
