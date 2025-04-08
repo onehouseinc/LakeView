@@ -7,6 +7,7 @@ import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAM
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE_OBJ;
 import static ai.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
+import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -174,7 +175,9 @@ public class TimelineCommitInstantsUploader {
                   commitTimelineType,
                   throwable);
               hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
-                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+                  getMetadataExtractorFailureReason(
+                      throwable,
+                      MetricsConstants.MetadataUploadFailureReasons.UNKNOWN));
               return null; // handled in uploadNewInstantsSinceCheckpoint function
             });
   }
@@ -240,7 +243,9 @@ public class TimelineCommitInstantsUploader {
                   commitTimelineType,
                   throwable);
               hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
-                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+                  getMetadataExtractorFailureReason(
+                      throwable,
+                      MetricsConstants.MetadataUploadFailureReasons.UNKNOWN));
               return null; // handled in uploadNewInstantsSinceCheckpoint
             });
   }
@@ -361,7 +366,9 @@ public class TimelineCommitInstantsUploader {
                         throwable -> {
                           hudiMetadataExtractorMetrics
                               .incrementTableMetadataProcessingFailureCounter(
-                                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+                                  getMetadataExtractorFailureReason(
+                                      throwable,
+                                      MetricsConstants.MetadataUploadFailureReasons.UNKNOWN));
                           log.error(
                               "error processing batch for table: {}. Skipping processing of further batches of table in current run.",
                               table.getAbsoluteTableUri(),
