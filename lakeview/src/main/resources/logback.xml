@@ -5,11 +5,9 @@
         </encoder>
     </appender>
     <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
-        <layout class="ch.qos.logback.contrib.json.classic.JsonLayout">
-            <jsonFormatter class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter" />
-            <timestampFormat>yyyy-MM-dd' 'HH:mm:ss.SSS</timestampFormat>
-            <appendLineSeparator>true</appendLineSeparator>
-        </layout>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+        </encoder>
     </appender>
 
     <logger name="software.amazon" level="info"/>
