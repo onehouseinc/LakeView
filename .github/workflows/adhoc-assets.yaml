@@ -7,7 +7,7 @@ on:
 jobs:
   generate-tags:
     if: contains(github.event.review.body, '/push-image') || contains(github.event.review.body, '/push-jar')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     outputs:
       tags: ${{ steps.tags.outputs.tags }}
     steps:

@@ -1,5 +1,12 @@
 package ai.onehouse.metadata_extractor;
 
+import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
+import ai.onehouse.storage.AsyncStorageClient;
+import com.cronutils.model.Cron;
+import com.cronutils.model.CronType;
+import com.cronutils.model.definition.CronDefinitionBuilder;
+import com.cronutils.model.time.ExecutionTime;
+import com.cronutils.parser.CronParser;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import ai.onehouse.config.Config;
@@ -7,7 +14,10 @@ import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -23,19 +33,24 @@ public class TableDiscoveryAndUploadJob {
   private final ScheduledExecutorService scheduler;
   private final Object lock = new Object();
   private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
+  private final AsyncStorageClient asyncStorageClient;
 
   private Set<Table> tablesToProcess;
   private Instant previousTableMetadataUploadRunStartTime = Instant.EPOCH;
+  private final Instant firstCronRunStartTime;
 
   @Inject
   public TableDiscoveryAndUploadJob(
       @Nonnull TableDiscoveryService tableDiscoveryService,
       @Nonnull TableMetadataUploaderService tableMetadataUploaderService,
-      @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics) {
+      @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics,
+      @Nonnull AsyncStorageClient asyncStorageClient) {
     this.scheduler = getScheduler();
     this.tableDiscoveryService = tableDiscoveryService;
     this.tableMetadataUploaderService = tableMetadataUploaderService;
     this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
+    this.firstCronRunStartTime = Instant.now();
+    this.asyncStorageClient = asyncStorageClient;
   }
 
   /*
@@ -43,6 +58,7 @@ public class TableDiscoveryAndUploadJob {
    */
   public void runInContinuousMode(Config config) {
     log.debug("Running metadata-extractor in continuous mode");
+    asyncStorageClient.initializeClient();
     // Schedule table discovery
     scheduler.scheduleAtFixedRate(
         this::discoverTables,
@@ -62,7 +78,17 @@ public class TableDiscoveryAndUploadJob {
    * Runs table discovery followed by metadata uploader once
    */
   public void runOnce() {
-    log.info("Running metadata-extractor one time");
+    asyncStorageClient.initializeClient();
+    runOnce(null, 1);
+  }
+
+  public void runOnce(Config config) {
+    asyncStorageClient.initializeClient();
+    runOnce(config, 1);
+  }
+
+  public void runOnce(Config config, int runCounter) {
+    log.info("Running metadata-extractor starting at: {}", firstCronRunStartTime);
     Boolean isSucceeded =
         tableDiscoveryService
             .discoverTables()
@@ -72,7 +98,40 @@ public class TableDiscoveryAndUploadJob {
       log.info("Run Completed");
     } else {
       log.error("Run failed");
+      /*
+      * The retry is done in following known scenarios:
+      * 1. Session token expiry for pull model customer
+      * 2. Temporary network issues, sometimes external api call fails despite client retries
+      * 3, Issues related to throttling of calls to S3/GCS
+      * */
+      if (config != null &&
+          config.getMetadataExtractorConfig().getJobRunMode().equals(MetadataExtractorConfig.JobRunMode.ONCE_WITH_RETRY)
+          && shouldRunAgainForRunOnceConfiguration(config)
+          && runCounter < config.getMetadataExtractorConfig().getMaxRunCountForPullModel()) {
+        log.info("Retrying job: Attempt {}/{}",
+            runCounter + 1,
+            config.getMetadataExtractorConfig().getMaxRunCountForPullModel());
+        // Handle client session timeout errors if any
+        asyncStorageClient.refreshClient();
+        runOnce(config, runCounter + 1);
+      }
     }
+  }
+
+  @VisibleForTesting
+  boolean shouldRunAgainForRunOnceConfiguration(Config config) {
+    MetadataExtractorConfig metadataExtractorConfig = config.getMetadataExtractorConfig();
+    Cron cron = new CronParser((CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX)))
+        .parse(metadataExtractorConfig.getCronScheduleForPullModel());
+    ExecutionTime executionTime = ExecutionTime.forCron(cron);
+    Optional<ZonedDateTime> nextExecutionTime =
+        executionTime.nextExecution(firstCronRunStartTime.atZone(ZoneOffset.UTC));
+    if (nextExecutionTime.isPresent() && Duration.between(firstCronRunStartTime,
+        nextExecutionTime.get().toInstant()).toMinutes() < metadataExtractorConfig.getMinIntervalMinutes()) {
+      log.info("Stopping the job as next scheduled run is less than 10 minutes away");
+      return false;
+    }
+    return true;
   }
 
   private void discoverTables() {

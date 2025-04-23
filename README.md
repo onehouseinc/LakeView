@@ -209,12 +209,12 @@ hoodie.meta.sync.lakeview.gcs.gcp_service_account_key_path=<optional-path_to_gcp
 
 hoodie.meta.sync.lakeview.metadata_extractor.path_exclusion_patterns=<pattern1>,<pattern2>,...
 
-hoodie.meta.sync.lakeview.metadata_extractor.lakes.<lake1>.databases.<database1>.base_paths=<basepath11>,<basepath12>
+hoodie.meta.sync.lakeview.metadata_extractor.lakes.<lake1>.databases.<database1>.base_paths=<base_path11>,<base_path12>
 hoodie.meta.sync.lakeview.metadata_extractor.lakes.<lake1>.databases.<database2>.base_paths=<path1>,<path2>
 ```
 
 > [!TIP]
-> You may include multiple comma-separated base paths for `hoodie.meta.sync.lakeview.metadataExtractor.lakes.<lake1>.databases.<database2>.basePaths=<path1>,<path2>` to make your configurations reusable; LakeView will only sync the basepath specified in the `hoodie.base.path` configuration. Also, your base paths should not contain trailing slashes.
+> You may include multiple comma-separated base paths for `hoodie.meta.sync.lakeview.metadata_extractor.lakes.<lake1>.databases.<database2>.base_paths=<path1>,<path2>` to make your configurations reusable; LakeView will only sync the base path specified in the `hoodie.base.path` configuration. Also, your base paths should not contain trailing slashes.
 
 **Example S3 Configuration File for Hudi Streamer**
 ```
@@ -234,7 +234,7 @@ hoodie.meta.sync.lakeview.metadata_extractor.lakes.<lake1>.databases.<database2>
 
 **Example Running Ad Hoc in Command Line**
 ```
-java -cp lakeview-sync-tool-1.0-SNAPSHOT-all.jar ai.onehouse.lakeview.sync.LakeviewSyncTool --base-path s3://jenkinsintegration-tests/20241016085523/community-edition-non-blocking --version V1 --project-id c7c2d2c9-e906-4507-a277-352216195cd0 --api-key API_KEY --api-secret API_SECRET --userid o1d2LfHuJ5RPnyw1eOYizIoexm32 --s3-region us-west-2 --lake-paths sync-tool-test-lake.databases.sync-tool-0.basePaths=s3://jenkinsintegration-tests/20241016085523/community-edition-non-blocking
+java -cp lakeview-sync-tool-1.0-SNAPSHOT-all.jar ai.onehouse.lakeview.sync.LakeviewSyncTool --base-path s3://jenkinsintegration-tests/20241016085523/community-edition-non-blocking --version V1 --project-id c7c2d2c9-e906-4507-a277-352216195cd0 --api-key API_KEY --api-secret API_SECRET --userid o1d2LfHuJ5RPnyw1eOYizIoexm32 --s3-region us-west-2 --lake-paths sync-tool-test-lake.databases.sync-tool-0.base_paths=s3://jenkinsintegration-tests/20241016085523/community-edition-non-blocking
 ```
 
 ## LakeView Configurations Explained

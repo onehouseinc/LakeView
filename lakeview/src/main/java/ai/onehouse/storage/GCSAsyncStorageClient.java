@@ -1,10 +1,12 @@
 package ai.onehouse.storage;
 
+import ai.onehouse.exceptions.AccessDeniedException;
 import ai.onehouse.exceptions.ObjectStorageClientException;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import ai.onehouse.storage.models.File;
@@ -76,7 +78,7 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
       executorService).exceptionally(
       ex -> {
         log.error("Failed to fetch objects by page", ex);
-        throw new ObjectStorageClientException(ex);
+        throw clientException(ex, "fetchObjectsByPage", bucketName);
       }
     );
   }
@@ -102,7 +104,7 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
         executorService).exceptionally(
       ex -> {
         log.error("Failed to read blob", ex);
-        throw new ObjectStorageClientException(ex);
+        throw clientException(ex, "readBlob", gcsUri);
       }
     );
   }
@@ -121,5 +123,33 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
   @Override
   public CompletableFuture<byte[]> readFileAsBytes(String gcsUri) {
     return readBlob(gcsUri).thenApply(Blob::getContent);
+  }
+
+  @Override
+  public void refreshClient() {
+    gcsClientProvider.refreshClient();
+  }
+
+  @Override
+  public void initializeClient() {
+    gcsClientProvider.getGcsClient();
+  }
+
+  @Override
+  protected RuntimeException clientException(Throwable ex, String operation, String path) {
+    Throwable wrappedException = ex.getCause();
+    if (wrappedException instanceof StorageException) {
+      StorageException storageException = (StorageException) wrappedException;
+      log.info("Error in GCS operation : {} on path : {} code : {} message : {}",
+          operation, path, storageException.getCode(), storageException.getMessage());
+      if (storageException.getCode() == 403 || storageException.getCode() == 401
+          || storageException.getMessage().equalsIgnoreCase("Error requesting access token")) {
+        return new AccessDeniedException(
+            String.format(
+                "AccessDenied for operation : %s on path : %s with message : %s",
+                operation, path, storageException.getMessage()));
+      }
+    }
+    return new ObjectStorageClientException(ex);
   }
 }
