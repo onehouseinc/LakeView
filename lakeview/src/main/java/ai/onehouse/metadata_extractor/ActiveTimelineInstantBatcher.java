@@ -3,6 +3,7 @@ package ai.onehouse.metadata_extractor;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static ai.onehouse.constants.MetadataExtractorConstants.ROLLBACK_ACTION;
 import static ai.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
+import static ai.onehouse.constants.MetadataExtractorConstants.VALID_SAVEPOINT_ROLLBACK_ACTIONS;
 import static ai.onehouse.constants.MetadataExtractorConstants.WHITELISTED_ACTION_TYPES;
 
 import ai.onehouse.config.Config;
@@ -253,12 +254,11 @@ public class ActiveTimelineInstantBatcher {
     if (!instant1.getTimestamp().equals(instant2.getTimestamp())) {
       return false;
     }
-    if (!instant1.getAction().equals(instant2.getAction())) {
-      return false;
-    }
 
     Set<String> states = new HashSet<>(Arrays.asList(instant1.getState(), instant2.getState()));
-    return states.containsAll(Arrays.asList("inflight", "completed"));
+    return states.containsAll(Arrays.asList("inflight", "completed")) &&
+        instant1.getAction().equals(instant2.getAction()) &&
+        VALID_SAVEPOINT_ROLLBACK_ACTIONS.contains(instant1.getAction());
   }
 
   private static ActiveTimelineInstant getActiveTimeLineInstant(String instant) {
