@@ -253,6 +253,9 @@ public class ActiveTimelineInstantBatcher {
     if (!instant1.getTimestamp().equals(instant2.getTimestamp())) {
       return false;
     }
+    if (!instant1.getAction().equals(instant2.getAction())) {
+      return false;
+    }
 
     Set<String> states = new HashSet<>(Arrays.asList(instant1.getState(), instant2.getState()));
     return states.containsAll(Arrays.asList("inflight", "completed"));
