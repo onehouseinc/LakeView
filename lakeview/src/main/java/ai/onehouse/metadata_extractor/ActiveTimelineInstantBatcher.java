@@ -91,14 +91,21 @@ public class ActiveTimelineInstantBatcher {
           areInstantsInGrpRelated = false;
           shouldStopIteration = true;
         } else {
+          // First try to check for 3-file pattern
           ActiveTimelineInstant instant2 =
               getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
           ActiveTimelineInstant instant3 =
               getActiveTimeLineInstant(sortedInstants.get(index + 2).getFilename());
           areInstantsInGrpRelated = areRelatedInstants(instant1, instant2, instant3);
-          if (!areInstantsInGrpRelated && instant1.getState().equals("completed")) {
-            groupSize = 1;
-            areInstantsInGrpRelated = true;
+          if (!areInstantsInGrpRelated) {
+            // If 3-file pattern doesn't match, check for 2-file pattern
+            areInstantsInGrpRelated = areRelatedSavepointOrRollbackInstants(instant1, instant2);
+
+            // If neither pattern matches but it's a completed rollback, process it individually
+            if (!areInstantsInGrpRelated && instant1.getState().equals("completed")) {
+              groupSize = 1;
+              areInstantsInGrpRelated = true;
+            }
           }
         }
       } else if (instant1.action.equals(SAVEPOINT_ACTION)) {
@@ -109,7 +116,7 @@ public class ActiveTimelineInstantBatcher {
         } else {
           ActiveTimelineInstant instant2 =
               getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
-          areInstantsInGrpRelated = areRelatedSavepointInstants(instant1, instant2);
+          areInstantsInGrpRelated = areRelatedSavepointOrRollbackInstants(instant1, instant2);
           groupSize = 2;
         }
       } else {
@@ -239,8 +246,8 @@ public class ActiveTimelineInstantBatcher {
     return states.containsAll(Arrays.asList("inflight", "requested", "completed"));
   }
 
-  // Savepoint instants only have inflight and final commit
-  private static boolean areRelatedSavepointInstants(
+  // Savepoint and Rollback (Hudi v0.08) instants only have inflight and final commit
+  private static boolean areRelatedSavepointOrRollbackInstants(
       ActiveTimelineInstant instant1, ActiveTimelineInstant instant2) {
     if (!instant1.getTimestamp().equals(instant2.getTimestamp())) {
       return false;
