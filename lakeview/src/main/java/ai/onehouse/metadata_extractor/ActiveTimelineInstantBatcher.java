@@ -100,6 +100,7 @@ public class ActiveTimelineInstantBatcher {
           if (!areInstantsInGrpRelated) {
             // If 3-file pattern doesn't match, check for 2-file pattern
             areInstantsInGrpRelated = areRelatedSavepointOrRollbackInstants(instant1, instant2);
+            groupSize = 2;
 
             // If neither pattern matches but it's a completed rollback, process it individually
             if (!areInstantsInGrpRelated && instant1.getState().equals("completed")) {
