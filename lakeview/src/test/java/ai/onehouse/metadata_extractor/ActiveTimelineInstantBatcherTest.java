@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 
 import ai.onehouse.metadata_extractor.models.Checkpoint;
 import ai.onehouse.storage.models.File;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -505,7 +506,7 @@ class ActiveTimelineInstantBatcherTest {
     assertEquals(expectedBatches, actualBatches);
   }
 
-  @Test void testRollBackWithJustInflight() throws IOException {
+  @Test void testRollBackWithJustInflight() {
     List<File> files = generateFilesFromTimeline("timeline/active_timeline_with_rollback.txt");
 
     List<List<File>> expectedBatches =
@@ -524,17 +525,7 @@ class ActiveTimelineInstantBatcherTest {
             getClass().getClassLoader().getResource(path)).getPath()))) {
       String line;
       while ((line = br.readLine()) != null) {
-        String[] parts = line.trim().split("\\s+");
-        if (parts.length >= 3) {
-          String date = parts[0] + " " + parts[1];
-          String fileName = parts[3];
-          File f = File.builder()
-                    .filename(fileName)
-                    .isDirectory(false)
-                    .lastModifiedAt(convertStringToInstant(date))
-                    .build();
-          files.add(f);
-        }
+        files.add(generateFileObj(line.trim()));
       }
     } catch (IOException e) {
       e.printStackTrace();
