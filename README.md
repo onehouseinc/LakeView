@@ -68,7 +68,7 @@ LakeView supports three deployment models:
 [**🎬 Pull Model demo video**](https://www.youtube.com/watch?v=A_0n8HXaKjs)
 
 With the Pull Model, you will grant LakeView access to your Hudi metadata files with an IAM role template. LakeView will continuously pull the latest metadata.
-1. **Create Role:** Create an IAM Role (AWS) or Service Account (GCP) for LakeView.
+1. **Create Role:** Create an IAM Role (AWS) or Service Account (GCP) for LakeView. We recommend setting the maximum session duration (12 hours) for this role.
    * **AWS:** In the AWS console, create a new IAM Role. Under the "Trust relationships", add the following JSON:
       ```json
       {
@@ -89,6 +89,8 @@ With the Pull Model, you will grant LakeView access to your Hudi metadata files 
      * New principles: lv-access-sa@infra-production-355309.iam.gserviceaccount.com
      * Role: Service Account Token Creator
 1. **Download & Fill In Config File:** In the [LakeView console](https://cloud.onehouse.ai/lakeview/signup), download the configuration file and fill in all configurations. See details on each configuration [here](#lakeview-configurations-explained).
+    * **For AWS:** If your data is encrypted with KMS, provide the KMS key ARNs in the configuration file and ensure the LakeView role has access to these KMS keys.
+    * **For GCP:** If using encrypted buckets (CMEK - Customer Managed Encryption Keys), ensure that the Google Storage Service Account has access to these encryption keys.
 1. **Upload Filled-In Config File:** In the LakeView console, upload the filled-in configuration file.
 1. **Apply IAM Role:** LakeView will automatically generate an IAM template from the configuration file you uploaded. In the LakeView console, download this IAM template. Then apply the permissions in your cloud account:
    * **AWS:** In the AWS console, navigate to your IAM Role. Click "Add Permissions" > "Create Inline Policy" and paste the downloaded IAM template JSON.
@@ -97,7 +99,7 @@ With the Pull Model, you will grant LakeView access to your Hudi metadata files 
 
 After you complete these steps, LakeView will continuously pull metadata for your tables to generate dashboards and insights.
 
-**Note: New tables may initially take up to 6 hours to appear in the Onehouse UI.**
+**Note: New tables may initially take up to 1 hour to appear in the Onehouse UI.**
 
 ## Option 2: Deploy with Push Model
 
@@ -390,6 +392,10 @@ Onehouse will NOT see your column stats. While column stats are present in the [
 # Known Limitations
  
 When using the metadata extractor tool, it's important to be aware of certain limitations that can affect its functionality and the accuracy of the metrics provided.
+
+**Hudi Version Compatibility**
+- LakeView works best with Apache Hudi 0.14.0 or later.
+- Users running older Hudi versions may experience gaps in telemetry data.
 
 **Issues with Tables having same name in a (lake, database)**
 - Scenario: If two tables having the same name are present in the same (lake, database) pair, the tool will not be able to distinguish between them.
