@@ -3,6 +3,7 @@ package ai.onehouse.metadata_extractor;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static ai.onehouse.constants.MetadataExtractorConstants.ROLLBACK_ACTION;
 import static ai.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
+import static ai.onehouse.constants.MetadataExtractorConstants.VALID_SAVEPOINT_ROLLBACK_ACTIONS;
 import static ai.onehouse.constants.MetadataExtractorConstants.WHITELISTED_ACTION_TYPES;
 
 import ai.onehouse.config.Config;
@@ -91,14 +92,22 @@ public class ActiveTimelineInstantBatcher {
           areInstantsInGrpRelated = false;
           shouldStopIteration = true;
         } else {
+          // First try to check for 3-file pattern
           ActiveTimelineInstant instant2 =
               getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
           ActiveTimelineInstant instant3 =
               getActiveTimeLineInstant(sortedInstants.get(index + 2).getFilename());
           areInstantsInGrpRelated = areRelatedInstants(instant1, instant2, instant3);
-          if (!areInstantsInGrpRelated && instant1.getState().equals("completed")) {
-            groupSize = 1;
-            areInstantsInGrpRelated = true;
+          if (!areInstantsInGrpRelated) {
+            // If 3-file pattern doesn't match, check for 2-file pattern
+            areInstantsInGrpRelated = areRelatedSavepointOrRollbackInstants(instant1, instant2);
+            groupSize = 2;
+
+            // If neither pattern matches but it's a completed rollback, process it individually
+            if (!areInstantsInGrpRelated && instant1.getState().equals("completed")) {
+              groupSize = 1;
+              areInstantsInGrpRelated = true;
+            }
           }
         }
       } else if (instant1.action.equals(SAVEPOINT_ACTION)) {
@@ -109,7 +118,7 @@ public class ActiveTimelineInstantBatcher {
         } else {
           ActiveTimelineInstant instant2 =
               getActiveTimeLineInstant(sortedInstants.get(index + 1).getFilename());
-          areInstantsInGrpRelated = areRelatedSavepointInstants(instant1, instant2);
+          areInstantsInGrpRelated = areRelatedSavepointOrRollbackInstants(instant1, instant2);
           groupSize = 2;
         }
       } else {
@@ -239,15 +248,17 @@ public class ActiveTimelineInstantBatcher {
     return states.containsAll(Arrays.asList("inflight", "requested", "completed"));
   }
 
-  // Savepoint instants only have inflight and final commit
-  private static boolean areRelatedSavepointInstants(
+  // Savepoint and Rollback (Hudi v0.08) instants only have inflight and final commit
+  private static boolean areRelatedSavepointOrRollbackInstants(
       ActiveTimelineInstant instant1, ActiveTimelineInstant instant2) {
     if (!instant1.getTimestamp().equals(instant2.getTimestamp())) {
       return false;
     }
 
     Set<String> states = new HashSet<>(Arrays.asList(instant1.getState(), instant2.getState()));
-    return states.containsAll(Arrays.asList("inflight", "completed"));
+    return states.containsAll(Arrays.asList("inflight", "completed")) &&
+        instant1.getAction().equals(instant2.getAction()) &&
+        VALID_SAVEPOINT_ROLLBACK_ACTIONS.contains(instant1.getAction());
   }
 
   private static ActiveTimelineInstant getActiveTimeLineInstant(String instant) {

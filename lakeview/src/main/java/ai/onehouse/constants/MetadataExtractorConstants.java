@@ -4,7 +4,9 @@ import ai.onehouse.metadata_extractor.models.Checkpoint;
 import ai.onehouse.storage.models.File;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 public class MetadataExtractorConstants {
@@ -60,6 +62,8 @@ public class MetadataExtractorConstants {
 
   public static final String SAVEPOINT_ACTION = "savepoint";
   public static final String ROLLBACK_ACTION = "rollback";
+  public static final Set<String> VALID_SAVEPOINT_ROLLBACK_ACTIONS =
+      new HashSet<>(Arrays.asList(SAVEPOINT_ACTION, ROLLBACK_ACTION));
   public static final List<String> WHITELISTED_ACTION_TYPES =
       Arrays.asList(
           "commit",

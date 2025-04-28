@@ -7,16 +7,26 @@ import static org.mockito.Mockito.when;
 import ai.onehouse.config.Config;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import ai.onehouse.metadata_extractor.models.Checkpoint;
 import ai.onehouse.storage.models.File;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -493,6 +503,54 @@ class ActiveTimelineInstantBatcherTest {
     List<List<File>> actualBatches =
         activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
     assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test void testRollBackWithJustInflight() {
+    List<File> files = generateFilesFromTimeline("timeline/active_timeline_with_rollback.txt");
+
+    List<List<File>> expectedBatches =
+        readBatchesFromJson("timeline/active_timeline_with_rollback.json");
+
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 20, getCheckpoint()).getRight();
+
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  List<File> generateFilesFromTimeline(String path) {
+    List<File> files = new ArrayList<>();
+    try (BufferedReader br = new BufferedReader(new FileReader(
+        Objects.requireNonNull(
+            getClass().getClassLoader().getResource(path)).getPath()))) {
+      String line;
+      while ((line = br.readLine()) != null) {
+        files.add(generateFileObj(line.trim()));
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return files;
+  }
+
+  List<List<File>> readBatchesFromJson(String path) {
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.registerModule(new JavaTimeModule());  // Required for java.time.Instant
+
+    try {
+      String jsonPath = Objects.requireNonNull(
+          getClass().getClassLoader().getResource(path)).getPath();
+      return mapper.readValue(new java.io.File(jsonPath),
+          new TypeReference<List<List<File>>>() {});
+    } catch (IOException e) {
+      e.printStackTrace();
+      return new ArrayList<>();
+    }
+  }
+
+  Instant convertStringToInstant(String timeString) {
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    LocalDateTime localDateTime = LocalDateTime.parse(timeString, formatter);
+    return localDateTime.toInstant(ZoneOffset.UTC);
   }
 
   static Stream<Arguments> createBatchTestCases() {
