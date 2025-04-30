@@ -17,8 +17,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import ai.onehouse.exceptions.AccessDeniedException;
-import ai.onehouse.exceptions.RateLimitException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import ai.onehouse.api.OnehouseApiClient;
