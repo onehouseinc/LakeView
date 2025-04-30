@@ -233,7 +233,7 @@ public class ActiveTimelineInstantBatcher {
         });
   }
 
-  private static boolean areRelatedInstants(
+  static boolean areRelatedInstants(
       ActiveTimelineInstant instant1,
       ActiveTimelineInstant instant2,
       ActiveTimelineInstant instant3) {
@@ -249,7 +249,7 @@ public class ActiveTimelineInstantBatcher {
   }
 
   // Savepoint and Rollback (Hudi v0.08) instants only have inflight and final commit
-  private static boolean areRelatedSavepointOrRollbackInstants(
+  static boolean areRelatedSavepointOrRollbackInstants(
       ActiveTimelineInstant instant1, ActiveTimelineInstant instant2) {
     if (!instant1.getTimestamp().equals(instant2.getTimestamp())) {
       return false;
@@ -261,7 +261,7 @@ public class ActiveTimelineInstantBatcher {
         VALID_SAVEPOINT_ROLLBACK_ACTIONS.contains(instant1.getAction());
   }
 
-  private static ActiveTimelineInstant getActiveTimeLineInstant(String instant) {
+  static ActiveTimelineInstant getActiveTimeLineInstant(String instant) {
     String[] parts = instant.split("\\.", 3);
 
     String action;
@@ -279,7 +279,7 @@ public class ActiveTimelineInstantBatcher {
 
   @Builder
   @Getter
-  private static class ActiveTimelineInstant {
+  static class ActiveTimelineInstant {
     private final String timestamp;
     private final String action;
     private final String state;

@@ -6,7 +6,11 @@ import static ai.onehouse.constants.MetadataExtractorConstants.ARCHIVED_FOLDER_N
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE_OBJ;
+import static ai.onehouse.constants.MetadataExtractorConstants.ROLLBACK_ACTION;
 import static ai.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
+import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.areRelatedInstants;
+import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.areRelatedSavepointOrRollbackInstants;
+import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.getActiveTimeLineInstant;
 import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -642,7 +646,7 @@ public class TimelineCommitInstantsUploader {
    * hoodie.properties. If the batch ends with savepoint commit, we return the second to last item.
    * If the batch ends with other commit types, we return third to last item.
    */
-  private File getLastUploadedFileFromBatch(
+  public File getLastUploadedFileFromBatch(
       CommitTimelineType commitTimelineType, List<File> batch) {
     if (commitTimelineType == CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED) {
       return batch.get(batch.size() - 1);
@@ -655,6 +659,30 @@ public class TimelineCommitInstantsUploader {
       return batch.get(batch.size() - 2);
     }
 
+    if (isRollbackCommit(batch.get(batch.size() - 1))) {
+      int lastIndex = batch.size() - 1;
+      ActiveTimelineInstantBatcher.ActiveTimelineInstant lastInstant =
+          getActiveTimeLineInstant(batch.get(lastIndex).getFilename());
+      
+      // Case 1: Full rollback sequence (xyz.rollback, xyz.rollback.inflight, xyz.rollback.requested)
+      if (lastIndex >= 2 &&
+          areRelatedInstants(lastInstant,
+              getActiveTimeLineInstant(batch.get(lastIndex-1).getFilename()),
+              getActiveTimeLineInstant(batch.get(lastIndex-2).getFilename()))) {
+        return batch.get(lastIndex - 2);
+      }
+      
+      // Case 2: Rollback with inflight (xyz.rollback, xyz.inflight)
+      if (lastIndex >= 1 &&
+          areRelatedSavepointOrRollbackInstants(lastInstant,
+              getActiveTimeLineInstant(batch.get(lastIndex-1).getFilename()))) {
+        return batch.get(lastIndex - 1);
+      }
+      
+      // Case 3: Simple rollback (xyz.rollback)
+      return batch.get(lastIndex);
+    }
+
     return batch.get(batch.size() - 3);
   }
 
@@ -664,6 +692,14 @@ public class TimelineCommitInstantsUploader {
       return false;
     }
     return SAVEPOINT_ACTION.equals(parts[1]);
+  }
+
+  private boolean isRollbackCommit(File file) {
+    String[] parts = file.getFilename().split("\\.", 3);
+    if (parts.length < 2) {
+      return false;
+    }
+    return ROLLBACK_ACTION.equals(parts[1]);
   }
 
   @VisibleForTesting
