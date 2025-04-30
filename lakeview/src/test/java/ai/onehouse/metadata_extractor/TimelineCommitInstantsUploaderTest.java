@@ -17,6 +17,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import ai.onehouse.exceptions.AccessDeniedException;
+import ai.onehouse.exceptions.RateLimitException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import ai.onehouse.api.OnehouseApiClient;
@@ -962,6 +964,66 @@ class TimelineCommitInstantsUploaderTest {
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED));
   }
 
+  @ParameterizedTest
+  @MethodSource("provideTestCases")
+  void testGetLastUploadedFileFromBatch(CommitTimelineType commitTimelineType, List<File> batch, String expectedFile) {
+    File file = timelineCommitInstantsUploader.getLastUploadedFileFromBatch(commitTimelineType, batch);
+    assertEquals(expectedFile, file.getFilename());
+  }
+
+  static Stream<Arguments> provideTestCases() {
+    return Stream.of(
+        Arguments.of(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED,
+            Arrays.asList(
+                generateFileObj(".commits_.archive.2_1-0-1", false),
+                generateFileObj(".commits_.archive.3_1-0-1", false)),
+            ".commits_.archive.3_1-0-1"),
+        Arguments.of(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE,
+          Arrays.asList(
+              generateFileObj("111.savepoint", false),
+              generateFileObj("111.savepoint.inflight", false)),
+            "111.savepoint"),
+        Arguments.of(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE,
+            Arrays.asList(
+                generateFileObj("111.rollback", false),
+                generateFileObj("111.rollback.inflight", false)),
+            "111.rollback"),
+        Arguments.of(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE,
+            Arrays.asList(
+                generateFileObj("111.rollback", false),
+                generateFileObj("111.rollback.inflight", false),
+                generateFileObj("111.rollback.requested", false)),
+            "111.rollback"),
+        Arguments.of(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE,
+            Collections.singletonList(
+                generateFileObj("hoodie.properties", false)),
+            "hoodie.properties"),
+        Arguments.of(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE,
+            Arrays.asList(
+                generateFileObj("111.commit", false),
+                generateFileObj("111.rollback", false)),
+            "111.rollback"),
+        Arguments.of(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE,
+            Arrays.asList(
+                generateFileObj("111.commit", false),
+                generateFileObj("111.inflight", false),
+                generateFileObj("111.commit.requested", false)),
+            "111.commit"),
+        Arguments.of(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE,
+            Collections.singletonList(
+                generateFileObj("hoodie.properties", false)),
+            "hoodie.properties")
+    );
+  }
+
   private void mockListPage(
       String prefix, String nextContinuationToken, String startAfter, List<File> files) {
     when(asyncStorageClient.fetchObjectsByPage("bucket", prefix, null, startAfter))
@@ -972,6 +1034,7 @@ class TimelineCommitInstantsUploaderTest {
     when(asyncStorageClient.listAllFilesInDir(dirUri))
         .thenReturn(CompletableFuture.completedFuture(files));
   }
+
 
   private Checkpoint generateCheckpointObj(
       int batchId,
@@ -987,11 +1050,11 @@ class TimelineCommitInstantsUploaderTest {
         .build();
   }
 
-  private File generateFileObj(String fileName, boolean isDirectory) {
+  static File generateFileObj(String fileName, boolean isDirectory) {
     return generateFileObj(fileName, isDirectory, Instant.EPOCH);
   }
 
-  private File generateFileObj(String fileName, boolean isDirectory, Instant lastModifiedAt) {
+  static File generateFileObj(String fileName, boolean isDirectory, Instant lastModifiedAt) {
     return File.builder()
         .filename(fileName)
         .isDirectory(isDirectory)
