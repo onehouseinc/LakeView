@@ -72,8 +72,8 @@ public class S3AsyncClientProvider {
 
     return s3AsyncClientBuilder
       .httpClient(NettyNioAsyncHttpClient.builder()
-        .maxConcurrency(100)
-        .connectionTimeout(Duration.ofSeconds(30L))
+        .maxConcurrency(200)
+        .connectionTimeout(Duration.ofSeconds(60L))
         .build())
       .region(Region.of(s3Config.getRegion()))
       .asyncConfiguration(
