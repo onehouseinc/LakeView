@@ -998,6 +998,19 @@ class TimelineCommitInstantsUploaderTest {
             "111.rollback"),
         Arguments.of(
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE,
+            Arrays.asList(
+                generateFileObj("000.savepoint", false),
+                generateFileObj("000.savepoint.inflight", false),
+                generateFileObj("111.rollback", false)),
+            "111.rollback"),
+        Arguments.of(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE,
+            Arrays.asList(
+                generateFileObj("000.rollback", false),
+                generateFileObj("111.rollback", false)),
+            "111.rollback"),
+        Arguments.of(
+            CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE,
             Collections.singletonList(
                 generateFileObj("hoodie.properties", false)),
             "hoodie.properties"),
