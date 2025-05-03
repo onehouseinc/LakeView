@@ -1,6 +1,7 @@
 package ai.onehouse.metadata_extractor;
 
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
+import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.storage.AsyncStorageClient;
 import com.cronutils.model.Cron;
 import com.cronutils.model.CronType;
@@ -25,6 +26,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
+
+import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 
 @Slf4j
 public class TableDiscoveryAndUploadJob {
@@ -149,7 +152,10 @@ public class TableDiscoveryAndUploadJob {
         .exceptionally(
             ex -> {
               log.error("Error discovering tables: ", ex);
-              hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter();
+              hudiMetadataExtractorMetrics
+                  .incrementTableDiscoveryFailureCounter(getMetadataExtractorFailureReason(
+                  ex,
+                  MetricsConstants.MetadataUploadFailureReasons.UNKNOWN));
               return null;
             })
         .join();

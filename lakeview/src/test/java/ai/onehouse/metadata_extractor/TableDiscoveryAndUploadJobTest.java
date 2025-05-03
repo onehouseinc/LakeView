@@ -6,6 +6,8 @@ import static org.mockito.Mockito.*;
 
 import ai.onehouse.config.Config;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
+import ai.onehouse.constants.MetricsConstants;
+import ai.onehouse.exceptions.RateLimitException;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 
@@ -92,7 +94,7 @@ class TableDiscoveryAndUploadJobTest {
             .build();
     if (discoveryFailed) {
       when(mockTableDiscoveryService.discoverTables())
-          .thenReturn(failedFuture(new Exception("error")));
+          .thenReturn(failedFuture(new RateLimitException("error")));
     } else {
       when(mockTableDiscoveryService.discoverTables())
           .thenReturn(CompletableFuture.completedFuture(Collections.singleton(discoveredTable)));
@@ -136,7 +138,8 @@ class TableDiscoveryAndUploadJobTest {
     verify(mockTableDiscoveryService, times(1)).discoverTables();
 
     if (discoveryFailed) {
-      verify(mockHudiMetadataExtractorMetrics).incrementTableDiscoveryFailureCounter();
+      verify(mockHudiMetadataExtractorMetrics)
+          .incrementTableDiscoveryFailureCounter(MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING);
     } else {
       verify(mockTableMetadataUploaderService, times(1))
           .uploadInstantsInTables(Collections.singleton(discoveredTable));
