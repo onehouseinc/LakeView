@@ -1,8 +1,11 @@
 package ai.onehouse.storage;
 
+import static ai.onehouse.constants.MetricsConstants.MetadataUploadFailureReasons.ACCESS_DENIED;
+import static ai.onehouse.constants.MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.exceptions.AccessDeniedException;
 import ai.onehouse.exceptions.ObjectStorageClientException;
 import ai.onehouse.exceptions.RateLimitException;
@@ -180,10 +183,13 @@ class S3AsyncStorageClientTest {
                 "error (Service: null, Status Code: 0, Request ID: null)"));
   }
 
-  @Test
-  void testReadFileAsBytesWithS3RateLimiting() {
+  @ParameterizedTest
+  @MethodSource("generateExceptionTestCases")
+  void testReadFileAsBytesWithException(CompletableFuture<String> exceptionalFuture,
+                                        Class<? extends RuntimeException> exceptionClass,
+                                        String expectedMessage) {
     when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
-            .thenReturn(buildS3Exception("Throttling"));
+            .thenReturn(exceptionalFuture);
 
     CompletableFuture<byte[]> readFileAsBytes = s3AsyncStorageClient.readFileAsBytes(S3_URI);
     CompletionException executionException = assertThrows(CompletionException.class, readFileAsBytes::join);
@@ -192,9 +198,23 @@ class S3AsyncStorageClientTest {
     Throwable cause = executionException.getCause();
 
     // Verify the exception is RateLimitException
-    assertInstanceOf(RateLimitException.class, cause);
-    assertEquals("Throttled by S3 for operation : readFileAsBytes on path : s3://" + TEST_BUCKET + "/" + TEST_KEY,
-            cause.getMessage());
+    assertInstanceOf(exceptionClass, cause);
+    assertEquals(expectedMessage, cause.getMessage());
+  }
+
+  static Stream<Arguments> generateExceptionTestCases() {
+    return Stream.of(
+        Arguments.of(
+        buildS3Exception("Throttling"),
+        RateLimitException.class,
+        "Throttled by S3 for operation : readFileAsBytes on path : s3://" + TEST_BUCKET + "/" + TEST_KEY),
+        Arguments.of(buildNestedException(RATE_LIMITING),
+            RateLimitException.class,
+            RATE_LIMITING.name()),
+        Arguments.of(buildNestedException(ACCESS_DENIED),
+            AccessDeniedException.class,
+            ACCESS_DENIED.name())
+    );
   }
 
   @Test
@@ -274,7 +294,7 @@ class S3AsyncStorageClientTest {
     }
   }
 
-  private <R> CompletableFuture<R> buildS3Exception(String errorCode){
+  private static <R> CompletableFuture<R> buildS3Exception(String errorCode){
 
     CompletableFuture<R> futureResponse = new CompletableFuture<>();
     futureResponse.completeExceptionally(AwsServiceException.builder()
@@ -283,6 +303,23 @@ class S3AsyncStorageClientTest {
                     .errorMessage("error")
                     .build())
             .build());
+    return futureResponse;
+  }
+
+  private static <R> CompletableFuture<R> buildNestedException(MetricsConstants.MetadataUploadFailureReasons type){
+    RuntimeException runtimeException;
+    switch (type) {
+      case RATE_LIMITING:
+        runtimeException = new RateLimitException(RATE_LIMITING.name());
+        break;
+      case ACCESS_DENIED:
+        runtimeException = new AccessDeniedException(ACCESS_DENIED.name());
+        break;
+      default:
+        runtimeException = new RuntimeException("SomeException");
+    }
+    CompletableFuture<R> futureResponse = new CompletableFuture<>();
+    futureResponse.completeExceptionally(runtimeException);
     return futureResponse;
   }
 }

@@ -172,6 +172,8 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
             String.format("AccessDenied for operation : %s on path : %s with message : %s",
                 operation, path, awsServiceException.awsErrorDetails().errorMessage()));
       }
+    } else if (wrappedException instanceof RateLimitException || wrappedException instanceof AccessDeniedException) {
+      return (RuntimeException) wrappedException;
     }
     return new ObjectStorageClientException(ex);
   }

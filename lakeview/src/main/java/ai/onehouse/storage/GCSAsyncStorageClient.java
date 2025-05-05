@@ -149,6 +149,8 @@ public class GCSAsyncStorageClient extends AbstractAsyncStorageClient {
                 "AccessDenied for operation : %s on path : %s with message : %s",
                 operation, path, storageException.getMessage()));
       }
+    } else if (wrappedException instanceof  AccessDeniedException) {
+      return (RuntimeException) wrappedException;
     }
     return new ObjectStorageClientException(ex);
   }
