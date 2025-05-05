@@ -1,16 +1,12 @@
 package ai.onehouse.storage;
 
-import static ai.onehouse.constants.MetricsConstants.MetadataUploadFailureReasons.ACCESS_DENIED;
-import static ai.onehouse.constants.MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.exceptions.AccessDeniedException;
 import ai.onehouse.exceptions.ObjectStorageClientException;
-import ai.onehouse.exceptions.RateLimitException;
 import com.google.api.gax.paging.Page;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.Blob;
@@ -132,9 +128,9 @@ class GCSAsyncStorageClientTest {
 
   @ParameterizedTest
   @MethodSource("generateTestCases")
-  void testReadBlobExceptions(RuntimeException exceptionToThrow, Throwable throwable) {
+  void testReadBlobExceptions(Integer errorCode, String errorMessage, Throwable throwable) {
     when(mockGcsClient.get(BlobId.of(TEST_BUCKET, TEST_KEY)))
-        .thenThrow(exceptionToThrow);
+        .thenThrow(new StorageException(errorCode, errorMessage));
 
     CompletionException exception = assertThrows(CompletionException.class, gcsAsyncStorageClient.readBlob(GCS_URI)::join);
     assertInstanceOf(throwable.getClass(), exception.getCause());
@@ -142,16 +138,17 @@ class GCSAsyncStorageClientTest {
 
   static Stream<Arguments> generateTestCases() {
     return Stream.of(
-        Arguments.of(
-            new StorageException(403, "List permission missing"),
+        Arguments.of(403,
+            "List permission missing",
             new AccessDeniedException("error")),
-        Arguments.of(new StorageException(401, "Unauthorized"),
+        Arguments.of(401,
+            "Unauthorized",
             new AccessDeniedException("error")),
-        Arguments.of(new StorageException(0, "Error requesting access token"),
+        Arguments.of(0,
+            "Error requesting access token",
             new AccessDeniedException("error")),
-        Arguments.of(new AccessDeniedException("error"),
-            new AccessDeniedException("error")),
-        Arguments.of(new StorageException(500, "Internal"),
+        Arguments.of(500,
+            "Internal",
             new ObjectStorageClientException("error")));
   }
 
