@@ -98,7 +98,7 @@ public class TableDiscoveryService {
                 String tableId = extractTableId(basePathConfig);
                 if (StringUtils.isNotBlank(tableId)) {
                   if (discoveredTables.size() != 1) {
-                    log.error(
+                    log.debug(
                         String.format(
                             "For tableId %s, there must be exactly one table in path %s",
                             tableId, extractBasePath(basePathConfig)));
