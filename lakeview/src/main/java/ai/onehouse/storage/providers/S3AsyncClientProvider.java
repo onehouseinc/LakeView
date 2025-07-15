@@ -83,12 +83,8 @@ public class S3AsyncClientProvider {
         .retryCondition(RetryCondition.defaultRetryCondition())
         .build();
 
-    ClientOverrideConfiguration overrideConfig = ClientOverrideConfiguration.builder()
-        .retryPolicy(retryPolicy)
-        .build();
-
     return s3AsyncClientBuilder
-      .overrideConfiguration(overrideConfig)
+      .overrideConfiguration(builder -> builder.retryPolicy(retryPolicy))
       .httpClient(NettyNioAsyncHttpClient.builder()
         .maxConcurrency(metadataExtractorConfig.getNettyMaxConcurrency())
         .connectionTimeout(Duration.ofSeconds(metadataExtractorConfig.getNettyConnectionTimeoutSeconds()))
