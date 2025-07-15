@@ -53,6 +53,12 @@ public class MetadataExtractorConfig {
 
   @Builder.Default private int waitTimeBeforeShutdown = WAIT_TIME_BEFORE_SHUTDOWN;
 
+  @Builder.Default private int objectStoreNumRetries = 10;
+
+  @Builder.Default private int nettyMaxConcurrency = 50;
+
+  @Builder.Default private long nettyConnectionTimeoutSeconds = 60L;
+
   public enum JobRunMode {
     CONTINUOUS,
     ONCE,

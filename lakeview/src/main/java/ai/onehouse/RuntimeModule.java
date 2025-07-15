@@ -2,6 +2,7 @@ package ai.onehouse;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.AbstractModule;
+import com.google.inject.BindingAnnotation;
 import com.google.inject.Provides;
 import ai.onehouse.api.AsyncHttpClientWithRetry;
 import ai.onehouse.config.Config;
@@ -13,6 +14,9 @@ import ai.onehouse.storage.S3AsyncStorageClient;
 import ai.onehouse.storage.StorageUtils;
 import ai.onehouse.storage.providers.GcsClientProvider;
 import ai.onehouse.storage.providers.S3AsyncClientProvider;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
@@ -38,6 +42,36 @@ public class RuntimeModule extends AbstractModule {
     this.config = config;
   }
 
+  @Retention(RetentionPolicy.RUNTIME)
+  @BindingAnnotation
+  @interface TableDiscoveryS3ObjectStorageClient {}
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @BindingAnnotation
+  @interface TableMetadataUploadS3ObjectStorageClient {}
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @BindingAnnotation
+  public @interface TableDiscoveryObjectStorageAsyncClient {}
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @BindingAnnotation
+  public @interface TableMetadataUploadObjectStorageAsyncClient {}
+
+  @Provides
+  @Singleton
+  @TableDiscoveryS3ObjectStorageClient
+  static S3AsyncClientProvider providesS3AsyncClientProviderForDiscovery(Config config, ExecutorService executorService) {
+    return new S3AsyncClientProvider(config, executorService);
+  }
+
+  @Provides
+  @Singleton
+  @TableMetadataUploadS3ObjectStorageClient
+  static S3AsyncClientProvider providesS3AsyncClientProviderForUpload(Config config, ExecutorService executorService) {
+    return new S3AsyncClientProvider(config, executorService);
+  }
+
   @Provides
   @Singleton
   static OkHttpClient providesOkHttpClient(ExecutorService executorService) {
@@ -59,10 +93,28 @@ public class RuntimeModule extends AbstractModule {
 
   @Provides
   @Singleton
-  static AsyncStorageClient providesAsyncStorageClient(
+  @TableDiscoveryObjectStorageAsyncClient
+  static AsyncStorageClient providesAsyncStorageClientForDiscovery(
       Config config,
       StorageUtils storageUtils,
-      S3AsyncClientProvider s3AsyncClientProvider,
+      @TableDiscoveryS3ObjectStorageClient S3AsyncClientProvider s3AsyncClientProvider,
+      GcsClientProvider gcsClientProvider,
+      ExecutorService executorService) {
+    FileSystemConfiguration fileSystemConfiguration = config.getFileSystemConfiguration();
+    if (fileSystemConfiguration.getS3Config() != null) {
+      return new S3AsyncStorageClient(s3AsyncClientProvider, storageUtils, executorService);
+    } else {
+      return new GCSAsyncStorageClient(gcsClientProvider, storageUtils, executorService);
+    }
+  }
+
+  @Provides
+  @Singleton
+  @TableMetadataUploadObjectStorageAsyncClient
+  static AsyncStorageClient providesAsyncStorageClientForUpload(
+      Config config,
+      StorageUtils storageUtils,
+      @TableMetadataUploadS3ObjectStorageClient S3AsyncClientProvider s3AsyncClientProvider,
       GcsClientProvider gcsClientProvider,
       ExecutorService executorService) {
     FileSystemConfiguration fileSystemConfiguration = config.getFileSystemConfiguration();
