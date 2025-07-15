@@ -21,6 +21,7 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.awscore.internal.AwsErrorCode;
 import software.amazon.awssdk.core.BytesWrapper;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
@@ -171,6 +172,12 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
         return new AccessDeniedException(
             String.format("AccessDenied for operation : %s on path : %s with message : %s",
                 operation, path, awsServiceException.awsErrorDetails().errorMessage()));
+      }
+    } else if (wrappedException instanceof SdkClientException) {
+      SdkClientException sdkClientException = (SdkClientException) wrappedException;
+      if (sdkClientException.getMessage() != null &&
+          sdkClientException.getMessage().contains("Acquire operation took longer than the configured maximum time")) {
+        return new RateLimitException(String.format("Throttled by S3 (connection pool exhausted) for operation : %s on path : %s", operation, path));
       }
     } else if (wrappedException instanceof RateLimitException || wrappedException instanceof AccessDeniedException) {
       return (RuntimeException) wrappedException;

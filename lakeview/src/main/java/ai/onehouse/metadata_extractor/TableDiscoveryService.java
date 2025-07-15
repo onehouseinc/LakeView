@@ -4,6 +4,7 @@ import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAM
 import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 import static java.util.Collections.emptySet;
 
+import ai.onehouse.RuntimeModule;
 import com.google.inject.Inject;
 import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.config.ConfigProvider;
@@ -43,7 +44,7 @@ public class TableDiscoveryService {
 
   @Inject
   public TableDiscoveryService(
-      @Nonnull AsyncStorageClient asyncStorageClient,
+      @Nonnull @RuntimeModule.TableDiscoveryObjectStorageAsyncClient AsyncStorageClient asyncStorageClient,
       @Nonnull StorageUtils storageUtils,
       @Nonnull ConfigProvider configProvider,
       @Nonnull ExecutorService executorService,

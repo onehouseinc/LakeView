@@ -38,7 +38,6 @@ public class S3AsyncClientProvider {
   private static S3AsyncClient s3AsyncClient;
   private static final Logger logger = LoggerFactory.getLogger(S3AsyncClientProvider.class);
 
-  @Inject
   public S3AsyncClientProvider(@Nonnull Config config, @Nonnull ExecutorService executorService) {
     FileSystemConfiguration fileSystemConfiguration = config.getFileSystemConfiguration();
     this.s3Config = fileSystemConfiguration.getS3Config();
