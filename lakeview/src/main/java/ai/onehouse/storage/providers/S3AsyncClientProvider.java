@@ -1,5 +1,6 @@
 package ai.onehouse.storage.providers;
 
+import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import ai.onehouse.config.Config;
@@ -19,6 +20,9 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.SdkAdvancedAsyncClientOption;
+import software.amazon.awssdk.core.retry.RetryPolicy;
+import software.amazon.awssdk.core.retry.backoff.BackoffStrategy;
+import software.amazon.awssdk.core.retry.conditions.RetryCondition;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -29,6 +33,7 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleResponse;
 
 public class S3AsyncClientProvider {
   private final S3Config s3Config;
+  private final MetadataExtractorConfig metadataExtractorConfig;
   private final ExecutorService executorService;
   private static S3AsyncClient s3AsyncClient;
   private static final Logger logger = LoggerFactory.getLogger(S3AsyncClientProvider.class);
@@ -37,6 +42,7 @@ public class S3AsyncClientProvider {
   public S3AsyncClientProvider(@Nonnull Config config, @Nonnull ExecutorService executorService) {
     FileSystemConfiguration fileSystemConfiguration = config.getFileSystemConfiguration();
     this.s3Config = fileSystemConfiguration.getS3Config();
+    this.metadataExtractorConfig = config.getMetadataExtractorConfig();
     this.executorService = executorService;
   }
 
@@ -66,14 +72,24 @@ public class S3AsyncClientProvider {
           assumeRoleResponse.credentials().secretAccessKey(),
           assumeRoleResponse.credentials().sessionToken()
         );
-        s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(tempCredentials));
       }
     }
 
+    RetryPolicy retryPolicy = RetryPolicy.builder()
+        .numRetries(metadataExtractorConfig.getObjectStoreNumRetries()) // Increase if needed
+        .backoffStrategy(BackoffStrategy.defaultThrottlingStrategy()) // Exponential backoff for throttling
+        .throttlingBackoffStrategy(BackoffStrategy.defaultThrottlingStrategy())
+        .retryCondition(RetryCondition.defaultRetryCondition())
+        .build();
+
+    s3AsyncClientBuilder.overrideConfiguration(
+        c -> c.retryPolicy(retryPolicy)
+    );
+
     return s3AsyncClientBuilder
       .httpClient(NettyNioAsyncHttpClient.builder()
-        .maxConcurrency(200)
-        .connectionTimeout(Duration.ofSeconds(60L))
+        .maxConcurrency(metadataExtractorConfig.getNettyMaxConcurrency())
+        .connectionTimeout(Duration.ofSeconds(metadataExtractorConfig.getNettyConnectionTimeoutSeconds()))
         .build())
       .region(Region.of(s3Config.getRegion()))
       .asyncConfiguration(

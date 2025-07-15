@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Stream;
 
+import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,6 +34,7 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleResponse;
 class S3AsyncClientProviderTest {
   @Mock private ConfigV1 config;
   @Mock private FileSystemConfiguration fileSystemConfiguration;
+  @Mock private MetadataExtractorConfig metadataExtractorConfig;
   @Mock private S3Config s3Config;
   @Mock private ExecutorService executorService;
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -72,6 +74,10 @@ class S3AsyncClientProviderTest {
   void testCreateS3AsyncClientWithCredentialsWhenProvided(boolean isAssumedRoleFlow, boolean isRefreshSession) {
     when(config.getFileSystemConfiguration()).thenReturn(fileSystemConfiguration);
     when(fileSystemConfiguration.getS3Config()).thenReturn(s3Config);
+    when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
+    when(metadataExtractorConfig.getObjectStoreNumRetries()).thenReturn(10);
+    when(metadataExtractorConfig.getNettyMaxConcurrency()).thenReturn(50);
+    when(metadataExtractorConfig.getNettyConnectionTimeoutSeconds()).thenReturn(60L);
     if (isAssumedRoleFlow) {
       when(s3Config.getArnToImpersonate()).thenReturn(Optional.of("arn:aws:iam::396675327081:role/test-role"));
     } else {
