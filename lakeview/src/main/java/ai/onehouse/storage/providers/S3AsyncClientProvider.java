@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.core.client.config.SdkAdvancedAsyncClientOption;
 import software.amazon.awssdk.core.retry.RetryPolicy;
 import software.amazon.awssdk.core.retry.backoff.BackoffStrategy;
@@ -71,6 +72,7 @@ public class S3AsyncClientProvider {
           assumeRoleResponse.credentials().secretAccessKey(),
           assumeRoleResponse.credentials().sessionToken()
         );
+        s3AsyncClientBuilder.credentialsProvider(StaticCredentialsProvider.create(tempCredentials));
       }
     }
 
@@ -81,11 +83,12 @@ public class S3AsyncClientProvider {
         .retryCondition(RetryCondition.defaultRetryCondition())
         .build();
 
-    s3AsyncClientBuilder.overrideConfiguration(
-        c -> c.retryPolicy(retryPolicy)
-    );
+    ClientOverrideConfiguration overrideConfig = ClientOverrideConfiguration.builder()
+        .retryPolicy(retryPolicy)
+        .build();
 
     return s3AsyncClientBuilder
+      .overrideConfiguration(overrideConfig)
       .httpClient(NettyNioAsyncHttpClient.builder()
         .maxConcurrency(metadataExtractorConfig.getNettyMaxConcurrency())
         .connectionTimeout(Duration.ofSeconds(metadataExtractorConfig.getNettyConnectionTimeoutSeconds()))
