@@ -175,6 +175,7 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
       }
     } else if (wrappedException instanceof SdkClientException) {
       SdkClientException sdkClientException = (SdkClientException) wrappedException;
+      log.info("Error in S3 Acquire operation : {} on path : {} message : {}", operation, path, sdkClientException.getMessage());
       if (sdkClientException.getMessage() != null &&
           sdkClientException.getMessage().contains("Acquire operation took longer than the configured maximum time")) {
         return new RateLimitException(String.format("Throttled by S3 (connection pool exhausted) for operation : %s on path : %s", operation, path));
