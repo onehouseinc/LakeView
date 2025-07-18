@@ -13,6 +13,7 @@ import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.areRel
 import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.getActiveTimeLineInstant;
 import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 
+import ai.onehouse.RuntimeModule;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -67,7 +68,7 @@ public class TimelineCommitInstantsUploader {
 
   @Inject
   public TimelineCommitInstantsUploader(
-      @Nonnull AsyncStorageClient asyncStorageClient,
+      @Nonnull @RuntimeModule.TableMetadataUploadObjectStorageAsyncClient AsyncStorageClient asyncStorageClient,
       @Nonnull PresignedUrlFileUploader presignedUrlFileUploader,
       @Nonnull OnehouseApiClient onehouseApiClient,
       @Nonnull StorageUtils storageUtils,

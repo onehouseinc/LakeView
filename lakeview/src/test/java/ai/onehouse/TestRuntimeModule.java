@@ -19,6 +19,7 @@ import ai.onehouse.storage.providers.GcsClientProvider;
 import ai.onehouse.storage.providers.S3AsyncClientProvider;
 import java.util.concurrent.ExecutorService;
 import okhttp3.OkHttpClient;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -63,18 +64,39 @@ class TestRuntimeModule {
       when(mockGcsClientProvider.getGcsClient()).thenReturn(null);
     }
 
-    AsyncStorageClient asyncStorageClient =
-        RuntimeModule.providesAsyncStorageClient(
+    AsyncStorageClient asyncStorageClientForDiscovery =
+        RuntimeModule.providesAsyncStorageClientForDiscovery(
             mockConfig,
             mockStorageUtils,
             mockS3AsyncClientProvider,
             mockGcsClientProvider,
             mockExecutorService);
     if (FileSystem.S3.equals(fileSystemType)) {
-      assertTrue(asyncStorageClient instanceof S3AsyncStorageClient);
+      assertTrue(asyncStorageClientForDiscovery instanceof S3AsyncStorageClient);
     } else {
-      assertTrue(asyncStorageClient instanceof GCSAsyncStorageClient);
+      assertTrue(asyncStorageClientForDiscovery instanceof GCSAsyncStorageClient);
     }
+
+    AsyncStorageClient asyncStorageClientForUpload =
+        RuntimeModule.providesAsyncStorageClientForUpload(
+            mockConfig,
+            mockStorageUtils,
+            mockS3AsyncClientProvider,
+            mockGcsClientProvider,
+            mockExecutorService);
+    if (FileSystem.S3.equals(fileSystemType)) {
+      Assertions.assertInstanceOf(S3AsyncStorageClient.class, asyncStorageClientForUpload);
+    } else {
+      Assertions.assertInstanceOf(GCSAsyncStorageClient.class, asyncStorageClientForUpload);
+    }
+
+    S3AsyncClientProvider s3AsyncClientProviderForDiscovery =
+        RuntimeModule.providesS3AsyncClientProviderForDiscovery(mockConfig, mockExecutorService);
+    Assertions.assertInstanceOf(S3AsyncClientProvider.class, s3AsyncClientProviderForDiscovery);
+
+    S3AsyncClientProvider s3AsyncClientProviderForUpload =
+        RuntimeModule.providesS3AsyncClientProviderForUpload(mockConfig, mockExecutorService);
+    Assertions.assertInstanceOf(S3AsyncClientProvider.class, s3AsyncClientProviderForUpload);
   }
 
   @Test

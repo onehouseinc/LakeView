@@ -41,6 +41,7 @@ import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
 
@@ -148,9 +149,9 @@ class S3AsyncStorageClientTest {
 
   @ParameterizedTest
   @MethodSource("generateTestCases")
-  void testStreamFileAsyncWithExceptions(String errorCode, Throwable throwable, String errorMessage) {
+  void testStreamFileAsyncWithExceptions(String errorCode, Throwable throwable, String errorMessage, boolean sdkException) {
     when(mockS3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
-            .thenReturn(buildS3Exception(errorCode));
+            .thenReturn(sdkException ? buildSdkException(errorCode)  : buildS3Exception(errorCode));
 
     CompletableFuture<FileStreamData> streamFileAsync = s3AsyncStorageClient.streamFileAsync(S3_URI);
     CompletionException executionException = assertThrows(CompletionException.class, streamFileAsync::join);
@@ -168,19 +169,22 @@ class S3AsyncStorageClientTest {
         Arguments.of("Throttling",
             new RateLimitException("error"),
             String.format("Throttled by S3 for operation : streamFileAsync on path : s3://%s/%s",
-                TEST_BUCKET, TEST_KEY)),
+                TEST_BUCKET, TEST_KEY), false),
         Arguments.of("AccessDenied",
             new AccessDeniedException("error"),
             String.format("AccessDenied for operation : streamFileAsync on path : s3://%s/%s with message : %s",
-                TEST_BUCKET, TEST_KEY, "error")),
+                TEST_BUCKET, TEST_KEY, "error"), false),
         Arguments.of("ExpiredToken",
             new AccessDeniedException("error"),
             String.format("AccessDenied for operation : streamFileAsync on path : s3://%s/%s with message : %s",
-                TEST_BUCKET, TEST_KEY, "error")),
+                TEST_BUCKET, TEST_KEY, "error"), false),
         Arguments.of("InternalError",
             new ObjectStorageClientException("error"),
             "java.util.concurrent.CompletionException: software.amazon.awssdk.awscore.exception.AwsServiceException: " +
-                "error (Service: null, Status Code: 0, Request ID: null)"));
+                "error (Service: null, Status Code: 0, Request ID: null)", false),
+        Arguments.of("Acquire operation took longer than the configured maximum time",
+            new RateLimitException("Throttled by S3 (connection pool exhausted) for operation : streamFileAsync on path : s3://test-bucket/test-key"),
+            "Throttled by S3 (connection pool exhausted) for operation : streamFileAsync on path : s3://test-bucket/test-key", true));
   }
 
   @ParameterizedTest
@@ -303,6 +307,12 @@ class S3AsyncStorageClientTest {
                     .errorMessage("error")
                     .build())
             .build());
+    return futureResponse;
+  }
+
+  private static <R> CompletableFuture<R> buildSdkException(String message){
+    CompletableFuture<R> futureResponse = new CompletableFuture<>();
+    futureResponse.completeExceptionally(SdkClientException.create(message));
     return futureResponse;
   }
 
