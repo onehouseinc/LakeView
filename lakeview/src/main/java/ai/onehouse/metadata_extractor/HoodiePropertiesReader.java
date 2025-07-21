@@ -4,7 +4,7 @@ import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_NAME
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_TYPE_KEY;
 import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 
-import ai.onehouse.exceptions.RateLimitException;
+import ai.onehouse.RuntimeModule;
 import com.google.inject.Inject;
 import ai.onehouse.api.models.request.TableType;
 import ai.onehouse.constants.MetricsConstants;
@@ -24,7 +24,7 @@ public class HoodiePropertiesReader {
 
   @Inject
   public HoodiePropertiesReader(
-      AsyncStorageClient asyncStorageClient,
+      @RuntimeModule.TableMetadataUploadObjectStorageAsyncClient AsyncStorageClient asyncStorageClient,
       LakeViewExtractorMetrics hudiMetadataExtractorMetrics) {
     this.asyncStorageClient = asyncStorageClient;
     this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
