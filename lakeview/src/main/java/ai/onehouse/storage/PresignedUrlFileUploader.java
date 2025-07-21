@@ -1,12 +1,12 @@
 package ai.onehouse.storage;
 
-import ai.onehouse.RuntimeModule;
 import com.google.inject.Inject;
 import ai.onehouse.api.AsyncHttpClientWithRetry;
 import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.exceptions.FileUploadException;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import ai.onehouse.storage.models.FileStreamData;
+import ai.onehouse.RuntimeModule.TableMetadataUploadObjectStorageAsyncClient;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
@@ -27,7 +27,7 @@ public class PresignedUrlFileUploader {
 
   @Inject
   public PresignedUrlFileUploader(
-      @Nonnull @RuntimeModule.TableMetadataUploadObjectStorageAsyncClient AsyncStorageClient asyncStorageClient,
+      @Nonnull @TableMetadataUploadObjectStorageAsyncClient AsyncStorageClient asyncStorageClient,
       @Nonnull AsyncHttpClientWithRetry asyncHttpClientWithRetry,
       @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics) {
     this.asyncStorageClient = asyncStorageClient;
