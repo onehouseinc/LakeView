@@ -17,6 +17,7 @@ import ai.onehouse.metadata_extractor.TableDiscoveryService;
 import ai.onehouse.metadata_extractor.TimelineCommitInstantsUploader;
 import ai.onehouse.storage.AsyncStorageClient;
 import ai.onehouse.storage.GCSAsyncStorageClient;
+import ai.onehouse.storage.PresignedUrlFileUploader;
 import ai.onehouse.storage.S3AsyncStorageClient;
 import ai.onehouse.storage.StorageUtils;
 import ai.onehouse.storage.providers.GcsClientProvider;
@@ -227,11 +228,13 @@ class TestRuntimeModule {
     Assertions.assertNotNull(injectorS3.getInstance(TableDiscoveryAndUploadJob.class));
     Assertions.assertNotNull(injectorS3.getInstance(TableDiscoveryService.class));
     Assertions.assertNotNull(injectorS3.getInstance(TimelineCommitInstantsUploader.class));
+    Assertions.assertNotNull(injectorS3.getInstance(PresignedUrlFileUploader.class));
     Assertions.assertNotNull(injectorGcs.getInstance(GcsClientProvider.class));
     Assertions.assertNotNull(injectorGcs.getInstance(HoodiePropertiesReader.class));
     Assertions.assertNotNull(injectorGcs.getInstance(TableDiscoveryAndUploadJob.class));
     Assertions.assertNotNull(injectorGcs.getInstance(TableDiscoveryService.class));
     Assertions.assertNotNull(injectorGcs.getInstance(TimelineCommitInstantsUploader.class));
+    Assertions.assertNotNull(injectorGcs.getInstance(PresignedUrlFileUploader.class));
   }
 
   enum FileSystem {
