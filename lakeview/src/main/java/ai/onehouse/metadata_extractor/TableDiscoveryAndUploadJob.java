@@ -3,6 +3,7 @@ package ai.onehouse.metadata_extractor;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.storage.AsyncStorageClient;
+import ai.onehouse.RuntimeModule.TableDiscoveryObjectStorageAsyncClient;
 import com.cronutils.model.Cron;
 import com.cronutils.model.CronType;
 import com.cronutils.model.definition.CronDefinitionBuilder;
@@ -47,7 +48,7 @@ public class TableDiscoveryAndUploadJob {
       @Nonnull TableDiscoveryService tableDiscoveryService,
       @Nonnull TableMetadataUploaderService tableMetadataUploaderService,
       @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics,
-      @Nonnull AsyncStorageClient asyncStorageClient) {
+      @Nonnull @TableDiscoveryObjectStorageAsyncClient AsyncStorageClient asyncStorageClient) {
     this.scheduler = getScheduler();
     this.tableDiscoveryService = tableDiscoveryService;
     this.tableMetadataUploaderService = tableMetadataUploaderService;

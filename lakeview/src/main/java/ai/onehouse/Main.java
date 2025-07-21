@@ -17,6 +17,8 @@ import ai.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
 import ai.onehouse.metrics.MetricsModule;
 import ai.onehouse.metrics.MetricsServer;
 import ai.onehouse.storage.AsyncStorageClient;
+import ai.onehouse.RuntimeModule.TableDiscoveryObjectStorageAsyncClient;
+import com.google.inject.Key;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
@@ -76,7 +78,7 @@ public class Main {
     // If metadata extractor config is provided externally, then override and refresh config
     // periodically.
     if (StringUtils.isNotBlank(config.getMetadataExtractorConfigPath())) {
-      AsyncStorageClient storageClient = injector.getInstance(AsyncStorageClient.class);
+      AsyncStorageClient storageClient = injector.getInstance(Key.get(AsyncStorageClient.class, TableDiscoveryObjectStorageAsyncClient.class));
       try {
         String baseConfigYaml = configLoader.convertConfigToString(config);
         configRefresher =
