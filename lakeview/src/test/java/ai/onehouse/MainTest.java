@@ -25,6 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
+
+import com.google.inject.Key;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -171,7 +173,7 @@ class MainTest {
     when(mockInjector.getInstance(AsyncHttpClientWithRetry.class))
         .thenReturn(mockAsyncHttpClientWithRetry);
     when(mockInjector.getInstance(ConfigProvider.class)).thenReturn(configProvider);
-    when(mockInjector.getInstance(AsyncStorageClient.class)).thenReturn(mockAsyncStorageClient);
+    when(mockInjector.getInstance(Key.get(AsyncStorageClient.class, RuntimeModule.TableDiscoveryObjectStorageAsyncClient.class))).thenReturn(mockAsyncStorageClient);
     when(mockInjector.getInstance(LakeViewExtractorMetrics.class)).thenReturn(lakeViewExtractorMetrics);
     guiceMockedStatic
         .when(() -> Guice.createInjector(any(RuntimeModule.class), any(MetricsModule.class)))
@@ -180,7 +182,7 @@ class MainTest {
     Main main = new Main(mockParser, configLoader);
     main.start(args);
 
-    verify(mockInjector, times(1)).getInstance(AsyncStorageClient.class);
+    verify(mockInjector, times(1)).getInstance(Key.get(AsyncStorageClient.class, RuntimeModule.TableDiscoveryObjectStorageAsyncClient.class));
     verify(mockAsyncStorageClient, times(1)).readFileAsBytes(extractorConfigPath);
 
     verify(mockJob).runOnce(configProvider.getConfig());
