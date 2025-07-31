@@ -356,7 +356,7 @@ class OnehouseApiClientTest {
               .build();
     }
 
-    when(client.makeRequestWithRetry(any(Request.class)))
+    when(client.makeRequestWithRetry(any(Request.class), any(boolean.class)))
         .thenReturn(CompletableFuture.completedFuture(response));
   }
 

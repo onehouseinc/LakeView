@@ -48,7 +48,7 @@ public class PresignedUrlFileUploader {
                           getRequest(presignedUrl, fileUploadStreamBatchSize, fileStreamData);
 
                       asyncHttpClientWithRetry
-                          .makeRequestWithRetry(request)
+                          .makeRequestWithRetry(request, /* useProxy= */false)
                           .thenAccept(
                               response -> {
                                 try (Response ignored = response) {
