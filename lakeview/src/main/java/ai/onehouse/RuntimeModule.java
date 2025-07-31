@@ -91,10 +91,10 @@ public class RuntimeModule extends AbstractModule {
             .dispatcher(dispatcher);
 
     String httpProxyEnv = System.getenv("HTTP_PROXY");
-    if (httpProxyEnv != null && !httpProxyEnv.isBlank()) {
+    if (httpProxyEnv != null && !httpProxyEnv.trim().isEmpty()) {
       Proxy proxy = buildProxy(httpProxyEnv);
       String noProxyEnv = System.getenv("NO_PROXY");
-      if (noProxyEnv != null && !noProxyEnv.isBlank()) {
+      if (noProxyEnv != null && !noProxyEnv.trim().isEmpty()) {
         builder.proxySelector(new EnvProxySelector(proxy, noProxyEnv));
       } else {
         builder.proxy(proxy);
@@ -226,7 +226,7 @@ public class RuntimeModule extends AbstractModule {
     }
 
     private static List<String> parseNoProxy(String noProxyEnv) {
-      if (noProxyEnv == null || noProxyEnv.isBlank()) {
+      if (noProxyEnv == null || noProxyEnv.trim().isEmpty()) {
         return Collections.emptyList();
       }
       String[] parts = noProxyEnv.split(",");
