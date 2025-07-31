@@ -122,7 +122,7 @@ public class OnehouseApiClient {
     Request request = new Request.Builder().url(url).headers(headers).build();
 
     return asyncClient
-        .makeRequestWithRetry(request)
+        .makeRequestWithRetry(request, /* useProxy= */true)
         .thenApply(response -> handleResponse(response, typeReference));
   }
 
@@ -138,7 +138,7 @@ public class OnehouseApiClient {
             .build();
 
     return asyncClient
-        .makeRequestWithRetry(request)
+        .makeRequestWithRetry(request, /* useProxy= */ true)
         .thenApply(response -> handleResponse(response, typeReference));
   }
 

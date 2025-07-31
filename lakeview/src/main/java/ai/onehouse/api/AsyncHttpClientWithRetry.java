@@ -24,25 +24,55 @@ public class AsyncHttpClientWithRetry {
   private final ScheduledExecutorService scheduler;
   private final int maxRetries;
   private final long retryDelayMillis;
-  private final OkHttpClient okHttpClient;
+  /** OkHttpClient that routes traffic through a configured proxy */
+  private final OkHttpClient proxyEnabledClient;
+  /** OkHttpClient that does not use any proxy (legacy behaviour) */
+  private final OkHttpClient noProxyClient;
   private static final long MAX_RETRY_DELAY_MILLIS = 10000; // 10seconds
   private static final Random random = new Random();
 
   public AsyncHttpClientWithRetry(
-      int maxRetries, long retryDelayMillis, OkHttpClient okHttpClient) {
+      int maxRetries,
+      long retryDelayMillis,
+      @Nonnull OkHttpClient proxyEnabledClient,
+      @Nonnull OkHttpClient noProxyClient) {
     this.maxRetries = maxRetries;
     this.retryDelayMillis = retryDelayMillis;
     this.scheduler = Executors.newSingleThreadScheduledExecutor();
-    this.okHttpClient = okHttpClient;
+    this.proxyEnabledClient = proxyEnabledClient;
+    this.noProxyClient = noProxyClient;
   }
 
+  /**
+   * Backwards compatible constructor that takes a single OkHttpClient instance. The same instance
+   * will be used for both proxy and non-proxy requests which preserves the behaviour that existed
+   * before the dual-client support was introduced.
+   */
+  public AsyncHttpClientWithRetry(int maxRetries, long retryDelayMillis, OkHttpClient okHttpClient) {
+    this(maxRetries, retryDelayMillis, okHttpClient, okHttpClient);
+  }
+
+  /**
+   * Makes an asynchronous HTTP request with retries.
+   *
+   * @param request   The OkHttp {@link Request} to execute.
+   * @param useProxy  When {@code true} the request will be executed using the proxy-enabled client,
+   *                  otherwise the legacy no-proxy client will be used.
+   * @return {@link CompletableFuture} wrapping the {@link Response}.
+   */
+  public CompletableFuture<Response> makeRequestWithRetry(Request request, boolean useProxy) {
+    OkHttpClient client = useProxy ? proxyEnabledClient : noProxyClient;
+    return attemptRequest(client, request, 1);
+  }
+
+  // Maintains compatibility with existing call-sites.
   public CompletableFuture<Response> makeRequestWithRetry(Request request) {
-    return attemptRequest(request, 1);
+    return makeRequestWithRetry(request, true);
   }
 
-  private CompletableFuture<Response> attemptRequest(Request request, int tryCount) {
+  private CompletableFuture<Response> attemptRequest(OkHttpClient client, Request request, int tryCount) {
     CompletableFuture<Response> future = new CompletableFuture<>();
-    okHttpClient
+    client
         .newCall(request)
         .enqueue(
             new Callback() {
@@ -59,7 +89,7 @@ public class AsyncHttpClientWithRetry {
                       url,
                       method);
 
-                  scheduleRetry(request, tryCount, future);
+                  scheduleRetry(client, request, tryCount, future);
                 } else {
                   future.completeExceptionally(e);
                 }
@@ -81,7 +111,7 @@ public class AsyncHttpClientWithRetry {
                       url,
                       method);
                   response.close();
-                  scheduleRetry(request, tryCount, future);
+                  scheduleRetry(client, request, tryCount, future);
                 } else {
                   future.complete(response);
                 }
@@ -91,11 +121,12 @@ public class AsyncHttpClientWithRetry {
     return future;
   }
 
-  private void scheduleRetry(Request request, int tryCount, CompletableFuture<Response> future) {
+  private void scheduleRetry(
+      OkHttpClient client, Request request, int tryCount, CompletableFuture<Response> future) {
     scheduler.schedule(
         () -> {
           log.info("Scheduling request with attempt: {}", (tryCount + 1));
-          attemptRequest(request, tryCount + 1)
+          attemptRequest(client, request, tryCount + 1)
               .whenComplete(
                   (resp, throwable) -> {
                     if (throwable != null) {
@@ -118,8 +149,12 @@ public class AsyncHttpClientWithRetry {
 
   public void shutdownScheduler() {
     scheduler.shutdown();
-    okHttpClient.connectionPool().evictAll();
-    okHttpClient.dispatcher().executorService().shutdown();
+    proxyEnabledClient.connectionPool().evictAll();
+    proxyEnabledClient.dispatcher().executorService().shutdown();
+    if (noProxyClient != proxyEnabledClient) {
+      noProxyClient.connectionPool().evictAll();
+      noProxyClient.dispatcher().executorService().shutdown();
+    }
   }
 
   @VisibleForTesting

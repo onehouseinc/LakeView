@@ -65,6 +65,14 @@ public class RuntimeModule extends AbstractModule {
   @BindingAnnotation
   public @interface TableMetadataUploadObjectStorageAsyncClient {}
 
+  @Retention(RetentionPolicy.RUNTIME)
+  @BindingAnnotation
+  public @interface ProxyEnabledHttpClient {}
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @BindingAnnotation
+  public @interface NoProxyHttpClient {}
+
   @Provides
   @Singleton
   @TableDiscoveryS3ObjectStorageClient
@@ -81,7 +89,8 @@ public class RuntimeModule extends AbstractModule {
 
   @Provides
   @Singleton
-  static OkHttpClient providesOkHttpClient(ExecutorService executorService) {
+  @ProxyEnabledHttpClient
+  static OkHttpClient providesOkHttpClientWithProxy(ExecutorService executorService) {
     Dispatcher dispatcher = new Dispatcher(executorService);
     OkHttpClient.Builder builder =
         new OkHttpClient.Builder()
@@ -105,8 +114,35 @@ public class RuntimeModule extends AbstractModule {
     return builder.build();
   }
 
+  // Alias retained for unit tests that directly invoke this helper.
+  // Note: This method is intentionally not annotated with @Provides to avoid duplicate bindings.
+  static OkHttpClient providesOkHttpClient(ExecutorService executorService) {
+    return providesOkHttpClientWithProxy(executorService);
+  }
+
   @Provides
   @Singleton
+  @NoProxyHttpClient
+  static OkHttpClient providesOkHttpClientWithoutProxy(ExecutorService executorService) {
+    Dispatcher dispatcher = new Dispatcher(executorService);
+    return new OkHttpClient.Builder()
+        .readTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .connectTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .dispatcher(dispatcher)
+        .build();
+  }
+
+  @Provides
+  @Singleton
+  static AsyncHttpClientWithRetry providesHttpAsyncClient(
+      @ProxyEnabledHttpClient OkHttpClient proxyEnabledClient,
+      @NoProxyHttpClient OkHttpClient noProxyClient) {
+    return new AsyncHttpClientWithRetry(
+        HTTP_CLIENT_MAX_RETRIES, HTTP_CLIENT_RETRY_DELAY_MS, proxyEnabledClient, noProxyClient);
+  }
+
+  // Backwards compatibility util for tests (not used by Guice)
   static AsyncHttpClientWithRetry providesHttpAsyncClient(OkHttpClient okHttpClient) {
     return new AsyncHttpClientWithRetry(
         HTTP_CLIENT_MAX_RETRIES, HTTP_CLIENT_RETRY_DELAY_MS, okHttpClient);
