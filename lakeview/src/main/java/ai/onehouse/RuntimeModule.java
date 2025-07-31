@@ -17,6 +17,13 @@ import ai.onehouse.storage.providers.S3AsyncClientProvider;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URI;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
@@ -76,12 +83,26 @@ public class RuntimeModule extends AbstractModule {
   @Singleton
   static OkHttpClient providesOkHttpClient(ExecutorService executorService) {
     Dispatcher dispatcher = new Dispatcher(executorService);
-    return new OkHttpClient.Builder()
-        .readTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .writeTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .connectTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .dispatcher(dispatcher)
-        .build();
+    OkHttpClient.Builder builder =
+        new OkHttpClient.Builder()
+            .readTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .writeTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .connectTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .dispatcher(dispatcher);
+
+    String httpProxyEnv = System.getenv("HTTP_PROXY");
+    if (httpProxyEnv != null && !httpProxyEnv.isBlank()) {
+      Proxy proxy = buildProxy(httpProxyEnv);
+      String noProxyEnv = System.getenv("NO_PROXY");
+      if (noProxyEnv != null && !noProxyEnv.isBlank()) {
+        builder.proxySelector(new EnvProxySelector(proxy, noProxyEnv));
+      } else {
+        builder.proxy(proxy);
+      }
+      log.info("Configured OkHttp client to use proxy from HTTP_PROXY env var: {}", httpProxyEnv);
+    }
+
+    return builder.build();
   }
 
   @Provides
@@ -178,5 +199,63 @@ public class RuntimeModule extends AbstractModule {
   @Override
   protected void configure() {
     bind(Config.class).toInstance(config);
+  }
+
+  /** Builds a java.net.Proxy object from the HTTP_PROXY environment variable */
+  private static Proxy buildProxy(String proxyEnv) {
+    try {
+      String proxyUrl = proxyEnv.matches("^[a-zA-Z]+://.*") ? proxyEnv : "http://" + proxyEnv;
+      URI uri = URI.create(proxyUrl);
+      String host = uri.getHost();
+      int port = uri.getPort() == -1 ? 80 : uri.getPort();
+      return new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
+    } catch (Exception e) {
+      logger.error("Failed to parse proxy url: {}", proxyEnv, e);
+      return Proxy.NO_PROXY;
+    }
+  }
+
+  /** ProxySelector that respects the NO_PROXY environment variable */
+  private static class EnvProxySelector extends ProxySelector {
+    private final Proxy proxy;
+    private final List<String> noProxyHosts;
+
+    EnvProxySelector(Proxy proxy, String noProxyEnv) {
+      this.proxy = proxy;
+      this.noProxyHosts = parseNoProxy(noProxyEnv);
+    }
+
+    private static List<String> parseNoProxy(String noProxyEnv) {
+      if (noProxyEnv == null || noProxyEnv.isBlank()) {
+        return Collections.emptyList();
+      }
+      String[] parts = noProxyEnv.split(",");
+      List<String> list = new ArrayList<>();
+      for (String part : parts) {
+        list.add(part.trim());
+      }
+      return list;
+    }
+
+    @Override
+    public List<Proxy> select(URI uri) {
+      String host = uri.getHost();
+      if (host != null) {
+        for (String pattern : noProxyHosts) {
+          if (pattern.isEmpty()) {
+            continue;
+          }
+          if (host.equals(pattern) || host.endsWith(pattern)) {
+            return Collections.singletonList(Proxy.NO_PROXY);
+          }
+        }
+      }
+      return Collections.singletonList(proxy);
+    }
+
+    @Override
+    public void connectFailed(URI uri, java.net.SocketAddress sa, java.io.IOException ioe) {
+      logger.error("Proxy connection failed to {} via {}", uri, sa, ioe);
+    }
   }
 }
