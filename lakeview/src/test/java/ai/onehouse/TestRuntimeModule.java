@@ -91,7 +91,10 @@ class TestRuntimeModule {
     proxies = okHttpClient.proxySelector().select(URI.create("http://127.0.0.1"));
     assertEquals(1, proxies.size());
     assertEquals(Proxy.Type.DIRECT, Objects.requireNonNull(proxies.get(0)).type());
-    assertDoesNotThrow(() -> RuntimeModule.providesOkHttpClient(environmentLookupProvider, mockExecutorService).proxySelector().connectFailed(URI.create("http://127.0.0.1"), new InetSocketAddress("localhost", 80), new IOException()));
+    assertDoesNotThrow(() -> RuntimeModule.providesOkHttpClient(environmentLookupProvider, mockExecutorService)
+      .proxySelector()
+      .connectFailed(URI.create("http://127.0.0.1"), new InetSocketAddress("localhost", 80),
+        new IOException()));
   }
 
   @ParameterizedTest
