@@ -1,8 +1,10 @@
 package ai.onehouse;
 
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertNotNull;
-import static junit.framework.TestCase.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -11,6 +13,7 @@ import ai.onehouse.config.Config;
 import ai.onehouse.config.models.common.FileSystemConfiguration;
 import ai.onehouse.config.models.common.GCSConfig;
 import ai.onehouse.config.models.common.S3Config;
+import ai.onehouse.env.EnvironmentLookupProvider;
 import ai.onehouse.metadata_extractor.HoodiePropertiesReader;
 import ai.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
 import ai.onehouse.metadata_extractor.TableDiscoveryService;
@@ -27,7 +30,15 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.util.Modules;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.URI;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
+
 import okhttp3.OkHttpClient;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,9 +62,43 @@ class TestRuntimeModule {
 
   @Test
   void testProvidesOkHttpClient() {
+    EnvironmentLookupProvider environmentLookupProvider = Mockito.mock(EnvironmentLookupProvider.class);
     ExecutorService mockExecutorService = Mockito.mock(ExecutorService.class);
-    OkHttpClient okHttpClient = RuntimeModule.providesOkHttpClient(mockExecutorService);
+    OkHttpClient okHttpClient = RuntimeModule.providesOkHttpClient(environmentLookupProvider, mockExecutorService);
     assertNotNull(okHttpClient);
+  }
+
+  @Test
+  void testProvidesOkHttpClientWithSysProxy() {
+    EnvironmentLookupProvider environmentLookupProvider = Mockito.mock(EnvironmentLookupProvider.class);
+    ExecutorService mockExecutorService = Mockito.mock(ExecutorService.class);
+    when(environmentLookupProvider.getValue("HTTP_PROXY")).thenReturn("http://sysproxy.onehouse.ai:8080");
+    when(environmentLookupProvider.getValue("NO_PROXY")).thenReturn(null).thenReturn("127.0.0.1,,.local");
+    OkHttpClient okHttpClient = RuntimeModule.providesOkHttpClient(environmentLookupProvider, mockExecutorService);
+    assertNotNull(okHttpClient);
+    assertEquals("sysproxy.onehouse.ai:8080", Objects.requireNonNull(okHttpClient.proxy()).address().toString());
+    List<Proxy> proxies = okHttpClient.proxySelector().select(URI.create("https://staging-lakeview.onehouse.ai"));
+    assertEquals(1, proxies.size());
+    assertEquals(Proxy.Type.DIRECT, Objects.requireNonNull(proxies.get(0)).type());
+
+    okHttpClient = RuntimeModule.providesOkHttpClient(environmentLookupProvider, mockExecutorService);
+    assertNotNull(okHttpClient);
+    assertNull(okHttpClient.proxy());
+    proxies = okHttpClient.proxySelector().select(URI.create("https://staging-lakeview.onehouse.ai"));
+    assertEquals(1, proxies.size());
+    assertEquals("sysproxy.onehouse.ai:8080", Objects.requireNonNull(proxies.get(0)).address().toString());
+    assertEquals(Proxy.Type.HTTP, Objects.requireNonNull(proxies.get(0)).type());
+    proxies = okHttpClient.proxySelector().select(URI.create("http://127.0.0.1"));
+    assertEquals(1, proxies.size());
+    assertEquals(Proxy.Type.DIRECT, Objects.requireNonNull(proxies.get(0)).type());
+
+    proxies = okHttpClient.proxySelector().select(URI.create("http://kubernetes.default.svc.cluster.local"));
+    assertEquals(1, proxies.size());
+    assertEquals(Proxy.Type.DIRECT, Objects.requireNonNull(proxies.get(0)).type());
+    assertDoesNotThrow(() -> RuntimeModule.providesOkHttpClient(environmentLookupProvider, mockExecutorService)
+      .proxySelector()
+      .connectFailed(URI.create("http://127.0.0.1"), new InetSocketAddress("localhost", 80),
+        new IOException()));
   }
 
   @ParameterizedTest
@@ -78,25 +123,25 @@ class TestRuntimeModule {
     }
 
     AsyncStorageClient asyncStorageClientForDiscovery =
-        RuntimeModule.providesAsyncStorageClientForDiscovery(
-            mockConfig,
-            mockStorageUtils,
-            mockS3AsyncClientProvider,
-            mockGcsClientProvider,
-            mockExecutorService);
+      RuntimeModule.providesAsyncStorageClientForDiscovery(
+        mockConfig,
+        mockStorageUtils,
+        mockS3AsyncClientProvider,
+        mockGcsClientProvider,
+        mockExecutorService);
     if (FileSystem.S3.equals(fileSystemType)) {
-      assertTrue(asyncStorageClientForDiscovery instanceof S3AsyncStorageClient);
+      assertInstanceOf(S3AsyncStorageClient.class, asyncStorageClientForDiscovery);
     } else {
-      assertTrue(asyncStorageClientForDiscovery instanceof GCSAsyncStorageClient);
+      assertInstanceOf(GCSAsyncStorageClient.class, asyncStorageClientForDiscovery);
     }
 
     AsyncStorageClient asyncStorageClientForUpload =
-        RuntimeModule.providesAsyncStorageClientForUpload(
-            mockConfig,
-            mockStorageUtils,
-            mockS3AsyncClientProvider,
-            mockGcsClientProvider,
-            mockExecutorService);
+      RuntimeModule.providesAsyncStorageClientForUpload(
+        mockConfig,
+        mockStorageUtils,
+        mockS3AsyncClientProvider,
+        mockGcsClientProvider,
+        mockExecutorService);
     if (FileSystem.S3.equals(fileSystemType)) {
       Assertions.assertInstanceOf(S3AsyncStorageClient.class, asyncStorageClientForUpload);
     } else {
@@ -104,11 +149,11 @@ class TestRuntimeModule {
     }
 
     S3AsyncClientProvider s3AsyncClientProviderForDiscovery =
-        RuntimeModule.providesS3AsyncClientProviderForDiscovery(mockConfig, mockExecutorService);
+      RuntimeModule.providesS3AsyncClientProviderForDiscovery(mockConfig, mockExecutorService);
     Assertions.assertInstanceOf(S3AsyncClientProvider.class, s3AsyncClientProviderForDiscovery);
 
     S3AsyncClientProvider s3AsyncClientProviderForUpload =
-        RuntimeModule.providesS3AsyncClientProviderForUpload(mockConfig, mockExecutorService);
+      RuntimeModule.providesS3AsyncClientProviderForUpload(mockConfig, mockExecutorService);
     Assertions.assertInstanceOf(S3AsyncClientProvider.class, s3AsyncClientProviderForUpload);
   }
 
@@ -116,10 +161,10 @@ class TestRuntimeModule {
   void testProvidesHttpAsyncClient() {
     OkHttpClient mockOkHttpClient = mock(OkHttpClient.class);
     AsyncHttpClientWithRetry asyncHttpClientWithRetry =
-        runtimeModule.providesHttpAsyncClient(mockOkHttpClient);
+      RuntimeModule.providesHttpAsyncClient(mockOkHttpClient);
     assertEquals(runtimeModule.getHttpClientMaxRetries(), asyncHttpClientWithRetry.getMaxRetries());
     assertEquals(
-        runtimeModule.getHttpClientRetryDelayMs(), asyncHttpClientWithRetry.getRetryDelayMillis());
+      runtimeModule.getHttpClientRetryDelayMs(), asyncHttpClientWithRetry.getRetryDelayMillis());
   }
 
   static class GuiceTestModule extends AbstractModule {
@@ -171,24 +216,24 @@ class TestRuntimeModule {
     when(mockFsConfig.getS3Config()).thenReturn(mockS3Config);
 
     Injector injectorS3 = Guice.createInjector(
-        Modules.override(new RuntimeModule(mockConfig))
-            .with(new GuiceTestModule(
-                mockConfig,
-                mock(StorageUtils.class),
-                mock(S3AsyncClientProvider.class),
-                mock(GcsClientProvider.class),
-                mock(ExecutorService.class),
-                mock(Metrics.class),
-                mock(LakeViewExtractorMetrics.class),
-                mock(AsyncHttpClientWithRetry.class),
-                mock(OnehouseApiClient.class)))
+      Modules.override(new RuntimeModule(mockConfig))
+        .with(new GuiceTestModule(
+          mockConfig,
+          mock(StorageUtils.class),
+          mock(S3AsyncClientProvider.class),
+          mock(GcsClientProvider.class),
+          mock(ExecutorService.class),
+          mock(Metrics.class),
+          mock(LakeViewExtractorMetrics.class),
+          mock(AsyncHttpClientWithRetry.class),
+          mock(OnehouseApiClient.class)))
     );
 
     AsyncStorageClient s3ClientUpload = injectorS3.getInstance(
-        Key.get(AsyncStorageClient.class, RuntimeModule.TableMetadataUploadObjectStorageAsyncClient.class));
+      Key.get(AsyncStorageClient.class, RuntimeModule.TableMetadataUploadObjectStorageAsyncClient.class));
     Assertions.assertInstanceOf(S3AsyncStorageClient.class, s3ClientUpload);
     AsyncStorageClient s3ClientDiscovery = injectorS3.getInstance(
-        Key.get(AsyncStorageClient.class, RuntimeModule.TableDiscoveryObjectStorageAsyncClient.class));
+      Key.get(AsyncStorageClient.class, RuntimeModule.TableDiscoveryObjectStorageAsyncClient.class));
     Assertions.assertInstanceOf(S3AsyncStorageClient.class, s3ClientDiscovery);
 
 
@@ -204,37 +249,37 @@ class TestRuntimeModule {
     OnehouseApiClient mockOnehouseApiClient = mock(OnehouseApiClient.class);
 
     Injector injectorGcs = Guice.createInjector(
-        Modules.override(new RuntimeModule(mockConfig))
-            .with(new GuiceTestModule(
-                mockConfig, mock(StorageUtils.class), mock(S3AsyncClientProvider.class),
-                mock(GcsClientProvider.class), mock(ExecutorService.class),
-                mockMetrics, mockLakeViewExtractorMetrics,
-                mockHttpClient, mockOnehouseApiClient))
+      Modules.override(new RuntimeModule(mockConfig))
+        .with(new GuiceTestModule(
+          mockConfig, mock(StorageUtils.class), mock(S3AsyncClientProvider.class),
+          mock(GcsClientProvider.class), mock(ExecutorService.class),
+          mockMetrics, mockLakeViewExtractorMetrics,
+          mockHttpClient, mockOnehouseApiClient))
     );
 
     AsyncStorageClient gcsClientUpload = injectorGcs.getInstance(
-        Key.get(AsyncStorageClient.class, RuntimeModule.TableMetadataUploadObjectStorageAsyncClient.class));
+      Key.get(AsyncStorageClient.class, RuntimeModule.TableMetadataUploadObjectStorageAsyncClient.class));
     Assertions.assertInstanceOf(GCSAsyncStorageClient.class, gcsClientUpload);
     AsyncStorageClient gcsClientDiscovery = injectorGcs.getInstance(
-        Key.get(AsyncStorageClient.class, RuntimeModule.TableDiscoveryObjectStorageAsyncClient.class));
+      Key.get(AsyncStorageClient.class, RuntimeModule.TableDiscoveryObjectStorageAsyncClient.class));
     Assertions.assertInstanceOf(GCSAsyncStorageClient.class, gcsClientDiscovery);
 
     // Common assertions
-    Assertions.assertNotNull(injectorS3.getInstance(Config.class));
-    Assertions.assertNotNull(injectorS3.getInstance(StorageUtils.class));
-    Assertions.assertNotNull(injectorS3.getInstance(S3AsyncClientProvider.class));
-    Assertions.assertNotNull(injectorS3.getInstance(ExecutorService.class));
-    Assertions.assertNotNull(injectorS3.getInstance(HoodiePropertiesReader.class));
-    Assertions.assertNotNull(injectorS3.getInstance(TableDiscoveryAndUploadJob.class));
-    Assertions.assertNotNull(injectorS3.getInstance(TableDiscoveryService.class));
-    Assertions.assertNotNull(injectorS3.getInstance(TimelineCommitInstantsUploader.class));
-    Assertions.assertNotNull(injectorS3.getInstance(PresignedUrlFileUploader.class));
-    Assertions.assertNotNull(injectorGcs.getInstance(GcsClientProvider.class));
-    Assertions.assertNotNull(injectorGcs.getInstance(HoodiePropertiesReader.class));
-    Assertions.assertNotNull(injectorGcs.getInstance(TableDiscoveryAndUploadJob.class));
-    Assertions.assertNotNull(injectorGcs.getInstance(TableDiscoveryService.class));
-    Assertions.assertNotNull(injectorGcs.getInstance(TimelineCommitInstantsUploader.class));
-    Assertions.assertNotNull(injectorGcs.getInstance(PresignedUrlFileUploader.class));
+    assertNotNull(injectorS3.getInstance(Config.class));
+    assertNotNull(injectorS3.getInstance(StorageUtils.class));
+    assertNotNull(injectorS3.getInstance(S3AsyncClientProvider.class));
+    assertNotNull(injectorS3.getInstance(ExecutorService.class));
+    assertNotNull(injectorS3.getInstance(HoodiePropertiesReader.class));
+    assertNotNull(injectorS3.getInstance(TableDiscoveryAndUploadJob.class));
+    assertNotNull(injectorS3.getInstance(TableDiscoveryService.class));
+    assertNotNull(injectorS3.getInstance(TimelineCommitInstantsUploader.class));
+    assertNotNull(injectorS3.getInstance(PresignedUrlFileUploader.class));
+    assertNotNull(injectorGcs.getInstance(GcsClientProvider.class));
+    assertNotNull(injectorGcs.getInstance(HoodiePropertiesReader.class));
+    assertNotNull(injectorGcs.getInstance(TableDiscoveryAndUploadJob.class));
+    assertNotNull(injectorGcs.getInstance(TableDiscoveryService.class));
+    assertNotNull(injectorGcs.getInstance(TimelineCommitInstantsUploader.class));
+    assertNotNull(injectorGcs.getInstance(PresignedUrlFileUploader.class));
   }
 
   enum FileSystem {
