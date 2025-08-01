@@ -1,5 +1,6 @@
 package ai.onehouse;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -30,6 +31,8 @@ import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.util.Modules;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
 import java.util.List;
@@ -70,7 +73,7 @@ class TestRuntimeModule {
     EnvironmentLookupProvider environmentLookupProvider = Mockito.mock(EnvironmentLookupProvider.class);
     ExecutorService mockExecutorService = Mockito.mock(ExecutorService.class);
     when(environmentLookupProvider.getValue("HTTP_PROXY")).thenReturn("http://sysproxy.onehouse.ai:8080");
-    when(environmentLookupProvider.getValue("NO_PROXY")).thenReturn(null).thenReturn("127.0.0.1,.local");
+    when(environmentLookupProvider.getValue("NO_PROXY")).thenReturn(null).thenReturn("127.0.0.1,,.local");
     OkHttpClient okHttpClient = RuntimeModule.providesOkHttpClient(environmentLookupProvider, mockExecutorService);
     assertNotNull(okHttpClient);
     assertEquals("sysproxy.onehouse.ai:8080", Objects.requireNonNull(okHttpClient.proxy()).address().toString());
@@ -85,6 +88,10 @@ class TestRuntimeModule {
     assertEquals(1, proxies.size());
     assertEquals("sysproxy.onehouse.ai:8080", Objects.requireNonNull(proxies.get(0)).address().toString());
     assertEquals(Proxy.Type.HTTP, Objects.requireNonNull(proxies.get(0)).type());
+    proxies = okHttpClient.proxySelector().select(URI.create("http://127.0.0.1"));
+    assertEquals(1, proxies.size());
+    assertEquals(Proxy.Type.DIRECT, Objects.requireNonNull(proxies.get(0)).type());
+    assertDoesNotThrow(() -> RuntimeModule.providesOkHttpClient(environmentLookupProvider, mockExecutorService).proxySelector().connectFailed(URI.create("http://127.0.0.1"), new InetSocketAddress("localhost", 80), new IOException()));
   }
 
   @ParameterizedTest
