@@ -1,5 +1,6 @@
 package ai.onehouse;
 
+import ai.onehouse.env.EnvironmentLookupProvider;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.AbstractModule;
 import com.google.inject.BindingAnnotation;
@@ -81,7 +82,13 @@ public class RuntimeModule extends AbstractModule {
 
   @Provides
   @Singleton
-  static OkHttpClient providesOkHttpClient(ExecutorService executorService) {
+  static EnvironmentLookupProvider providesEnvironmentLookupProvider() {
+    return new EnvironmentLookupProvider.System();
+  }
+
+  @Provides
+  @Singleton
+  static OkHttpClient providesOkHttpClient(EnvironmentLookupProvider environmentLookupProvider, ExecutorService executorService) {
     Dispatcher dispatcher = new Dispatcher(executorService);
     OkHttpClient.Builder builder =
         new OkHttpClient.Builder()
@@ -90,10 +97,10 @@ public class RuntimeModule extends AbstractModule {
             .connectTimeout(HTTP_CLIENT_DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .dispatcher(dispatcher);
 
-    String httpProxyEnv = System.getenv("HTTP_PROXY");
+    String httpProxyEnv = environmentLookupProvider.getValue("HTTP_PROXY");
     if (httpProxyEnv != null && !httpProxyEnv.trim().isEmpty()) {
       Proxy proxy = buildProxy(httpProxyEnv);
-      String noProxyEnv = System.getenv("NO_PROXY");
+      String noProxyEnv = environmentLookupProvider.getValue("NO_PROXY");
       if (noProxyEnv != null && !noProxyEnv.trim().isEmpty()) {
         builder.proxySelector(new EnvProxySelector(proxy, noProxyEnv));
       } else {
