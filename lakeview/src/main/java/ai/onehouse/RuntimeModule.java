@@ -25,6 +25,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
@@ -233,10 +234,7 @@ public class RuntimeModule extends AbstractModule {
     }
 
     private static List<String> parseNoProxy(String noProxyEnv) {
-      if (noProxyEnv == null || noProxyEnv.trim().isEmpty()) {
-        return Collections.emptyList();
-      }
-      String[] parts = noProxyEnv.split(",");
+      String[] parts = Optional.ofNullable(noProxyEnv).orElse("").trim().split(",");
       List<String> list = new ArrayList<>();
       for (String part : parts) {
         list.add(part.trim());
