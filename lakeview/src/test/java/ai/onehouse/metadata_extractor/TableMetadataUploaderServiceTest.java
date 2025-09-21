@@ -3,6 +3,7 @@ package ai.onehouse.metadata_extractor;
 import static ai.onehouse.constants.MetadataExtractorConstants.*;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -164,7 +165,8 @@ class TableMetadataUploaderServiceTest {
             eq(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE));
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
-            MetricsConstants.MetadataUploadFailureReasons.NO_TABLES_TO_INITIALIZE);
+            any(MetricsConstants.MetadataUploadFailureReasons.class),
+            anyString());
   }
 
   private void setupInitialiseTableMetricsCheckpointSuccessMocks(

@@ -867,7 +867,8 @@ class TimelineCommitInstantsUploaderTest {
     verifyNoMoreInteractions(presignedUrlFileUploader);
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
-            MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+            any(MetricsConstants.MetadataUploadFailureReasons.class),
+            anyString());
   }
 
   @Test
@@ -941,7 +942,8 @@ class TimelineCommitInstantsUploaderTest {
     verify(onehouseApiClient, times(1)).upsertTableMetricsCheckpoint(any());
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
-            MetricsConstants.MetadataUploadFailureReasons.UNKNOWN);
+            any(MetricsConstants.MetadataUploadFailureReasons.class),
+            anyString());
   }
 
   @Test

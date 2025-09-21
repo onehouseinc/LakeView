@@ -91,7 +91,8 @@ class LakeViewExtractorMetricsTest {
   void testIncrementTableMetadataUploadFailureCounter() {
     MetricsConstants.MetadataUploadFailureReasons reason =
         MetricsConstants.MetadataUploadFailureReasons.UNKNOWN;
-    hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(reason);
+    String failureReason = "Test failure reason";
+    hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(reason, failureReason);
     List<Tag> tags = getDefaultTags();
     tags.add(Tag.of(METADATA_UPLOAD_FAILURE_REASON_TAG_KEY, reason.name()));
     verify(metrics).increment(TABLE_METADATA_PROCESSING_FAILURE_COUNTER, tags);

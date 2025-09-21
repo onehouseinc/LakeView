@@ -177,10 +177,12 @@ public class OnehouseApiClient {
   private void emmitApiErrorMetric(int apiStatusCode) {
     if (ACCEPTABLE_HTTP_FAILURE_STATUS_CODES.contains(apiStatusCode)) {
       hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
-          MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
+          MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR,
+          String.format("API call failed with status code: %d (user error)", apiStatusCode));
     } else {
       hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
-          MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR);
+          MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR,
+          String.format("API call failed with status code: %d (system error)", apiStatusCode));
     }
   }
 }
