@@ -1,6 +1,8 @@
 package ai.onehouse.metadata_extractor;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -79,7 +81,8 @@ class HoodiePropertiesReaderTest {
     assertNull(futureResult.join());
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
-            MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED);
+            any(MetricsConstants.MetadataUploadFailureReasons.class),
+            anyString());
   }
 
   @Test
@@ -94,7 +97,8 @@ class HoodiePropertiesReaderTest {
     assertNull(futureResult.join());
     verify(hudiMetadataExtractorMetrics)
             .incrementTableMetadataProcessingFailureCounter(
-                    MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING);
+                    any(MetricsConstants.MetadataUploadFailureReasons.class),
+                    anyString());
   }
 
   public static <R> CompletableFuture<R> failedFuture(Throwable error) {

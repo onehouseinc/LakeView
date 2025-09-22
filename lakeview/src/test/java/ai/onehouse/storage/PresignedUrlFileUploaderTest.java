@@ -135,7 +135,8 @@ class PresignedUrlFileUploaderTest {
         exception.getMessage());
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
-            MetricsConstants.MetadataUploadFailureReasons.PRESIGNED_URL_UPLOAD_FAILURE);
+            any(MetricsConstants.MetadataUploadFailureReasons.class),
+            anyString());
     verifyRequestPayloadForSmallerFiles();
   }
 

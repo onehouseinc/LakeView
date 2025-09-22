@@ -53,7 +53,8 @@ public class HoodiePropertiesReader {
               hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
                 getMetadataExtractorFailureReason(
                     throwable,
-                    MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED)
+                    MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED),
+                String.format("Error reading hoodie properties file: %s", throwable.getMessage())
               );
               return null;
             });

@@ -163,7 +163,7 @@ public class OnehouseApiClient {
           }
         }
         response.close();
-        emmitApiErrorMetric(response.code());
+        emmitApiErrorMetric(response.code(), errorResponse);
         return errorResponse;
       } catch (InstantiationException
           | IllegalAccessException
@@ -174,13 +174,21 @@ public class OnehouseApiClient {
     }
   }
 
-  private void emmitApiErrorMetric(int apiStatusCode) {
+  private void emmitApiErrorMetric(int apiStatusCode, Object errorResponse) {
+    String errorCause = "";
+    if (errorResponse instanceof ApiResponse) {
+      ApiResponse apiResponse = (ApiResponse) errorResponse;
+      errorCause = apiResponse.getCause() != null ? apiResponse.getCause() : "Unknown error";
+    }
+    
     if (ACCEPTABLE_HTTP_FAILURE_STATUS_CODES.contains(apiStatusCode)) {
       hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
-          MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
+          MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR,
+          String.format("API call failed with status code: %d - %s", apiStatusCode, errorCause));
     } else {
       hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
-          MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR);
+          MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR,
+          String.format("API call failed with status code: %d - %s", apiStatusCode, errorCause));
     }
   }
 }

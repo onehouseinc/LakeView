@@ -182,7 +182,8 @@ public class TimelineCommitInstantsUploader {
               hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
                   getMetadataExtractorFailureReason(
                       throwable,
-                      MetricsConstants.MetadataUploadFailureReasons.UNKNOWN));
+                      MetricsConstants.MetadataUploadFailureReasons.UNKNOWN),
+                  String.format("Exception when uploading instants for table %s timeline %s: %s", table, commitTimelineType, throwable.getMessage()));
               return null; // handled in uploadNewInstantsSinceCheckpoint function
             });
   }
@@ -250,7 +251,8 @@ public class TimelineCommitInstantsUploader {
               hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
                   getMetadataExtractorFailureReason(
                       throwable,
-                      MetricsConstants.MetadataUploadFailureReasons.UNKNOWN));
+                      MetricsConstants.MetadataUploadFailureReasons.UNKNOWN),
+                  String.format("Exception when uploading instants for table %s timeline %s: %s", table, commitTimelineType, throwable.getMessage()));
               return null; // handled in uploadNewInstantsSinceCheckpoint
             });
   }
@@ -373,7 +375,8 @@ public class TimelineCommitInstantsUploader {
                               .incrementTableMetadataProcessingFailureCounter(
                                   getMetadataExtractorFailureReason(
                                       throwable,
-                                      MetricsConstants.MetadataUploadFailureReasons.UNKNOWN));
+                                      MetricsConstants.MetadataUploadFailureReasons.UNKNOWN),
+                                  String.format("Error processing batch for table %s: %s", table.getAbsoluteTableUri(), throwable.getMessage()));
                           log.error(
                               "error processing batch for table: {}. Skipping processing of further batches of table in current run.",
                               table.getAbsoluteTableUri(),

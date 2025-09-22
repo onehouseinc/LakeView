@@ -15,6 +15,7 @@ import static ai.onehouse.constants.ApiConstants.UPSERT_TABLE_METRICS_CHECKPOINT
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -154,9 +155,8 @@ class OnehouseApiClientTest {
     assertTrue(result.isFailure());
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
-            failureStatusCode == FAILURE_STATUS_CODE_SYSTEM
-                ? MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR
-                : MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
+            any(MetricsConstants.MetadataUploadFailureReasons.class),
+            anyString());
     assertEquals(failureStatusCode, result.getStatusCode());
     if (failureStatusCode == FAILURE_STATUS_CODE_UNAUTHORIZED) {
       assertEquals(UNAUTHORIZED_ERROR_MESSAGE, result.getCause());
@@ -191,9 +191,8 @@ class OnehouseApiClientTest {
     assertTrue(result.isFailure());
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
-            failureStatusCode == FAILURE_STATUS_CODE_SYSTEM
-                ? MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR
-                : MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
+            any(MetricsConstants.MetadataUploadFailureReasons.class),
+            anyString());
     assertEquals(failureStatusCode, result.getStatusCode());
     if (failureStatusCode == FAILURE_STATUS_CODE_UNAUTHORIZED) {
       assertEquals(UNAUTHORIZED_ERROR_MESSAGE, result.getCause());

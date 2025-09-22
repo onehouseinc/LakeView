@@ -9,8 +9,12 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LakeViewExtractorMetrics {
+  private static final Logger log = LoggerFactory.getLogger(LakeViewExtractorMetrics.class);
+  
   private final Metrics metrics;
   private final Metrics.Gauge tablesDiscoveredGaugeMetric;
   private final Metrics.Gauge tablesProcessedGaugeMetric;
@@ -92,10 +96,11 @@ public class LakeViewExtractorMetrics {
   }
 
   public void incrementTableMetadataProcessingFailureCounter(
-      MetricsConstants.MetadataUploadFailureReasons metadataUploadFailureReasons) {
+      MetricsConstants.MetadataUploadFailureReasons metadataUploadFailureReasons, String failureReason) {
     List<Tag> tags = getDefaultTags();
     tags.add(Tag.of(METADATA_UPLOAD_FAILURE_REASON_TAG_KEY, metadataUploadFailureReasons.name()));
     metrics.increment(TABLE_METADATA_PROCESSING_FAILURE_COUNTER, tags);
+    log.error("Table metadata processing failed with reason: {} - {}", metadataUploadFailureReasons.name(), failureReason);
   }
 
   public void resetTableProcessedGauge() {

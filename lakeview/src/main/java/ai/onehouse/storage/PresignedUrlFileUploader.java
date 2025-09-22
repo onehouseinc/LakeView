@@ -58,7 +58,8 @@ public class PresignedUrlFileUploader {
                                     hudiMetadataExtractorMetrics
                                         .incrementTableMetadataProcessingFailureCounter(
                                             MetricsConstants.MetadataUploadFailureReasons
-                                                .PRESIGNED_URL_UPLOAD_FAILURE);
+                                                .PRESIGNED_URL_UPLOAD_FAILURE,
+                                            String.format("File upload failed: response code: %s error message: %s", statusCode, message));
                                     throw new FileUploadException(
                                         String.format(
                                             "File upload failed: response code: %s error message: %s",

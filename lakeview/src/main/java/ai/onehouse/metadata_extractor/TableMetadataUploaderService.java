@@ -178,7 +178,8 @@ public class TableMetadataUploaderService {
               hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
                   getMetadataExtractorFailureReason(
                       throwable,
-                      MetricsConstants.MetadataUploadFailureReasons.UNKNOWN));
+                      MetricsConstants.MetadataUploadFailureReasons.UNKNOWN),
+                  String.format("Exception when uploading instants: %s", throwable.getMessage()));
               return false;
             });
   }
@@ -238,7 +239,8 @@ public class TableMetadataUploaderService {
                     if (initializeSingleTableMetricsCheckpointRequestList.isEmpty()) {
                       log.error("No valid table to initialise");
                       hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
-                          MetricsConstants.MetadataUploadFailureReasons.NO_TABLES_TO_INITIALIZE);
+                          MetricsConstants.MetadataUploadFailureReasons.NO_TABLES_TO_INITIALIZE,
+                          "No valid table to initialise");
                       return CompletableFuture.completedFuture(null);
                     }
 
@@ -296,7 +298,8 @@ public class TableMetadataUploaderService {
                       }
                       if (!StringUtils.isBlank(response.getError())) {
                         hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
-                            MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR);
+                            MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR,
+                            String.format("Error initialising table %s: %s", table, response.getError()));
                         log.error(
                             "Error initialising table: {} error: {}, skipping table processing",
                             table,
