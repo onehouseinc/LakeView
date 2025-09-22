@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -1169,6 +1170,159 @@ class TimelineCommitInstantsUploaderTest {
                 .filesUploaded(filesUploadedWithUpdatedName)
                 .uploadedFiles(filesUploaded)
                 .build());
+  }
+
+  @Test
+  void testBatchUploadWithCheckpointExceptionallyBlock() {
+    // Create a CompletableFuture that will complete exceptionally
+    CompletableFuture<List<File>> failedFuture = new CompletableFuture<>();
+    RuntimeException testException = new RuntimeException("Test exception for batchUploadWithCheckpoint");
+    failedFuture.completeExceptionally(testException);
+
+    when(asyncStorageClient.listAllFilesInDir(anyString())).thenReturn(failedFuture);
+
+    // Execute the method and verify it returns null
+    Checkpoint result = timelineCommitInstantsUploader
+        .batchUploadWithCheckpoint(TABLE_ID.toString(), TABLE, INITIAL_CHECKPOINT, 
+                                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+        .join();
+
+    // Verify that the result is null (as expected from exceptionally block)
+    assertEquals(null, result);
+
+    // Verify that the metrics were called with the correct parameters
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            any(MetricsConstants.MetadataUploadFailureReasons.class),
+            anyString());
+  }
+
+  @Test
+  void testBatchUploadWithCheckpointExceptionallyBlockWithSpecificException() {
+    // Test with a specific exception type to verify the failure reason mapping
+    CompletableFuture<List<File>> failedFuture = new CompletableFuture<>();
+    RuntimeException testException = new RuntimeException("Storage access denied during file listing");
+    failedFuture.completeExceptionally(testException);
+
+    when(asyncStorageClient.listAllFilesInDir(anyString())).thenReturn(failedFuture);
+
+    // Execute the method and verify it returns null
+    Checkpoint result = timelineCommitInstantsUploader
+        .batchUploadWithCheckpoint(TABLE_ID.toString(), TABLE, INITIAL_CHECKPOINT, 
+                                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+        .join();
+
+    // Verify that the result is null
+    assertEquals(null, result);
+
+    // Verify that the metrics were called with UNKNOWN reason and specific error message
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            eq(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN),
+            eq("Exception when uploading instants for table " + TABLE + " timeline COMMIT_TIMELINE_TYPE_ARCHIVED: java.lang.RuntimeException: Storage access denied during file listing"));
+  }
+
+  @Test
+  void testPaginatedBatchUploadWithCheckpointExceptionallyBlock() {
+    // Create a CompletableFuture that will complete exceptionally
+    CompletableFuture<org.apache.commons.lang3.tuple.Pair<String, List<File>>> failedFuture = new CompletableFuture<>();
+    RuntimeException testException = new RuntimeException("Test exception for paginatedBatchUploadWithCheckpoint");
+    failedFuture.completeExceptionally(testException);
+
+    when(asyncStorageClient.fetchObjectsByPage("bucket", "table/.hoodie/", null, null))
+        .thenReturn(failedFuture);
+
+    // Execute the method and verify it returns null
+    Checkpoint result = timelineCommitInstantsUploader
+        .paginatedBatchUploadWithCheckpoint(TABLE_ID.toString(), TABLE, INITIAL_CHECKPOINT, 
+                                          CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+        .join();
+
+    // Verify that the result is null (as expected from exceptionally block)
+    assertEquals(null, result);
+
+    // Verify that the metrics were called with the correct parameters
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            any(MetricsConstants.MetadataUploadFailureReasons.class),
+            anyString());
+  }
+
+  @Test
+  void testPaginatedBatchUploadWithCheckpointExceptionallyBlockWithSpecificException() {
+    // Test with a specific exception type to verify the failure reason mapping
+    CompletableFuture<org.apache.commons.lang3.tuple.Pair<String, List<File>>> failedFuture = new CompletableFuture<>();
+    RuntimeException testException = new RuntimeException("Network timeout during paginated fetch");
+    failedFuture.completeExceptionally(testException);
+
+    when(asyncStorageClient.fetchObjectsByPage("bucket", "table/.hoodie/", null, null))
+        .thenReturn(failedFuture);
+
+    // Execute the method and verify it returns null
+    Checkpoint result = timelineCommitInstantsUploader
+        .paginatedBatchUploadWithCheckpoint(TABLE_ID.toString(), TABLE, INITIAL_CHECKPOINT, 
+                                          CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+        .join();
+
+    // Verify that the result is null
+    assertEquals(null, result);
+
+    // Verify that the metrics were called with UNKNOWN reason and specific error message
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            eq(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN),
+            eq("Exception when uploading instants for table " + TABLE + " timeline COMMIT_TIMELINE_TYPE_ACTIVE: java.lang.RuntimeException: Network timeout during paginated fetch"));
+  }
+
+  @Test
+  void testBatchUploadWithCheckpointExceptionallyBlockWithNullMessage() {
+    // Test with an exception that has a null message
+    CompletableFuture<List<File>> failedFuture = new CompletableFuture<>();
+    RuntimeException testException = new RuntimeException((String) null);
+    failedFuture.completeExceptionally(testException);
+
+    when(asyncStorageClient.listAllFilesInDir(anyString())).thenReturn(failedFuture);
+
+    // Execute the method and verify it returns null
+    Checkpoint result = timelineCommitInstantsUploader
+        .batchUploadWithCheckpoint(TABLE_ID.toString(), TABLE, INITIAL_CHECKPOINT, 
+                                 CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+        .join();
+
+    // Verify that the result is null
+    assertEquals(null, result);
+
+    // Verify that the metrics were called with UNKNOWN reason and null message handling
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            eq(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN),
+            eq("Exception when uploading instants for table " + TABLE + " timeline COMMIT_TIMELINE_TYPE_ARCHIVED: java.lang.RuntimeException"));
+  }
+
+  @Test
+  void testPaginatedBatchUploadWithCheckpointExceptionallyBlockWithNullMessage() {
+    // Test with an exception that has a null message
+    CompletableFuture<org.apache.commons.lang3.tuple.Pair<String, List<File>>> failedFuture = new CompletableFuture<>();
+    RuntimeException testException = new RuntimeException((String) null);
+    failedFuture.completeExceptionally(testException);
+
+    when(asyncStorageClient.fetchObjectsByPage("bucket", "table/.hoodie/", null, null))
+        .thenReturn(failedFuture);
+
+    // Execute the method and verify it returns null
+    Checkpoint result = timelineCommitInstantsUploader
+        .paginatedBatchUploadWithCheckpoint(TABLE_ID.toString(), TABLE, INITIAL_CHECKPOINT, 
+                                          CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+        .join();
+
+    // Verify that the result is null
+    assertEquals(null, result);
+
+    // Verify that the metrics were called with UNKNOWN reason and null message handling
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            eq(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN),
+            eq("Exception when uploading instants for table " + TABLE + " timeline COMMIT_TIMELINE_TYPE_ACTIVE: java.lang.RuntimeException"));
   }
 
   private void stubCreateBatches(

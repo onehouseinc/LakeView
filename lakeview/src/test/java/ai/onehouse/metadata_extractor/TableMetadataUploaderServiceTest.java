@@ -493,6 +493,72 @@ class TableMetadataUploaderServiceTest {
     // with just once
   }
 
+  @Test
+  void testUploadInstantsInTableBatchExceptionallyBlock() {
+    // Create a CompletableFuture that will complete exceptionally
+    CompletableFuture<GetTableMetricsCheckpointResponse> failedFuture = new CompletableFuture<>();
+    RuntimeException testException = new RuntimeException("Test exception for exceptionally block");
+    failedFuture.completeExceptionally(testException);
+
+    when(onehouseApiClient.getTableMetricsCheckpoints(
+            Collections.singletonList(TABLE_ID.toString())))
+        .thenReturn(failedFuture);
+
+    // Execute the method and verify it returns false
+    Boolean result = tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join();
+    assertFalse(result);
+
+    // Verify that the metrics were called with the correct parameters
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            any(MetricsConstants.MetadataUploadFailureReasons.class),
+            anyString());
+  }
+
+  @Test
+  void testUploadInstantsInTableBatchExceptionallyBlockWithSpecificException() {
+    // Test with a specific exception type to verify the failure reason mapping
+    CompletableFuture<GetTableMetricsCheckpointResponse> failedFuture = new CompletableFuture<>();
+    RuntimeException testException = new RuntimeException("Network timeout during checkpoint fetch");
+    failedFuture.completeExceptionally(testException);
+
+    when(onehouseApiClient.getTableMetricsCheckpoints(
+            Collections.singletonList(TABLE_ID.toString())))
+        .thenReturn(failedFuture);
+
+    // Execute the method and verify it returns false
+    Boolean result = tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join();
+    assertFalse(result);
+
+    // Verify that the metrics were called with UNKNOWN reason (since RuntimeException doesn't map to specific reasons)
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            eq(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN),
+            eq("Exception when uploading instants: java.lang.RuntimeException: Network timeout during checkpoint fetch"));
+  }
+
+  @Test
+  void testUploadInstantsInTableBatchExceptionallyBlockWithNullMessage() {
+    // Test with an exception that has a null message
+    CompletableFuture<GetTableMetricsCheckpointResponse> failedFuture = new CompletableFuture<>();
+    RuntimeException testException = new RuntimeException((String) null);
+    failedFuture.completeExceptionally(testException);
+
+    when(onehouseApiClient.getTableMetricsCheckpoints(
+            Collections.singletonList(TABLE_ID.toString())))
+        .thenReturn(failedFuture);
+
+    // Execute the method and verify it returns false
+    Boolean result = tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join();
+    assertFalse(result);
+
+    // Verify that the metrics were called with UNKNOWN reason and null message handling
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            eq(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN),
+            eq("Exception when uploading instants: java.lang.RuntimeException"));
+  }
+
   private Checkpoint generateCheckpointObj(
       int batchId,
       Instant checkpointTimestamp,
