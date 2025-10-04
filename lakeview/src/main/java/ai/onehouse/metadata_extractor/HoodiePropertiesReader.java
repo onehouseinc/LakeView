@@ -49,7 +49,7 @@ public class HoodiePropertiesReader {
             })
         .exceptionally(
             throwable -> {
-              log.error("Error encountered when reading hoodie properties file", throwable);
+              log.error("Error encountered when reading hoodie properties file for path: {}", path, throwable);
               hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
                 getMetadataExtractorFailureReason(
                     throwable,
