@@ -10,6 +10,7 @@ import ai.onehouse.storage.providers.S3AsyncClientProvider;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
@@ -17,6 +18,7 @@ import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.awscore.internal.AwsErrorCode;
 import software.amazon.awssdk.core.BytesWrapper;
@@ -25,6 +27,7 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 @Slf4j
 public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
@@ -160,18 +163,26 @@ public class S3AsyncStorageClient extends AbstractAsyncStorageClient {
     Throwable wrappedException = ex.getCause();
     if (wrappedException instanceof AwsServiceException) {
       AwsServiceException awsServiceException = (AwsServiceException) wrappedException;
-      log.info("Error in S3 operation : {} on path : {} code : {} message : {}", operation, path,
-          awsServiceException.awsErrorDetails().errorCode(), awsServiceException.awsErrorDetails().errorMessage());
+      AwsErrorDetails awsErrorDetails = Optional.ofNullable(awsServiceException.awsErrorDetails()).orElse(AwsErrorDetails.builder()
+          .errorCode("Unknown")
+          .errorMessage("Unknown")
+          .build());
+      log.error("Error in S3 operation : {} on path : {} code : {} message : {}", operation, path,
+        awsErrorDetails.errorCode(), awsErrorDetails.errorMessage());
 
-      if (AwsErrorCode.isThrottlingErrorCode(awsServiceException.awsErrorDetails().errorCode())) {
+      if (AwsErrorCode.isThrottlingErrorCode(awsErrorDetails.errorCode())) {
         return new RateLimitException(String.format("Throttled by S3 for operation : %s on path : %s", operation, path));
       }
 
-      if (awsServiceException.awsErrorDetails().errorCode().equalsIgnoreCase(ACCESS_DENIED_ERROR_CODE)
-          || awsServiceException.awsErrorDetails().errorCode().equalsIgnoreCase(EXPIRED_TOKEN_ERROR_CODE)) {
+      if (awsServiceException instanceof NoSuchKeyException) {
+        return new ai.onehouse.exceptions.NoSuchKeyException(String.format("NoSuchKey for operation : %s on path : %s", operation, path));
+      }
+
+      if (awsErrorDetails.errorCode().equalsIgnoreCase(ACCESS_DENIED_ERROR_CODE)
+          || awsErrorDetails.errorCode().equalsIgnoreCase(EXPIRED_TOKEN_ERROR_CODE)) {
         return new AccessDeniedException(
             String.format("AccessDenied for operation : %s on path : %s with message : %s",
-                operation, path, awsServiceException.awsErrorDetails().errorMessage()));
+                operation, path, awsErrorDetails.errorMessage()));
       }
     } else if (wrappedException instanceof SdkClientException) {
       SdkClientException sdkClientException = (SdkClientException) wrappedException;

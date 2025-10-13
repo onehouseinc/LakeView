@@ -1,12 +1,14 @@
 package ai.onehouse.storage;
 
 import static ai.onehouse.constants.MetricsConstants.MetadataUploadFailureReasons.ACCESS_DENIED;
+import static ai.onehouse.constants.MetricsConstants.MetadataUploadFailureReasons.NO_SUCH_KEY;
 import static ai.onehouse.constants.MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.exceptions.AccessDeniedException;
+import ai.onehouse.exceptions.NoSuchKeyException;
 import ai.onehouse.exceptions.ObjectStorageClientException;
 import ai.onehouse.exceptions.RateLimitException;
 import ai.onehouse.storage.models.File;
@@ -215,6 +217,9 @@ class S3AsyncStorageClientTest {
         Arguments.of(buildNestedException(RATE_LIMITING),
             RateLimitException.class,
             RATE_LIMITING.name()),
+        Arguments.of(buildNestedException(NO_SUCH_KEY),
+            NoSuchKeyException.class,
+            "NoSuchKey for operation : readFileAsBytes on path : s3://" + TEST_BUCKET + "/" + TEST_KEY),
         Arguments.of(buildNestedException(ACCESS_DENIED),
             AccessDeniedException.class,
             ACCESS_DENIED.name())
@@ -321,6 +326,11 @@ class S3AsyncStorageClientTest {
     switch (type) {
       case RATE_LIMITING:
         runtimeException = new RateLimitException(RATE_LIMITING.name());
+        break;
+      case NO_SUCH_KEY:
+        runtimeException = software.amazon.awssdk.services.s3.model.NoSuchKeyException.builder()
+          .statusCode(404)
+          .build();
         break;
       case ACCESS_DENIED:
         runtimeException = new AccessDeniedException(ACCESS_DENIED.name());

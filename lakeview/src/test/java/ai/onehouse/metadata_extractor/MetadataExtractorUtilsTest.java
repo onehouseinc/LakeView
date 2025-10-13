@@ -2,6 +2,7 @@ package ai.onehouse.metadata_extractor;
 
 import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.exceptions.AccessDeniedException;
+import ai.onehouse.exceptions.NoSuchKeyException;
 import ai.onehouse.exceptions.RateLimitException;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -34,6 +35,9 @@ class MetadataExtractorUtilsTest {
             Arguments.of(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN,
                 MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING,
                 new RateLimitException("")),
+            Arguments.of(MetricsConstants.MetadataUploadFailureReasons.NO_SUCH_KEY,
+                MetricsConstants.MetadataUploadFailureReasons.NO_SUCH_KEY,
+                new NoSuchKeyException("")),
             Arguments.of(MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED,
                 MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED,
                 new RuntimeException("")),
