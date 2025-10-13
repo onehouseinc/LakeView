@@ -17,6 +17,7 @@ public class MetricsConstants {
     RATE_LIMITING,
     ACCESS_DENIED,
     NO_TABLES_TO_INITIALIZE,
+    NO_SUCH_KEY,
     UNKNOWN,
   }
 }
