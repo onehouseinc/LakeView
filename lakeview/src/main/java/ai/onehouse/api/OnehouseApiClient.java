@@ -9,6 +9,7 @@ import static ai.onehouse.constants.ApiConstants.ONEHOUSE_API_ENDPOINT;
 import static ai.onehouse.constants.ApiConstants.ONEHOUSE_API_KEY;
 import static ai.onehouse.constants.ApiConstants.ONEHOUSE_API_SECRET_KEY;
 import static ai.onehouse.constants.ApiConstants.ONEHOUSE_REGION_KEY;
+import static ai.onehouse.constants.ApiConstants.ONEHOUSE_TRACE_REQUEST_ID;
 import static ai.onehouse.constants.ApiConstants.ONEHOUSE_USER_UUID_KEY;
 import static ai.onehouse.constants.ApiConstants.PROJECT_UID_KEY;
 import static ai.onehouse.constants.ApiConstants.UNAUTHORIZED_ERROR_MESSAGE;
@@ -34,6 +35,7 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
 import lombok.SneakyThrows;
@@ -44,6 +46,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.MDC;
 
 public class OnehouseApiClient {
   private final AsyncHttpClientWithRetry asyncClient;
@@ -117,9 +120,22 @@ public class OnehouseApiClient {
     return headersBuilder.build();
   }
 
+  static String getTraceId() {
+    String traceId = MDC.get(ONEHOUSE_TRACE_REQUEST_ID);
+    return StringUtils.isBlank(traceId) ? UUID.randomUUID().toString() : traceId;
+  }
+
+  private Headers getHeaders() {
+    return headers.newBuilder()
+      .add(ONEHOUSE_TRACE_REQUEST_ID, getTraceId())
+      .build();
+  }
+
   @VisibleForTesting
   <T> CompletableFuture<T> asyncGet(String url, Class<T> typeReference) {
-    Request request = new Request.Builder().url(url).headers(headers).build();
+    Request request = new Request.Builder().url(url)
+      .headers(getHeaders())
+      .build();
 
     return asyncClient
         .makeRequestWithRetry(request)
@@ -134,7 +150,7 @@ public class OnehouseApiClient {
         new Request.Builder()
             .url(ONEHOUSE_API_ENDPOINT + apiEndpoint)
             .post(body)
-            .headers(headers)
+            .headers(getHeaders())
             .build();
 
     return asyncClient
@@ -180,7 +196,7 @@ public class OnehouseApiClient {
       ApiResponse apiResponse = (ApiResponse) errorResponse;
       errorCause = apiResponse.getCause() != null ? apiResponse.getCause() : "Unknown error";
     }
-    
+
     if (ACCEPTABLE_HTTP_FAILURE_STATUS_CODES.contains(apiStatusCode)) {
       hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
           MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR,

@@ -66,7 +66,7 @@ public class TableMetadataUploaderService {
   }
 
   public CompletableFuture<Boolean> uploadInstantsInTables(Set<Table> tablesToProcess) {
-    log.info("Uploading metadata of following tables: " + tablesToProcess);
+    log.info("Uploading metadata of following tables: {}", tablesToProcess);
     List<Table> tableWithIds =
         tablesToProcess.stream().map(this::updateTableIdIfNotPresent).collect(Collectors.toList());
     List<List<Table>> tableBatches =
@@ -98,7 +98,7 @@ public class TableMetadataUploaderService {
   }
 
   private CompletableFuture<Boolean> uploadInstantsInTableBatch(List<Table> tables) {
-    log.info("Fetching checkpoint for tables: " + tables);
+    log.info("Fetching checkpoint for tables: {}", tables);
     return onehouseApiClient
         .getTableMetricsCheckpoints(
             tables.stream().map(Table::getTableId).collect(Collectors.toList()))
