@@ -1,6 +1,7 @@
 package ai.onehouse.api;
 
 import static ai.onehouse.constants.ApiConstants.ACCEPTABLE_HTTP_FAILURE_STATUS_CODES;
+import static ai.onehouse.constants.ApiConstants.ONEHOUSE_TRACE_REQUEST_ID;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
@@ -17,6 +18,7 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.slf4j.MDC;
 
 @Slf4j
 public class AsyncHttpClientWithRetry {
@@ -48,10 +50,11 @@ public class AsyncHttpClientWithRetry {
             new Callback() {
               @Override
               public void onFailure(@Nonnull Call call, @Nonnull IOException e) {
+                MDC.put(ONEHOUSE_TRACE_REQUEST_ID, request.header(ONEHOUSE_TRACE_REQUEST_ID));
+                Request request = call.request();
+                HttpUrl url = request.url();
+                String method = request.method();
                 if (tryCount < maxRetries) {
-                  Request request = call.request();
-                  HttpUrl url = request.url();
-                  String method = request.method();
                   log.warn(
                       "API Request failed with error: {}, attempt: {}, url: {}, method: {}",
                       e.getMessage(),
@@ -61,12 +64,20 @@ public class AsyncHttpClientWithRetry {
 
                   scheduleRetry(request, tryCount, future);
                 } else {
+                  log.error(
+                    "API Request failed with error: {}, attempt: {}, url: {}, method: {}",
+                    e.getMessage(),
+                    tryCount,
+                    url,
+                    method);
                   future.completeExceptionally(e);
                 }
+                MDC.remove(ONEHOUSE_TRACE_REQUEST_ID);
               }
 
               @Override
               public void onResponse(@Nonnull Call call, @Nonnull Response response) {
+                MDC.put(ONEHOUSE_TRACE_REQUEST_ID, request.header(ONEHOUSE_TRACE_REQUEST_ID));
                 if (!response.isSuccessful()
                     && !ACCEPTABLE_HTTP_FAILURE_STATUS_CODES.contains(response.code())
                     && tryCount < maxRetries) {
@@ -74,7 +85,7 @@ public class AsyncHttpClientWithRetry {
                   HttpUrl url = request.url();
                   String method = request.method();
                   int statusCode = response.code();
-                  log.warn(
+                  log.error(
                       "API Request failed with HTTP status: {}, attempt: {}, url: {}, method: {}",
                       statusCode,
                       tryCount,
@@ -85,6 +96,7 @@ public class AsyncHttpClientWithRetry {
                 } else {
                   future.complete(response);
                 }
+                MDC.remove(ONEHOUSE_TRACE_REQUEST_ID);
               }
             });
 
