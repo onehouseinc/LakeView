@@ -1,4 +1,4 @@
-FROM openjdk:11.0.11-jre-slim
+FROM eclipse-temurin:11-jre
 WORKDIR /usr/src/app/
 COPY /build/libs/LakeView-1.0-SNAPSHOT-all.jar LakeView-1.0-SNAPSHOT-all.jar
 
