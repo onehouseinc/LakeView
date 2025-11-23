@@ -66,7 +66,12 @@ class HoodiePropertiesReaderTest {
         hoodiePropertiesReader.readHoodieProperties(path);
 
     // on encountering error, readHoodieProperties returns null
-    assertNull(futureResult.join());
+    ParsedHudiProperties expected = ParsedHudiProperties.builder()
+      .tableName("")
+      .tableType(TableType.MERGE_ON_READ)
+      .metadataUploadFailureReasons(MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED)
+      .build();
+    assertEquals(expected, futureResult.join());
   }
 
   @Test
@@ -78,7 +83,12 @@ class HoodiePropertiesReaderTest {
     CompletableFuture<ParsedHudiProperties> futureResult =
         hoodiePropertiesReader.readHoodieProperties(path);
 
-    assertNull(futureResult.join());
+    ParsedHudiProperties expected = ParsedHudiProperties.builder()
+      .tableName("")
+      .tableType(TableType.MERGE_ON_READ)
+      .metadataUploadFailureReasons(MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED)
+      .build();
+    assertEquals(expected, futureResult.join());
     verify(hudiMetadataExtractorMetrics)
         .incrementTableMetadataProcessingFailureCounter(
             any(MetricsConstants.MetadataUploadFailureReasons.class),
@@ -94,7 +104,12 @@ class HoodiePropertiesReaderTest {
     CompletableFuture<ParsedHudiProperties> futureResult =
             hoodiePropertiesReader.readHoodieProperties(path);
 
-    assertNull(futureResult.join());
+    ParsedHudiProperties expected = ParsedHudiProperties.builder()
+      .tableName("")
+      .tableType(TableType.MERGE_ON_READ)
+      .metadataUploadFailureReasons(MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING)
+      .build();
+    assertEquals(expected, futureResult.join());
     verify(hudiMetadataExtractorMetrics)
             .incrementTableMetadataProcessingFailureCounter(
                     any(MetricsConstants.MetadataUploadFailureReasons.class),

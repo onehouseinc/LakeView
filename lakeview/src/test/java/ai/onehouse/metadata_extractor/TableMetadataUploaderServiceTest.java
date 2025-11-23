@@ -1,12 +1,15 @@
 package ai.onehouse.metadata_extractor;
 
 import static ai.onehouse.constants.MetadataExtractorConstants.*;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +36,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import com.google.common.collect.Sets;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,6 +108,29 @@ class TableMetadataUploaderServiceTest {
             timelineCommitInstantsUploader,
             hudiMetadataExtractorMetrics,
             ForkJoinPool.commonPool());
+  }
+
+  @Test
+  void testUploadMetadataOfMissingTables() {
+    when(onehouseApiClient.getTableMetricsCheckpoints(anyList()))
+      .thenReturn(
+        CompletableFuture.completedFuture(
+          GetTableMetricsCheckpointResponse.builder()
+            .checkpoints(Collections.emptyList())
+            .build()));
+    when(hoodiePropertiesReader.readHoodieProperties(any()))
+      .thenReturn(CompletableFuture.completedFuture(ParsedHudiProperties.builder()
+        .tableName("")
+        .tableType(TableType.MERGE_ON_READ)
+        .metadataUploadFailureReasons(MetricsConstants.MetadataUploadFailureReasons.NO_SUCH_KEY)
+        .build()));
+    assertFalse(tableMetadataUploaderService.uploadInstantsInTables(Sets.newHashSet(TABLE, TABLE2, TABLE3)).join());
+    // no metric need to be emitted when all tables are not found
+    verify(onehouseApiClient).getTableMetricsCheckpoints(
+      argThat(tableIds ->
+        Sets.newHashSet(TABLE_ID.toString(), TABLE_ID2.toString(), TABLE_ID3.toString()).equals(new HashSet<>(tableIds))));
+    verifyNoMoreInteractions(onehouseApiClient);
+    verifyNoMoreInteractions(hudiMetadataExtractorMetrics);
   }
 
   @Test

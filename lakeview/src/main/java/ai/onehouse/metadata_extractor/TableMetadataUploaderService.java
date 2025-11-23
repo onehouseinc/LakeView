@@ -7,6 +7,7 @@ import static ai.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOIN
 import static ai.onehouse.constants.MetadataExtractorConstants.TABLE_PROCESSING_BATCH_SIZE;
 import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 
+import ai.onehouse.api.models.request.TableType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -184,6 +185,14 @@ public class TableMetadataUploaderService {
             });
   }
 
+  private int getNumberOfMissingTables(List<InitializeTableMetricsCheckpointRequest.InitializeSingleTableMetricsCheckpointRequest>
+                                         requestList) {
+    return (int) requestList.stream()
+      .filter(Objects::nonNull)
+      .filter(request -> request.getFailureReasons() == MetricsConstants.MetadataUploadFailureReasons.NO_SUCH_KEY)
+      .count();
+  }
+
   private CompletableFuture<List<CompletableFuture<Boolean>>>
       initialiseAndProcessNewlyDiscoveredTables(List<Table> tablesToInitialise) {
     List<CompletableFuture<Boolean>> processTablesFuture = new ArrayList<>();
@@ -204,11 +213,24 @@ public class TableMetadataUploaderService {
                 .readHoodieProperties(getHoodiePropertiesFilePath(table))
                 .thenApply(
                     properties -> {
-                      if (properties == null) {
-                        log.error(
+                      if (properties == null || properties.getMetadataUploadFailureReasons() != null) {
+                        if (properties == null) {
+                          log.error(
                             "Encountered exception when reading hoodie.properties file for table: {}, skipping this table",
                             table);
-                        return null; // will be filtered out later
+                          return null;
+                        }
+                        log.error(
+                          "Encountered exception when reading hoodie.properties file for table: {} {}, skipping this table",
+                          properties.getMetadataUploadFailureReasons(), table);
+                        return InitializeTableMetricsCheckpointRequest.InitializeSingleTableMetricsCheckpointRequest
+                          .builder()
+                          .tableId(table.getTableId())
+                          .tableName("")
+                          .tableType(TableType.MERGE_ON_READ)
+                           // will be filtered out later
+                          .failureReasons(properties.getMetadataUploadFailureReasons())
+                          .build();
                       }
                       return InitializeTableMetricsCheckpointRequest
                           .InitializeSingleTableMetricsCheckpointRequest.builder()
@@ -233,11 +255,21 @@ public class TableMetadataUploaderService {
                         initializeSingleTableMetricsCheckpointRequestList =
                             initializeSingleTableMetricsCheckpointRequestFutureList.stream()
                                 .map(CompletableFuture::join)
-                                .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
+                    int numOfMissingTables = getNumberOfMissingTables(initializeSingleTableMetricsCheckpointRequestList);
+                    int totalTables = initializeSingleTableMetricsCheckpointRequestList.size();
+                    initializeSingleTableMetricsCheckpointRequestList = initializeSingleTableMetricsCheckpointRequestList
+                      .stream()
+                      .filter(Objects::nonNull)
+                      .filter(request -> request.getFailureReasons() == null)
+                      .collect(Collectors.toList());
 
                     if (initializeSingleTableMetricsCheckpointRequestList.isEmpty()) {
-                      log.error("No valid table to initialise");
+                      if (numOfMissingTables == totalTables) {
+                        log.warn("All the tables have been deleted from storage");
+                        return CompletableFuture.completedFuture(null);
+                      }
+                      log.error("No valid table to initialise: {}", tablesToInitialise);
                       hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
                           MetricsConstants.MetadataUploadFailureReasons.NO_TABLES_TO_INITIALIZE,
                           "No valid table to initialise");

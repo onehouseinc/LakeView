@@ -50,13 +50,18 @@ public class HoodiePropertiesReader {
         .exceptionally(
             throwable -> {
               log.error("Error encountered when reading hoodie properties file for path: {}", path, throwable);
+              MetricsConstants.MetadataUploadFailureReasons metadataUploadFailureReasons = getMetadataExtractorFailureReason(
+                throwable,
+                MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED);
               hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
-                getMetadataExtractorFailureReason(
-                    throwable,
-                    MetricsConstants.MetadataUploadFailureReasons.HOODIE_PROPERTY_NOT_FOUND_OR_CORRUPTED),
+                metadataUploadFailureReasons                ,
                 String.format("Error reading hoodie properties file: %s", throwable.getMessage())
               );
-              return null;
+              return ParsedHudiProperties.builder()
+                .tableName("")
+                .tableType(TableType.MERGE_ON_READ)
+                .metadataUploadFailureReasons(metadataUploadFailureReasons)
+                .build();
             });
   }
 }
