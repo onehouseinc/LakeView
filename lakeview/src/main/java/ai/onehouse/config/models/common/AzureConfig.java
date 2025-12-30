@@ -16,3 +16,4 @@ public class AzureConfig {
   @Builder.Default private Optional<String> tenantId = Optional.empty();
 }
 
+
