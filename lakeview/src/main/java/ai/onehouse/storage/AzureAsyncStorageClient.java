@@ -3,6 +3,8 @@ package ai.onehouse.storage;
 import ai.onehouse.exceptions.AccessDeniedException;
 import ai.onehouse.exceptions.ObjectStorageClientException;
 import com.azure.core.exception.HttpResponseException;
+import com.azure.core.http.rest.PagedIterable;
+import com.azure.core.http.rest.PagedResponse;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
@@ -65,11 +67,11 @@ public class AzureAsyncStorageClient extends AbstractAsyncStorageClient {
           String nextContinuationToken = null;
           
           try {
-            var pagedIterable = containerClient.listBlobs(options, null);
-            var iterator = pagedIterable.iterableByPage().iterator();
+            PagedIterable<BlobItem> pagedIterable = containerClient.listBlobs(options, null);
+            java.util.Iterator<PagedResponse<BlobItem>> iterator = pagedIterable.iterableByPage().iterator();
             
             if (iterator.hasNext()) {
-              var page = iterator.next();
+              PagedResponse<BlobItem> page = iterator.next();
               for (BlobItem blobItem : page.getElements()) {
                 String blobName = blobItem.getName();
                 String relativeName = blobName.replaceFirst(prefix, "");
