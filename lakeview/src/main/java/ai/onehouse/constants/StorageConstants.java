@@ -7,8 +7,9 @@ public class StorageConstants {
 
   // typical s3 path: "s3://bucket-name/path/to/object"
   // gcs path format "gs:// [bucket] /path/to/file"
+  // azure blob path format: "https://storageaccount.blob.core.windows.net/container/path"
   public static final Pattern OBJECT_STORAGE_URI_PATTERN =
-      Pattern.compile("^(s3://|gs://)([^/]+)(/.*)?");
+      Pattern.compile("^((s3://|gs://)([^/]+)(/.*)?)|(https://([^.]+)\\.blob\\.core\\.windows\\.net/([^/]+)(/.*)?)$");
 
   // https://cloud.google.com/compute/docs/naming-resources#resource-name-format
   public static final String GCP_RESOURCE_NAME_FORMAT = "^[a-z]([-a-z0-9]*[a-z0-9])$";

@@ -23,6 +23,7 @@ import ai.onehouse.storage.GCSAsyncStorageClient;
 import ai.onehouse.storage.PresignedUrlFileUploader;
 import ai.onehouse.storage.S3AsyncStorageClient;
 import ai.onehouse.storage.StorageUtils;
+import ai.onehouse.storage.providers.AzureBlobClientProvider;
 import ai.onehouse.storage.providers.GcsClientProvider;
 import ai.onehouse.storage.providers.S3AsyncClientProvider;
 import com.google.inject.AbstractModule;
@@ -109,6 +110,7 @@ class TestRuntimeModule {
     FileSystemConfiguration mockFileSystemConfiguration = mock(FileSystemConfiguration.class);
     S3AsyncClientProvider mockS3AsyncClientProvider = mock(S3AsyncClientProvider.class);
     GcsClientProvider mockGcsClientProvider = mock(GcsClientProvider.class);
+    AzureBlobClientProvider mockAzureBlobClientProvider = mock(AzureBlobClientProvider.class);
 
     when(mockConfig.getFileSystemConfiguration()).thenReturn(mockFileSystemConfiguration);
 
@@ -128,6 +130,7 @@ class TestRuntimeModule {
         mockStorageUtils,
         mockS3AsyncClientProvider,
         mockGcsClientProvider,
+        mockAzureBlobClientProvider,
         mockExecutorService);
     if (FileSystem.S3.equals(fileSystemType)) {
       assertInstanceOf(S3AsyncStorageClient.class, asyncStorageClientForDiscovery);
@@ -141,6 +144,7 @@ class TestRuntimeModule {
         mockStorageUtils,
         mockS3AsyncClientProvider,
         mockGcsClientProvider,
+        mockAzureBlobClientProvider,
         mockExecutorService);
     if (FileSystem.S3.equals(fileSystemType)) {
       Assertions.assertInstanceOf(S3AsyncStorageClient.class, asyncStorageClientForUpload);
@@ -172,6 +176,7 @@ class TestRuntimeModule {
     private final StorageUtils storageUtils;
     private final S3AsyncClientProvider s3Provider;
     private final GcsClientProvider gcsProvider;
+    private final AzureBlobClientProvider azureBlobClientProvider;
     private final ExecutorService executorService;
     private final Metrics metrics;
     private final LakeViewExtractorMetrics lakeViewExtractorMetrics;
@@ -179,13 +184,15 @@ class TestRuntimeModule {
     private final OnehouseApiClient onehouseApiClient;
 
     GuiceTestModule(Config config, StorageUtils storageUtils, S3AsyncClientProvider s3Provider,
-                    GcsClientProvider gcsProvider, ExecutorService executorService,
+                    GcsClientProvider gcsProvider, AzureBlobClientProvider azureBlobClientProvider,
+                    ExecutorService executorService,
                     Metrics metrics, LakeViewExtractorMetrics lakeViewExtractorMetrics,
                     AsyncHttpClientWithRetry httpClient, OnehouseApiClient onehouseApiClient) {
       this.config = config;
       this.storageUtils = storageUtils;
       this.s3Provider = s3Provider;
       this.gcsProvider = gcsProvider;
+      this.azureBlobClientProvider = azureBlobClientProvider;
       this.executorService = executorService;
       this.metrics = metrics;
       this.lakeViewExtractorMetrics = lakeViewExtractorMetrics;
@@ -200,6 +207,7 @@ class TestRuntimeModule {
       bind(StorageUtils.class).toInstance(storageUtils);
       bind(S3AsyncClientProvider.class).toInstance(s3Provider);
       bind(GcsClientProvider.class).toInstance(gcsProvider);
+      bind(AzureBlobClientProvider.class).toInstance(azureBlobClientProvider);
       bind(ExecutorService.class).toInstance(executorService);
       bind(Metrics.class).toInstance(metrics);
       bind(LakeViewExtractorMetrics.class).toInstance(lakeViewExtractorMetrics);
@@ -222,6 +230,7 @@ class TestRuntimeModule {
           mock(StorageUtils.class),
           mock(S3AsyncClientProvider.class),
           mock(GcsClientProvider.class),
+          mock(AzureBlobClientProvider.class),
           mock(ExecutorService.class),
           mock(Metrics.class),
           mock(LakeViewExtractorMetrics.class),
@@ -252,7 +261,8 @@ class TestRuntimeModule {
       Modules.override(new RuntimeModule(mockConfig))
         .with(new GuiceTestModule(
           mockConfig, mock(StorageUtils.class), mock(S3AsyncClientProvider.class),
-          mock(GcsClientProvider.class), mock(ExecutorService.class),
+          mock(GcsClientProvider.class), mock(AzureBlobClientProvider.class),
+          mock(ExecutorService.class),
           mockMetrics, mockLakeViewExtractorMetrics,
           mockHttpClient, mockOnehouseApiClient))
     );
