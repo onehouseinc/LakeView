@@ -2,7 +2,6 @@ package ai.onehouse.storage;
 
 import org.apache.commons.lang3.StringUtils;
 
-import static ai.onehouse.constants.StorageConstants.AZURE_STORAGE_URI_PATTERN;
 import static ai.onehouse.constants.StorageConstants.OBJECT_STORAGE_URI_PATTERN;
 
 import java.util.regex.Matcher;
@@ -36,17 +35,5 @@ public class StorageUtils {
       return matcher.group(2);
     }
     throw new IllegalArgumentException(INVALID_STORAGE_URI_ERROR_MSG + uri);
-  }
-
-  public String getAccountNameFromAzureUri(String uri) {
-    Matcher matcher = AZURE_STORAGE_URI_PATTERN.matcher(uri);
-    if (matcher.matches()) {
-      return matcher.group(1);
-    }
-    throw new IllegalArgumentException("Invalid Azure storage Uri: " + uri);
-  }
-
-  public boolean isAzureUri(String uri) {
-    return AZURE_STORAGE_URI_PATTERN.matcher(uri).matches();
   }
 }
