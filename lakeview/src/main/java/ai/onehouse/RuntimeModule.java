@@ -10,9 +10,11 @@ import ai.onehouse.config.Config;
 import ai.onehouse.config.ConfigProvider;
 import ai.onehouse.config.models.common.FileSystemConfiguration;
 import ai.onehouse.storage.AsyncStorageClient;
+import ai.onehouse.storage.AzureAsyncStorageClient;
 import ai.onehouse.storage.GCSAsyncStorageClient;
 import ai.onehouse.storage.S3AsyncStorageClient;
 import ai.onehouse.storage.StorageUtils;
+import ai.onehouse.storage.providers.AzureStorageClientProvider;
 import ai.onehouse.storage.providers.GcsClientProvider;
 import ai.onehouse.storage.providers.S3AsyncClientProvider;
 
@@ -128,10 +130,13 @@ public class RuntimeModule extends AbstractModule {
       StorageUtils storageUtils,
       @TableDiscoveryS3ObjectStorageClient S3AsyncClientProvider s3AsyncClientProvider,
       GcsClientProvider gcsClientProvider,
+      AzureStorageClientProvider azureStorageClientProvider,
       ExecutorService executorService) {
     FileSystemConfiguration fileSystemConfiguration = config.getFileSystemConfiguration();
     if (fileSystemConfiguration.getS3Config() != null) {
       return new S3AsyncStorageClient(s3AsyncClientProvider, storageUtils, executorService);
+    } else if (fileSystemConfiguration.getAzureConfig() != null) {
+      return new AzureAsyncStorageClient(azureStorageClientProvider, storageUtils, executorService);
     } else {
       return new GCSAsyncStorageClient(gcsClientProvider, storageUtils, executorService);
     }
@@ -145,10 +150,13 @@ public class RuntimeModule extends AbstractModule {
       StorageUtils storageUtils,
       @TableMetadataUploadS3ObjectStorageClient S3AsyncClientProvider s3AsyncClientProvider,
       GcsClientProvider gcsClientProvider,
+      AzureStorageClientProvider azureStorageClientProvider,
       ExecutorService executorService) {
     FileSystemConfiguration fileSystemConfiguration = config.getFileSystemConfiguration();
     if (fileSystemConfiguration.getS3Config() != null) {
       return new S3AsyncStorageClient(s3AsyncClientProvider, storageUtils, executorService);
+    } else if (fileSystemConfiguration.getAzureConfig() != null) {
+      return new AzureAsyncStorageClient(azureStorageClientProvider, storageUtils, executorService);
     } else {
       return new GCSAsyncStorageClient(gcsClientProvider, storageUtils, executorService);
     }

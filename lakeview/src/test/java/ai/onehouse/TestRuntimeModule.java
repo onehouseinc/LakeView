@@ -19,10 +19,12 @@ import ai.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
 import ai.onehouse.metadata_extractor.TableDiscoveryService;
 import ai.onehouse.metadata_extractor.TimelineCommitInstantsUploader;
 import ai.onehouse.storage.AsyncStorageClient;
+import ai.onehouse.storage.AzureAsyncStorageClient;
 import ai.onehouse.storage.GCSAsyncStorageClient;
 import ai.onehouse.storage.PresignedUrlFileUploader;
 import ai.onehouse.storage.S3AsyncStorageClient;
 import ai.onehouse.storage.StorageUtils;
+import ai.onehouse.storage.providers.AzureStorageClientProvider;
 import ai.onehouse.storage.providers.GcsClientProvider;
 import ai.onehouse.storage.providers.S3AsyncClientProvider;
 import com.google.inject.AbstractModule;
@@ -109,6 +111,7 @@ class TestRuntimeModule {
     FileSystemConfiguration mockFileSystemConfiguration = mock(FileSystemConfiguration.class);
     S3AsyncClientProvider mockS3AsyncClientProvider = mock(S3AsyncClientProvider.class);
     GcsClientProvider mockGcsClientProvider = mock(GcsClientProvider.class);
+    AzureStorageClientProvider mockAzureStorageClientProvider = mock(AzureStorageClientProvider.class);
 
     when(mockConfig.getFileSystemConfiguration()).thenReturn(mockFileSystemConfiguration);
 
@@ -128,6 +131,7 @@ class TestRuntimeModule {
         mockStorageUtils,
         mockS3AsyncClientProvider,
         mockGcsClientProvider,
+              mockAzureStorageClientProvider,
         mockExecutorService);
     if (FileSystem.S3.equals(fileSystemType)) {
       assertInstanceOf(S3AsyncStorageClient.class, asyncStorageClientForDiscovery);
@@ -141,6 +145,7 @@ class TestRuntimeModule {
         mockStorageUtils,
         mockS3AsyncClientProvider,
         mockGcsClientProvider,
+              mockAzureStorageClientProvider,
         mockExecutorService);
     if (FileSystem.S3.equals(fileSystemType)) {
       Assertions.assertInstanceOf(S3AsyncStorageClient.class, asyncStorageClientForUpload);
