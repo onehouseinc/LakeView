@@ -1,5 +1,7 @@
 package ai.onehouse.storage;
 
+import org.apache.commons.lang3.StringUtils;
+
 import static ai.onehouse.constants.StorageConstants.AZURE_STORAGE_URI_PATTERN;
 import static ai.onehouse.constants.StorageConstants.OBJECT_STORAGE_URI_PATTERN;
 
@@ -10,18 +12,13 @@ public class StorageUtils {
 
   public String getPathFromUrl(String uri) {
 
-    if (!OBJECT_STORAGE_URI_PATTERN.matcher(uri).matches()) {
+    Matcher matcher = OBJECT_STORAGE_URI_PATTERN.matcher(uri);
+    if (!matcher.matches()) {
       throw new IllegalArgumentException(INVALID_STORAGE_URI_ERROR_MSG + uri);
     }
 
-    Matcher matcher = OBJECT_STORAGE_URI_PATTERN.matcher(uri);
-    if (matcher.matches()) {
-      String path = matcher.group(3);
-      // Remove leading slash if present
-      return (path != null && path.startsWith("/")) ? path.substring(1) : (path != null ? path : "");
-    }
-
-    return "";
+    String path = matcher.group(3);
+    return path == null ? StringUtils.EMPTY : path.replaceFirst("^/", "");
   }
 
   public String constructFileUri(String directoryUri, String filePath) {
