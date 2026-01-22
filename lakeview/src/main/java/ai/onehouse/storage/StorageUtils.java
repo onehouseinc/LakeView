@@ -16,6 +16,14 @@ public class StorageUtils {
       throw new IllegalArgumentException(INVALID_STORAGE_URI_ERROR_MSG + uri);
     }
 
+    /*
+     * Group 3 extracts the path portion after the bucket/container name from the URI.
+     * Examples:
+     *   s3://my-bucket/path/to/file.txt -> group(3) = /path/to/file.txt
+     *   gs://my-bucket/path/to/file.txt -> group(3) = /path/to/file.txt
+     *   https://account.blob.core.windows.net/container/path/to/file.txt -> group(3) = /path/to/file.txt
+     *   https://account.dfs.core.windows.net/container/path/to/file.txt -> group(3) = /path/to/file.txt
+     */
     String path = matcher.group(3);
     return path == null ? StringUtils.EMPTY : path.replaceFirst("^/", "");
   }
