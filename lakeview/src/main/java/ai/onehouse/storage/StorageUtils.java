@@ -12,10 +12,14 @@ public class StorageUtils {
   /**
    * Group 3 extracts the path portion after the bucket/container name from the URI.
    * Examples:
-   *   s3://my-bucket/path/to/file.txt -> group(3) = /path/to/file.txt
-   *   gs://my-bucket/path/to/file.txt -> group(3) = /path/to/file.txt
-   *   https://account.blob.core.windows.net/container/path/to/file.txt -> group(3) = /path/to/file.txt
-   *   https://account.dfs.core.windows.net/container/path/to/file.txt -> group(3) = /path/to/file.txt
+   * <ul>
+   *   <li>s3://my-bucket/path/to/file.txt returns /path/to/file.txt</li>
+   *   <li>gs://my-bucket/path/to/file.txt returns /path/to/file.txt</li>
+   *   <li>https://account.blob.core.windows.net/container/path/to/file.txt returns /path/to/file.txt</li>
+   *   <li>https://account.dfs.core.windows.net/container/path/to/file.txt returns /path/to/file.txt</li>
+   * </ul>
+   * @param uri the storage URI to parse
+   * @return the path portion of the URI, or empty string if no path
    */
   public String getPathFromUrl(String uri) {
 
@@ -40,10 +44,14 @@ public class StorageUtils {
   /**
    * Group 2 extracts the bucket/container name from the URI.
    * Examples:
-   *   s3://my-bucket-s3/path/to/file.txt -> group(2) = my-bucket-s3
-   *   gs://my-bucket-gs/path/to/file.txt -> group(2) = my-bucket-gs
-   *   https://account.blob.core.windows.net/container/path/file.txt -> group(2) = container
-   *   https://account.dfs.core.windows.net/container/path/file.txt -> group(2) = container
+   * <ul>
+   *   <li>s3://my-bucket-s3/path/to/file.txt returns my-bucket-s3</li>
+   *   <li>gs://my-bucket-gs/path/to/file.txt returns my-bucket-gs</li>
+   *   <li>https://account.blob.core.windows.net/container/path/file.txt returns container</li>
+   *   <li>https://account.dfs.core.windows.net/container/path/file.txt returns container</li>
+   * </ul>
+   * @param uri the storage URI to parse
+   * @return the bucket or container name
    */
   public String getBucketNameFromUri(String uri) {
     Matcher matcher = OBJECT_STORAGE_URI_PATTERN.matcher(uri);
