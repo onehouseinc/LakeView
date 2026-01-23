@@ -35,7 +35,7 @@ public class AzureStorageClientProvider {
     validateAzureConfig(azureConfig);
 
     BlobServiceClientBuilder builder = new BlobServiceClientBuilder();
-    String endpoint = String.format("https://%s.blob.core.windows.net", azureConfig.getAccountName());
+    String endpoint = String.format("https://%s.dfs.core.windows.net", azureConfig.getAccountName());
     builder.endpoint(endpoint);
 
     // Option 1: Connection String (includes account key and endpoint)
