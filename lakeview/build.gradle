@@ -61,9 +61,8 @@ dependencies {
         exclude group: "com.google.protobuf", module: "protobuf-java-utils"
     }
 
-    implementation platform('com.azure:azure-sdk-bom:1.2.25')
-    implementation 'com.azure:azure-storage-blob'
-    implementation 'com.azure:azure-identity'
+    implementation 'com.azure:azure-storage-blob:12.20.2'
+    implementation 'com.azure:azure-identity:1.7.3'
 
     implementation 'org.springframework:spring-beans:5.3.23'
 
