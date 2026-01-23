@@ -7,8 +7,8 @@ import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
-import com.azure.storage.blob.BlobServiceAsyncClient;
-import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.file.datalake.DataLakeServiceAsyncClient;
+import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 public class AzureStorageClientProvider {
   private final AzureConfig azureConfig;
-  private static BlobServiceAsyncClient azureAsyncClient;
+  private static DataLakeServiceAsyncClient azureAsyncClient;
   private static final Logger logger = LoggerFactory.getLogger(AzureStorageClientProvider.class);
 
   @Inject
@@ -30,12 +30,12 @@ public class AzureStorageClientProvider {
   }
 
   @VisibleForTesting
-  protected BlobServiceAsyncClient createAzureAsyncClient() {
-    logger.debug("Instantiating Azure Blob Storage client");
+  protected DataLakeServiceAsyncClient createAzureAsyncClient() {
+    logger.debug("Instantiating Azure Data Lake Storage client");
     validateAzureConfig(azureConfig);
 
-    BlobServiceClientBuilder builder = new BlobServiceClientBuilder();
-    String endpoint = String.format("https://%s.blob.core.windows.net", azureConfig.getAccountName());
+    DataLakeServiceClientBuilder builder = new DataLakeServiceClientBuilder();
+    String endpoint = String.format("https://%s.dfs.core.windows.net", azureConfig.getAccountName());
     builder.endpoint(endpoint);
 
     // Option 1: Connection String (includes account key and endpoint)
@@ -79,7 +79,7 @@ public class AzureStorageClientProvider {
     return builder.buildAsyncClient();
   }
 
-  public BlobServiceAsyncClient getAzureAsyncClient() {
+  public DataLakeServiceAsyncClient getAzureAsyncClient() {
     if (azureAsyncClient == null) {
       azureAsyncClient = createAzureAsyncClient();
     }

@@ -11,8 +11,8 @@ import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
-import com.azure.storage.blob.BlobServiceAsyncClient;
-import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.file.datalake.DataLakeServiceAsyncClient;
+import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +31,7 @@ class AzureStorageClientProviderTest {
   @Mock private ConfigV1 config;
   @Mock private FileSystemConfiguration fileSystemConfiguration;
   @Mock private AzureConfig azureConfig;
-  @Mock private BlobServiceAsyncClient mockBlobServiceAsyncClient;
+  @Mock private DataLakeServiceAsyncClient mockDataLakeServiceAsyncClient;
 
   @BeforeEach
   void setup() {
@@ -70,13 +70,13 @@ class AzureStorageClientProviderTest {
             Optional.of(
                 "DefaultEndpointsProtocol=https;AccountName=testaccount;AccountKey=key;EndpointSuffix=core.windows.net"));
 
-    try (MockedConstruction<BlobServiceClientBuilder> mockedBuilder =
+    try (MockedConstruction<DataLakeServiceClientBuilder> mockedBuilder =
         mockConstruction(
-            BlobServiceClientBuilder.class,
+            DataLakeServiceClientBuilder.class,
             (mock, context) -> {
               when(mock.endpoint(anyString())).thenReturn(mock);
               when(mock.connectionString(anyString())).thenReturn(mock);
-              when(mock.buildAsyncClient()).thenReturn(mockBlobServiceAsyncClient);
+              when(mock.buildAsyncClient()).thenReturn(mockDataLakeServiceAsyncClient);
             })) {
 
       AzureStorageClientProvider azureClientProviderSpy =
@@ -84,7 +84,7 @@ class AzureStorageClientProviderTest {
       AzureStorageClientProvider.resetAzureAsyncClient();
 
       if (!isRefreshClient) {
-        BlobServiceAsyncClient result = azureClientProviderSpy.getAzureAsyncClient();
+        DataLakeServiceAsyncClient result = azureClientProviderSpy.getAzureAsyncClient();
         assertNotNull(result);
       } else {
         azureClientProviderSpy.refreshClient();
@@ -101,13 +101,13 @@ class AzureStorageClientProviderTest {
     when(azureConfig.getConnectionString()).thenReturn(Optional.empty());
     when(azureConfig.getAccountKey()).thenReturn(Optional.of("dGVzdGFjY291bnRrZXk="));
 
-    try (MockedConstruction<BlobServiceClientBuilder> mockedBuilder =
+    try (MockedConstruction<DataLakeServiceClientBuilder> mockedBuilder =
             mockConstruction(
-                BlobServiceClientBuilder.class,
+                DataLakeServiceClientBuilder.class,
                 (mock, context) -> {
                   when(mock.endpoint(anyString())).thenReturn(mock);
                   when(mock.credential(any(StorageSharedKeyCredential.class))).thenReturn(mock);
-                  when(mock.buildAsyncClient()).thenReturn(mockBlobServiceAsyncClient);
+                  when(mock.buildAsyncClient()).thenReturn(mockDataLakeServiceAsyncClient);
                 });
         MockedConstruction<StorageSharedKeyCredential> mockedCredential =
             mockConstruction(StorageSharedKeyCredential.class)) {
@@ -117,7 +117,7 @@ class AzureStorageClientProviderTest {
       AzureStorageClientProvider.resetAzureAsyncClient();
 
       if (!isRefreshClient) {
-        BlobServiceAsyncClient result = azureClientProviderSpy.getAzureAsyncClient();
+        DataLakeServiceAsyncClient result = azureClientProviderSpy.getAzureAsyncClient();
         assertNotNull(result);
       } else {
         azureClientProviderSpy.refreshClient();
@@ -137,13 +137,13 @@ class AzureStorageClientProviderTest {
     when(azureConfig.getClientId()).thenReturn(Optional.of("test-client-id"));
     when(azureConfig.getClientSecret()).thenReturn(Optional.of("test-client-secret"));
 
-    try (MockedConstruction<BlobServiceClientBuilder> mockedBuilder =
+    try (MockedConstruction<DataLakeServiceClientBuilder> mockedBuilder =
             mockConstruction(
-                BlobServiceClientBuilder.class,
+                DataLakeServiceClientBuilder.class,
                 (mock, context) -> {
                   when(mock.endpoint(anyString())).thenReturn(mock);
                   when(mock.credential(any(ClientSecretCredential.class))).thenReturn(mock);
-                  when(mock.buildAsyncClient()).thenReturn(mockBlobServiceAsyncClient);
+                  when(mock.buildAsyncClient()).thenReturn(mockDataLakeServiceAsyncClient);
                 });
         MockedConstruction<ClientSecretCredentialBuilder> mockedCredBuilder =
             mockConstruction(
@@ -160,7 +160,7 @@ class AzureStorageClientProviderTest {
       AzureStorageClientProvider.resetAzureAsyncClient();
 
       if (!isRefreshClient) {
-        BlobServiceAsyncClient result = azureClientProviderSpy.getAzureAsyncClient();
+        DataLakeServiceAsyncClient result = azureClientProviderSpy.getAzureAsyncClient();
         assertNotNull(result);
       } else {
         azureClientProviderSpy.refreshClient();
@@ -180,13 +180,13 @@ class AzureStorageClientProviderTest {
     when(azureConfig.getClientId()).thenReturn(Optional.of("test-client-id"));
     when(azureConfig.getClientSecret()).thenReturn(Optional.empty());
 
-    try (MockedConstruction<BlobServiceClientBuilder> mockedBuilder =
+    try (MockedConstruction<DataLakeServiceClientBuilder> mockedBuilder =
             mockConstruction(
-                BlobServiceClientBuilder.class,
+                DataLakeServiceClientBuilder.class,
                 (mock, context) -> {
                   when(mock.endpoint(anyString())).thenReturn(mock);
                   when(mock.credential(any(DefaultAzureCredential.class))).thenReturn(mock);
-                  when(mock.buildAsyncClient()).thenReturn(mockBlobServiceAsyncClient);
+                  when(mock.buildAsyncClient()).thenReturn(mockDataLakeServiceAsyncClient);
                 });
         MockedConstruction<DefaultAzureCredentialBuilder> mockedCredBuilder =
             mockConstruction(
@@ -202,7 +202,7 @@ class AzureStorageClientProviderTest {
       AzureStorageClientProvider.resetAzureAsyncClient();
 
       if (!isRefreshClient) {
-        BlobServiceAsyncClient result = azureClientProviderSpy.getAzureAsyncClient();
+        DataLakeServiceAsyncClient result = azureClientProviderSpy.getAzureAsyncClient();
         assertNotNull(result);
       } else {
         azureClientProviderSpy.refreshClient();
@@ -221,13 +221,13 @@ class AzureStorageClientProviderTest {
     when(azureConfig.getTenantId()).thenReturn(Optional.empty());
     when(azureConfig.getClientId()).thenReturn(Optional.empty());
 
-    try (MockedConstruction<BlobServiceClientBuilder> mockedBuilder =
+    try (MockedConstruction<DataLakeServiceClientBuilder> mockedBuilder =
             mockConstruction(
-                BlobServiceClientBuilder.class,
+                DataLakeServiceClientBuilder.class,
                 (mock, context) -> {
                   when(mock.endpoint(anyString())).thenReturn(mock);
                   when(mock.credential(any(DefaultAzureCredential.class))).thenReturn(mock);
-                  when(mock.buildAsyncClient()).thenReturn(mockBlobServiceAsyncClient);
+                  when(mock.buildAsyncClient()).thenReturn(mockDataLakeServiceAsyncClient);
                 });
         MockedConstruction<DefaultAzureCredentialBuilder> mockedCredBuilder =
             mockConstruction(
@@ -241,7 +241,7 @@ class AzureStorageClientProviderTest {
       AzureStorageClientProvider.resetAzureAsyncClient();
 
       if (!isRefreshClient) {
-        BlobServiceAsyncClient result = azureClientProviderSpy.getAzureAsyncClient();
+        DataLakeServiceAsyncClient result = azureClientProviderSpy.getAzureAsyncClient();
         assertNotNull(result);
       } else {
         azureClientProviderSpy.refreshClient();

@@ -10,13 +10,14 @@ import ai.onehouse.storage.providers.AzureStorageClientProvider;
 import com.azure.core.http.rest.PagedFlux;
 import com.azure.core.http.rest.PagedResponse;
 import com.azure.core.util.BinaryData;
-import com.azure.storage.blob.BlobAsyncClient;
-import com.azure.storage.blob.BlobContainerAsyncClient;
-import com.azure.storage.blob.BlobServiceAsyncClient;
-import com.azure.storage.blob.models.BlobErrorCode;
-import com.azure.storage.blob.models.BlobItem;
-import com.azure.storage.blob.models.BlobStorageException;
-import com.azure.storage.blob.models.ListBlobsOptions;
+import com.azure.storage.file.datalake.DataLakeDirectoryAsyncClient;
+import com.azure.storage.file.datalake.DataLakeFileAsyncClient;
+import com.azure.storage.file.datalake.DataLakeFileSystemAsyncClient;
+import com.azure.storage.file.datalake.DataLakeServiceAsyncClient;
+import com.azure.storage.file.datalake.models.DataLakeRequestConditions;
+import com.azure.storage.file.datalake.models.DataLakeStorageException;
+import com.azure.storage.file.datalake.models.ListPathsOptions;
+import com.azure.storage.file.datalake.models.PathItem;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import java.io.ByteArrayInputStream;
@@ -57,23 +58,23 @@ public class AzureAsyncStorageClient extends AbstractAsyncStorageClient {
     return CompletableFuture.supplyAsync(
         () -> {
           try {
-            BlobServiceAsyncClient blobServiceClient =
+            DataLakeServiceAsyncClient dataLakeServiceClient =
                 azureStorageClientProvider.getAzureAsyncClient();
-            BlobContainerAsyncClient containerClient =
-                blobServiceClient.getBlobContainerAsyncClient(containerName);
+            DataLakeFileSystemAsyncClient fileSystemClient =
+                dataLakeServiceClient.getFileSystemAsyncClient(containerName);
 
-            ListBlobsOptions options = new ListBlobsOptions();
+            ListPathsOptions options = new ListPathsOptions();
             if (StringUtils.isNotBlank(prefix)) {
-              options.setPrefix(prefix);
+              options.setPath(prefix);
             }
 
-            PagedFlux<BlobItem> pagedFlux = containerClient.listBlobsByHierarchy("/", options);
+            PagedFlux<PathItem> pagedFlux = fileSystemClient.listPaths(options);
 
             List<File> files = new ArrayList<>();
             String nextContinuationToken = null;
 
             // Get single page with continuation token
-            try (PagedResponse<BlobItem> page =
+            try (PagedResponse<PathItem> page =
                 StringUtils.isNotBlank(continuationToken)
                     ? pagedFlux.byPage(continuationToken).blockFirst()
                     : pagedFlux.byPage().blockFirst()) {
@@ -82,10 +83,10 @@ public class AzureAsyncStorageClient extends AbstractAsyncStorageClient {
                 // Process items in the page
                 page.getElements()
                     .forEach(
-                        blobItem -> {
-                          String blobName = blobItem.getName();
-                          boolean isDirectory = blobItem.isPrefix() != null && blobItem.isPrefix();
-                          String fileName = blobName.replaceFirst("^" + prefix, "");
+                        pathItem -> {
+                          String pathName = pathItem.getName();
+                          boolean isDirectory = pathItem.isDirectory();
+                          String fileName = pathName.replaceFirst("^" + prefix, "");
 
                           files.add(
                               File.builder()
@@ -93,7 +94,7 @@ public class AzureAsyncStorageClient extends AbstractAsyncStorageClient {
                                   .lastModifiedAt(
                                       isDirectory
                                           ? Instant.EPOCH
-                                          : blobItem.getProperties().getLastModified().toInstant())
+                                          : pathItem.getLastModified().toInstant())
                                   .isDirectory(isDirectory)
                                   .build());
                         });
@@ -105,8 +106,7 @@ public class AzureAsyncStorageClient extends AbstractAsyncStorageClient {
 
             return Pair.of(nextContinuationToken, files);
           } catch (Exception ex) {
-            log.error("Failed to fetch objects by page", ex);
-            throw clientException(ex, "fetchObjectsByPage", containerName);
+            return handleListPathsException(ex, containerName, prefix);
           }
         },
         executorService);
@@ -114,14 +114,14 @@ public class AzureAsyncStorageClient extends AbstractAsyncStorageClient {
 
   @VisibleForTesting
   CompletableFuture<BinaryData> readBlob(String azureUri) {
-    log.debug("Reading Azure blob: {}", azureUri);
+    log.debug("Reading Azure Data Lake file: {}", azureUri);
     return CompletableFuture.supplyAsync(
         () -> {
           try {
-            BlobAsyncClient blobClient = getBlobClient(azureUri);
-            return blobClient.downloadContent().block();
+            DataLakeFileAsyncClient fileClient = getFileClient(azureUri);
+            return BinaryData.fromBytes(fileClient.read().blockLast().array());
           } catch (Exception ex) {
-            log.error("Failed to read blob", ex);
+            log.error("Failed to read file", ex);
             throw clientException(ex, "readBlob", azureUri);
           }
         },
@@ -144,45 +144,65 @@ public class AzureAsyncStorageClient extends AbstractAsyncStorageClient {
     return readBlob(azureUri).thenApply(BinaryData::toBytes);
   }
 
-  private BlobAsyncClient getBlobClient(String azureUri) {
-    String containerName = storageUtils.getBucketNameFromUri(azureUri);
-    String blobPath = storageUtils.getPathFromUrl(azureUri);
+  private DataLakeFileAsyncClient getFileClient(String azureUri) {
+    String fileSystemName = storageUtils.getBucketNameFromUri(azureUri);
+    String filePath = storageUtils.getPathFromUrl(azureUri);
 
-    BlobServiceAsyncClient blobServiceClient = azureStorageClientProvider.getAzureAsyncClient();
-    BlobContainerAsyncClient containerClient =
-        blobServiceClient.getBlobContainerAsyncClient(containerName);
-    return containerClient.getBlobAsyncClient(blobPath);
+    DataLakeServiceAsyncClient dataLakeServiceClient = azureStorageClientProvider.getAzureAsyncClient();
+    DataLakeFileSystemAsyncClient fileSystemClient =
+        dataLakeServiceClient.getFileSystemAsyncClient(fileSystemName);
+    return fileSystemClient.getFileAsyncClient(filePath);
+  }
+
+  private Pair<String, List<File>> handleListPathsException(
+      Exception ex, String containerName, String prefix) {
+    // DataLake API returns 404 for non-existent paths, treat as empty directory
+    Throwable wrappedException = ex.getCause() != null ? ex.getCause() : ex;
+    if (wrappedException instanceof DataLakeStorageException) {
+      DataLakeStorageException dlsException = (DataLakeStorageException) wrappedException;
+      if ("PathNotFound".equals(dlsException.getErrorCode())
+          || dlsException.getStatusCode() == 404) {
+        log.debug(
+            "Path not found, returning empty list for container: {}, prefix: {}",
+            containerName,
+            prefix);
+        return Pair.of(null, new ArrayList<>());
+      }
+    }
+    log.error("Failed to fetch objects by page", ex);
+    throw clientException(ex, "fetchObjectsByPage", containerName);
   }
 
   @Override
   protected RuntimeException clientException(Throwable ex, String operation, String path) {
     Throwable wrappedException = ex.getCause() != null ? ex.getCause() : ex;
 
-    if (wrappedException instanceof BlobStorageException) {
-      BlobStorageException blobException = (BlobStorageException) wrappedException;
-      BlobErrorCode errorCode = blobException.getErrorCode();
-      int statusCode = blobException.getStatusCode();
+    if (wrappedException instanceof DataLakeStorageException) {
+      DataLakeStorageException dataLakeException = (DataLakeStorageException) wrappedException;
+      String errorCode = dataLakeException.getErrorCode();
+      int statusCode = dataLakeException.getStatusCode();
 
       log.error(
-          "Error in Azure operation: {} on path: {} code: {} status: {} message: {}",
+          "Error in Azure Data Lake operation: {} on path: {} code: {} status: {} message: {}",
           operation,
           path,
           errorCode,
           statusCode,
-          blobException.getMessage());
+          dataLakeException.getMessage());
 
       // Map to AccessDeniedException
       if (statusCode == 403 || statusCode == 401) {
         return new AccessDeniedException(
             String.format(
                 "AccessDenied for operation: %s on path: %s with message: %s",
-                operation, path, blobException.getMessage()));
+                operation, path, dataLakeException.getMessage()));
       }
 
       // Map to NoSuchKeyException
       if (errorCode != null
-          && (errorCode == BlobErrorCode.BLOB_NOT_FOUND
-              || errorCode == BlobErrorCode.CONTAINER_NOT_FOUND)) {
+          && (errorCode.equals("PathNotFound")
+              || errorCode.equals("FilesystemNotFound")
+              || statusCode == 404)) {
         return new NoSuchKeyException(
             String.format("NoSuchKey for operation: %s on path: %s", operation, path));
       }

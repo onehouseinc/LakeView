@@ -61,7 +61,9 @@ dependencies {
         exclude group: "com.google.protobuf", module: "protobuf-java-utils"
     }
 
-    implementation 'com.azure:azure-storage-blob:12.23.0'
+    implementation('com.azure:azure-storage-file-datalake:12.19.1') {
+        exclude group: 'com.azure', module: 'azure-core-http-netty'
+    }
     implementation 'com.azure:azure-identity:1.10.0'
 
     implementation 'org.springframework:spring-beans:5.3.23'

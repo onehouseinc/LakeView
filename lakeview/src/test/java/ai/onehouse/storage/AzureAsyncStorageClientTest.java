@@ -16,14 +16,13 @@ import ai.onehouse.storage.providers.AzureStorageClientProvider;
 import com.azure.core.http.rest.PagedFlux;
 import com.azure.core.http.rest.PagedResponse;
 import com.azure.core.util.BinaryData;
-import com.azure.storage.blob.BlobAsyncClient;
-import com.azure.storage.blob.BlobContainerAsyncClient;
-import com.azure.storage.blob.BlobServiceAsyncClient;
-import com.azure.storage.blob.models.BlobErrorCode;
+import com.azure.storage.file.datalake.DataLakeFileAsyncClient;
+import com.azure.storage.file.datalake.DataLakeFileSystemAsyncClient;
+import com.azure.storage.file.datalake.DataLakeServiceAsyncClient;
+import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import com.azure.core.util.IterableStream;
-import com.azure.storage.blob.models.BlobItem;
-import com.azure.storage.blob.models.BlobItemProperties;
-import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.file.datalake.models.PathItem;
+import java.nio.ByteBuffer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,29 +53,28 @@ class AzureAsyncStorageClientTest {
 
   @Mock private AzureStorageClientProvider mockAzureStorageClientProvider;
   @Mock private StorageUtils mockStorageUtils;
-  @Mock private BlobServiceAsyncClient mockBlobServiceAsyncClient;
-  @Mock private BlobContainerAsyncClient mockContainerAsyncClient;
-  @Mock private BlobAsyncClient mockBlobAsyncClient;
-  @Mock private PagedFlux<BlobItem> mockPagedFlux;
-  @Mock private PagedResponse<BlobItem> mockPagedResponse1;
-  @Mock private PagedResponse<BlobItem> mockPagedResponse2;
-  @Mock private BlobItem mockBlobItem1;
-  @Mock private BlobItem mockBlobItem2;
-  @Mock private BlobItemProperties mockBlobItemProperties;
+  @Mock private DataLakeServiceAsyncClient mockDataLakeServiceAsyncClient;
+  @Mock private DataLakeFileSystemAsyncClient mockFileSystemAsyncClient;
+  @Mock private DataLakeFileAsyncClient mockFileAsyncClient;
+  @Mock private PagedFlux<PathItem> mockPagedFlux;
+  @Mock private PagedResponse<PathItem> mockPagedResponse1;
+  @Mock private PagedResponse<PathItem> mockPagedResponse2;
+  @Mock private PathItem mockPathItem1;
+  @Mock private PathItem mockPathItem2;
 
   private AzureAsyncStorageClient azureAsyncStorageClient;
   private static final String AZURE_URI =
-      "https://testaccount.blob.core.windows.net/test-container/test-blob";
+      "https://testaccount.dfs.core.windows.net/test-container/test-file";
   private static final String TEST_CONTAINER = "test-container";
-  private static final String TEST_BLOB = "test-blob";
+  private static final String TEST_FILE = "test-file";
 
   @BeforeEach
   void setup() {
     lenient()
         .when(mockAzureStorageClientProvider.getAzureAsyncClient())
-        .thenReturn(mockBlobServiceAsyncClient);
+        .thenReturn(mockDataLakeServiceAsyncClient);
     lenient().when(mockStorageUtils.getBucketNameFromUri(AZURE_URI)).thenReturn(TEST_CONTAINER);
-    lenient().when(mockStorageUtils.getPathFromUrl(AZURE_URI)).thenReturn(TEST_BLOB);
+    lenient().when(mockStorageUtils.getPathFromUrl(AZURE_URI)).thenReturn(TEST_FILE);
     azureAsyncStorageClient =
         new AzureAsyncStorageClient(
             mockAzureStorageClientProvider, mockStorageUtils, ForkJoinPool.commonPool());
@@ -87,30 +85,29 @@ class AzureAsyncStorageClientTest {
     String fileName = "file1";
     String dirName = "dir1/";
     String continuationToken = "page_2";
-    String prefix = TEST_BLOB + "/";
+    String prefix = TEST_FILE + "/";
 
-    when(mockBlobServiceAsyncClient.getBlobContainerAsyncClient(TEST_CONTAINER))
-        .thenReturn(mockContainerAsyncClient);
-    when(mockContainerAsyncClient.listBlobsByHierarchy(eq("/"), any()))
+    when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
+        .thenReturn(mockFileSystemAsyncClient);
+    when(mockFileSystemAsyncClient.listPaths(any()))
         .thenReturn(mockPagedFlux);
     when(mockPagedFlux.byPage()).thenReturn(Flux.just(mockPagedResponse1));
     when(mockPagedFlux.byPage(continuationToken)).thenReturn(Flux.just(mockPagedResponse2));
 
     // First page
     when(mockPagedResponse1.getElements())
-        .thenReturn(IterableStream.of(Arrays.asList(mockBlobItem1)));
+        .thenReturn(IterableStream.of(Arrays.asList(mockPathItem1)));
     when(mockPagedResponse1.getContinuationToken()).thenReturn(continuationToken);
-    when(mockBlobItem1.getName()).thenReturn(prefix + fileName);
-    when(mockBlobItem1.isPrefix()).thenReturn(null);
-    when(mockBlobItem1.getProperties()).thenReturn(mockBlobItemProperties);
-    when(mockBlobItemProperties.getLastModified()).thenReturn(OffsetDateTime.now());
+    when(mockPathItem1.getName()).thenReturn(prefix + fileName);
+    when(mockPathItem1.isDirectory()).thenReturn(false);
+    when(mockPathItem1.getLastModified()).thenReturn(OffsetDateTime.now());
 
     // Second page
     when(mockPagedResponse2.getElements())
-        .thenReturn(IterableStream.of(Arrays.asList(mockBlobItem2)));
+        .thenReturn(IterableStream.of(Arrays.asList(mockPathItem2)));
     when(mockPagedResponse2.getContinuationToken()).thenReturn(null);
-    when(mockBlobItem2.getName()).thenReturn(prefix + dirName);
-    when(mockBlobItem2.isPrefix()).thenReturn(true);
+    when(mockPathItem2.getName()).thenReturn(prefix + dirName);
+    when(mockPathItem2.isDirectory()).thenReturn(true);
 
     List<File> result = azureAsyncStorageClient.listAllFilesInDir(AZURE_URI).get();
 
@@ -128,20 +125,19 @@ class AzureAsyncStorageClientTest {
     String continuationToken = "token";
     String nextToken = "next-token";
 
-    when(mockBlobServiceAsyncClient.getBlobContainerAsyncClient(TEST_CONTAINER))
-        .thenReturn(mockContainerAsyncClient);
-    when(mockContainerAsyncClient.listBlobsByHierarchy(eq("/"), any()))
+    when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
+        .thenReturn(mockFileSystemAsyncClient);
+    when(mockFileSystemAsyncClient.listPaths(any()))
         .thenReturn(mockPagedFlux);
     when(mockPagedFlux.byPage(continuationToken))
         .thenReturn(Flux.just(mockPagedResponse1));
 
     when(mockPagedResponse1.getElements())
-        .thenReturn(IterableStream.of(Arrays.asList(mockBlobItem1)));
+        .thenReturn(IterableStream.of(Arrays.asList(mockPathItem1)));
     when(mockPagedResponse1.getContinuationToken()).thenReturn(nextToken);
-    when(mockBlobItem1.getName()).thenReturn(prefix + "/" + fileName);
-    when(mockBlobItem1.isPrefix()).thenReturn(null);
-    when(mockBlobItem1.getProperties()).thenReturn(mockBlobItemProperties);
-    when(mockBlobItemProperties.getLastModified()).thenReturn(OffsetDateTime.now());
+    when(mockPathItem1.getName()).thenReturn(prefix + "/" + fileName);
+    when(mockPathItem1.isDirectory()).thenReturn(false);
+    when(mockPathItem1.getLastModified()).thenReturn(OffsetDateTime.now());
 
     Pair<String, List<File>> result =
         azureAsyncStorageClient
@@ -159,19 +155,18 @@ class AzureAsyncStorageClientTest {
     String fileName = "file1";
     String prefix = "prefix";
 
-    when(mockBlobServiceAsyncClient.getBlobContainerAsyncClient(TEST_CONTAINER))
-        .thenReturn(mockContainerAsyncClient);
-    when(mockContainerAsyncClient.listBlobsByHierarchy(eq("/"), any()))
+    when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
+        .thenReturn(mockFileSystemAsyncClient);
+    when(mockFileSystemAsyncClient.listPaths(any()))
         .thenReturn(mockPagedFlux);
     when(mockPagedFlux.byPage()).thenReturn(Flux.just(mockPagedResponse1));
 
     when(mockPagedResponse1.getElements())
-        .thenReturn(IterableStream.of(Arrays.asList(mockBlobItem1)));
+        .thenReturn(IterableStream.of(Arrays.asList(mockPathItem1)));
     when(mockPagedResponse1.getContinuationToken()).thenReturn(null);
-    when(mockBlobItem1.getName()).thenReturn(prefix + "/" + fileName);
-    when(mockBlobItem1.isPrefix()).thenReturn(null);
-    when(mockBlobItem1.getProperties()).thenReturn(mockBlobItemProperties);
-    when(mockBlobItemProperties.getLastModified()).thenReturn(OffsetDateTime.now());
+    when(mockPathItem1.getName()).thenReturn(prefix + "/" + fileName);
+    when(mockPathItem1.isDirectory()).thenReturn(false);
+    when(mockPathItem1.getLastModified()).thenReturn(OffsetDateTime.now());
 
     Pair<String, List<File>> result =
         azureAsyncStorageClient.fetchObjectsByPage(TEST_CONTAINER, prefix, null, null).get();
@@ -183,12 +178,12 @@ class AzureAsyncStorageClientTest {
   @Test
   void testReadBlob() throws ExecutionException, InterruptedException {
     byte[] fileContent = "test content".getBytes(StandardCharsets.UTF_8);
-    BinaryData binaryData = BinaryData.fromBytes(fileContent);
+    ByteBuffer byteBuffer = ByteBuffer.wrap(fileContent);
 
-    when(mockBlobServiceAsyncClient.getBlobContainerAsyncClient(TEST_CONTAINER))
-        .thenReturn(mockContainerAsyncClient);
-    when(mockContainerAsyncClient.getBlobAsyncClient(TEST_BLOB)).thenReturn(mockBlobAsyncClient);
-    when(mockBlobAsyncClient.downloadContent()).thenReturn(Mono.just(binaryData));
+    when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
+        .thenReturn(mockFileSystemAsyncClient);
+    when(mockFileSystemAsyncClient.getFileAsyncClient(TEST_FILE)).thenReturn(mockFileAsyncClient);
+    when(mockFileAsyncClient.read()).thenReturn(Flux.just(byteBuffer));
 
     BinaryData result = azureAsyncStorageClient.readBlob(AZURE_URI).get();
 
@@ -199,12 +194,12 @@ class AzureAsyncStorageClientTest {
   @Test
   void testStreamFileAsync() throws ExecutionException, InterruptedException, IOException {
     byte[] fileContent = "test content".getBytes(StandardCharsets.UTF_8);
-    BinaryData binaryData = BinaryData.fromBytes(fileContent);
+    ByteBuffer byteBuffer = ByteBuffer.wrap(fileContent);
 
-    when(mockBlobServiceAsyncClient.getBlobContainerAsyncClient(TEST_CONTAINER))
-        .thenReturn(mockContainerAsyncClient);
-    when(mockContainerAsyncClient.getBlobAsyncClient(TEST_BLOB)).thenReturn(mockBlobAsyncClient);
-    when(mockBlobAsyncClient.downloadContent()).thenReturn(Mono.just(binaryData));
+    when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
+        .thenReturn(mockFileSystemAsyncClient);
+    when(mockFileSystemAsyncClient.getFileAsyncClient(TEST_FILE)).thenReturn(mockFileAsyncClient);
+    when(mockFileAsyncClient.read()).thenReturn(Flux.just(byteBuffer));
 
     FileStreamData result = azureAsyncStorageClient.streamFileAsync(AZURE_URI).get();
 
@@ -218,12 +213,12 @@ class AzureAsyncStorageClientTest {
   @Test
   void testReadFileAsBytes() throws ExecutionException, InterruptedException {
     byte[] fileContent = "test content".getBytes(StandardCharsets.UTF_8);
-    BinaryData binaryData = BinaryData.fromBytes(fileContent);
+    ByteBuffer byteBuffer = ByteBuffer.wrap(fileContent);
 
-    when(mockBlobServiceAsyncClient.getBlobContainerAsyncClient(TEST_CONTAINER))
-        .thenReturn(mockContainerAsyncClient);
-    when(mockContainerAsyncClient.getBlobAsyncClient(TEST_BLOB)).thenReturn(mockBlobAsyncClient);
-    when(mockBlobAsyncClient.downloadContent()).thenReturn(Mono.just(binaryData));
+    when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
+        .thenReturn(mockFileSystemAsyncClient);
+    when(mockFileSystemAsyncClient.getFileAsyncClient(TEST_FILE)).thenReturn(mockFileAsyncClient);
+    when(mockFileAsyncClient.read()).thenReturn(Flux.just(byteBuffer));
 
     byte[] result = azureAsyncStorageClient.readFileAsBytes(AZURE_URI).get();
 
@@ -231,13 +226,13 @@ class AzureAsyncStorageClientTest {
   }
 
   @ParameterizedTest
-  @MethodSource("generateBlobStorageExceptionTestCases")
-  void testReadBlobWithBlobStorageException(
-      BlobStorageException exception, Class<? extends RuntimeException> expectedExceptionClass) {
-    when(mockBlobServiceAsyncClient.getBlobContainerAsyncClient(TEST_CONTAINER))
-        .thenReturn(mockContainerAsyncClient);
-    when(mockContainerAsyncClient.getBlobAsyncClient(TEST_BLOB)).thenReturn(mockBlobAsyncClient);
-    when(mockBlobAsyncClient.downloadContent()).thenAnswer(invocation -> Mono.error(exception));
+  @MethodSource("generateDataLakeStorageExceptionTestCases")
+  void testReadBlobWithDataLakeStorageException(
+      DataLakeStorageException exception, Class<? extends RuntimeException> expectedExceptionClass) {
+    when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
+        .thenReturn(mockFileSystemAsyncClient);
+    when(mockFileSystemAsyncClient.getFileAsyncClient(TEST_FILE)).thenReturn(mockFileAsyncClient);
+    when(mockFileAsyncClient.read()).thenAnswer(invocation -> Flux.error(exception));
 
     CompletableFuture<BinaryData> future = azureAsyncStorageClient.readBlob(AZURE_URI);
     CompletionException executionException = assertThrows(CompletionException.class, future::join);
@@ -246,38 +241,38 @@ class AzureAsyncStorageClientTest {
     assertInstanceOf(expectedExceptionClass, cause);
   }
 
-  static Stream<Arguments> generateBlobStorageExceptionTestCases() {
-    BlobStorageException accessDenied403 = mock(BlobStorageException.class);
+  static Stream<Arguments> generateDataLakeStorageExceptionTestCases() {
+    DataLakeStorageException accessDenied403 = mock(DataLakeStorageException.class);
     when(accessDenied403.getStatusCode()).thenReturn(403);
     when(accessDenied403.getMessage()).thenReturn("Access denied");
     when(accessDenied403.getErrorCode()).thenReturn(null);
 
-    BlobStorageException unauthorized401 = mock(BlobStorageException.class);
+    DataLakeStorageException unauthorized401 = mock(DataLakeStorageException.class);
     when(unauthorized401.getStatusCode()).thenReturn(401);
     when(unauthorized401.getMessage()).thenReturn("Unauthorized");
     when(unauthorized401.getErrorCode()).thenReturn(null);
 
-    BlobStorageException blobNotFound = mock(BlobStorageException.class);
-    when(blobNotFound.getStatusCode()).thenReturn(404);
-    when(blobNotFound.getErrorCode()).thenReturn(BlobErrorCode.BLOB_NOT_FOUND);
-    when(blobNotFound.getMessage()).thenReturn("Blob not found");
+    DataLakeStorageException pathNotFound = mock(DataLakeStorageException.class);
+    when(pathNotFound.getStatusCode()).thenReturn(404);
+    when(pathNotFound.getErrorCode()).thenReturn("PathNotFound");
+    when(pathNotFound.getMessage()).thenReturn("Path not found");
 
-    BlobStorageException containerNotFound = mock(BlobStorageException.class);
-    when(containerNotFound.getStatusCode()).thenReturn(404);
-    when(containerNotFound.getErrorCode()).thenReturn(BlobErrorCode.CONTAINER_NOT_FOUND);
-    when(containerNotFound.getMessage()).thenReturn("Container not found");
+    DataLakeStorageException filesystemNotFound = mock(DataLakeStorageException.class);
+    when(filesystemNotFound.getStatusCode()).thenReturn(404);
+    when(filesystemNotFound.getErrorCode()).thenReturn("FilesystemNotFound");
+    when(filesystemNotFound.getMessage()).thenReturn("Filesystem not found");
 
-    BlobStorageException tooManyRequests = mock(BlobStorageException.class);
+    DataLakeStorageException tooManyRequests = mock(DataLakeStorageException.class);
     when(tooManyRequests.getStatusCode()).thenReturn(429);
     when(tooManyRequests.getMessage()).thenReturn("Too many requests");
     when(tooManyRequests.getErrorCode()).thenReturn(null);
 
-    BlobStorageException serviceUnavailable = mock(BlobStorageException.class);
+    DataLakeStorageException serviceUnavailable = mock(DataLakeStorageException.class);
     when(serviceUnavailable.getStatusCode()).thenReturn(503);
     when(serviceUnavailable.getMessage()).thenReturn("Service unavailable");
     when(serviceUnavailable.getErrorCode()).thenReturn(null);
 
-    BlobStorageException internalError = mock(BlobStorageException.class);
+    DataLakeStorageException internalError = mock(DataLakeStorageException.class);
     when(internalError.getStatusCode()).thenReturn(500);
     when(internalError.getMessage()).thenReturn("Internal error");
     when(internalError.getErrorCode()).thenReturn(null);
@@ -285,8 +280,8 @@ class AzureAsyncStorageClientTest {
     return Stream.of(
         Arguments.of(accessDenied403, AccessDeniedException.class),
         Arguments.of(unauthorized401, AccessDeniedException.class),
-        Arguments.of(blobNotFound, NoSuchKeyException.class),
-        Arguments.of(containerNotFound, NoSuchKeyException.class),
+        Arguments.of(pathNotFound, NoSuchKeyException.class),
+        Arguments.of(filesystemNotFound, NoSuchKeyException.class),
         Arguments.of(tooManyRequests, RateLimitException.class),
         Arguments.of(serviceUnavailable, RateLimitException.class),
         Arguments.of(internalError, ObjectStorageClientException.class));
@@ -296,10 +291,10 @@ class AzureAsyncStorageClientTest {
   @MethodSource("generateWrappedExceptionTestCases")
   void testReadBlobWithWrappedException(
       RuntimeException exception, Class<? extends RuntimeException> expectedExceptionClass) {
-    when(mockBlobServiceAsyncClient.getBlobContainerAsyncClient(TEST_CONTAINER))
-        .thenReturn(mockContainerAsyncClient);
-    when(mockContainerAsyncClient.getBlobAsyncClient(TEST_BLOB)).thenReturn(mockBlobAsyncClient);
-    when(mockBlobAsyncClient.downloadContent()).thenAnswer(invocation -> Mono.error(exception));
+    when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
+        .thenReturn(mockFileSystemAsyncClient);
+    when(mockFileSystemAsyncClient.getFileAsyncClient(TEST_FILE)).thenReturn(mockFileAsyncClient);
+    when(mockFileAsyncClient.read()).thenAnswer(invocation -> Flux.error(exception));
 
     CompletableFuture<BinaryData> future = azureAsyncStorageClient.readBlob(AZURE_URI);
     CompletionException executionException = assertThrows(CompletionException.class, future::join);
@@ -317,14 +312,14 @@ class AzureAsyncStorageClientTest {
 
   @Test
   void testFetchObjectsByPageWithException() {
-    BlobStorageException exception = mock(BlobStorageException.class);
+    DataLakeStorageException exception = mock(DataLakeStorageException.class);
     when(exception.getStatusCode()).thenReturn(429);
     when(exception.getMessage()).thenReturn("Throttled");
     when(exception.getErrorCode()).thenReturn(null);
 
-    when(mockBlobServiceAsyncClient.getBlobContainerAsyncClient(TEST_CONTAINER))
-        .thenReturn(mockContainerAsyncClient);
-    when(mockContainerAsyncClient.listBlobsByHierarchy(eq("/"), any()))
+    when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
+        .thenReturn(mockFileSystemAsyncClient);
+    when(mockFileSystemAsyncClient.listPaths(any()))
         .thenThrow(exception);
 
     CompletableFuture<Pair<String, List<File>>> future =
@@ -353,10 +348,10 @@ class AzureAsyncStorageClientTest {
   void testReadBlobWithGenericException() {
     RuntimeException exception = new RuntimeException("Generic error");
 
-    when(mockBlobServiceAsyncClient.getBlobContainerAsyncClient(TEST_CONTAINER))
-        .thenReturn(mockContainerAsyncClient);
-    when(mockContainerAsyncClient.getBlobAsyncClient(TEST_BLOB)).thenReturn(mockBlobAsyncClient);
-    when(mockBlobAsyncClient.downloadContent()).thenAnswer(invocation -> Mono.error(exception));
+    when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
+        .thenReturn(mockFileSystemAsyncClient);
+    when(mockFileSystemAsyncClient.getFileAsyncClient(TEST_FILE)).thenReturn(mockFileAsyncClient);
+    when(mockFileAsyncClient.read()).thenAnswer(invocation -> Flux.error(exception));
 
     CompletableFuture<BinaryData> future = azureAsyncStorageClient.readBlob(AZURE_URI);
     CompletionException executionException = assertThrows(CompletionException.class, future::join);
@@ -370,17 +365,17 @@ class AzureAsyncStorageClientTest {
     String dirName = "dir1/";
     String prefix = "prefix";
 
-    when(mockBlobServiceAsyncClient.getBlobContainerAsyncClient(TEST_CONTAINER))
-        .thenReturn(mockContainerAsyncClient);
-    when(mockContainerAsyncClient.listBlobsByHierarchy(eq("/"), any()))
+    when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
+        .thenReturn(mockFileSystemAsyncClient);
+    when(mockFileSystemAsyncClient.listPaths(any()))
         .thenReturn(mockPagedFlux);
     when(mockPagedFlux.byPage()).thenReturn(Flux.just(mockPagedResponse1));
 
     when(mockPagedResponse1.getElements())
-        .thenReturn(IterableStream.of(Arrays.asList(mockBlobItem1)));
+        .thenReturn(IterableStream.of(Arrays.asList(mockPathItem1)));
     when(mockPagedResponse1.getContinuationToken()).thenReturn(null);
-    when(mockBlobItem1.getName()).thenReturn(prefix + dirName);
-    when(mockBlobItem1.isPrefix()).thenReturn(true);
+    when(mockPathItem1.getName()).thenReturn(prefix + dirName);
+    when(mockPathItem1.isDirectory()).thenReturn(true);
 
     Pair<String, List<File>> result =
         azureAsyncStorageClient.fetchObjectsByPage(TEST_CONTAINER, prefix, null, null).get();
