@@ -13,6 +13,8 @@
     <logger name="software.amazon" level="info"/>
     <logger name="com.google.cloud" level="info"/>
     <logger name="io.netty" level="info"/>
+    <logger name="com.azure.identity" level="debug"/>
+    <logger name="com.azure.core" level="debug"/>
 
     <root level="info">
         <appender-ref ref="${LOGBACK_APPENDER:-STDOUT}"/>
