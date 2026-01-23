@@ -12,6 +12,7 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
+import java.util.Optional;
 import javax.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -38,44 +39,46 @@ public class AzureStorageClientProvider {
     builder.endpoint(endpoint);
 
     // Option 1: Connection String (includes account key and endpoint)
-    if (azureConfig.getConnectionString().isPresent()) {
+    Optional<String> connectionStringOpt = azureConfig.getConnectionString();
+    if (connectionStringOpt.isPresent()) {
       logger.debug("Using connection string for authentication");
-      builder.connectionString(azureConfig.getConnectionString().get());
+      builder.connectionString(connectionStringOpt.get());
       return builder.buildAsyncClient();
     }
 
     // Option 2: Account Key (shared key credential)
-    if (azureConfig.getAccountKey().isPresent()) {
+    Optional<String> accountKeyOpt = azureConfig.getAccountKey();
+    if (accountKeyOpt.isPresent()) {
       logger.debug("Using account key for authentication");
       StorageSharedKeyCredential credential =
-          new StorageSharedKeyCredential(
-              azureConfig.getAccountName(), azureConfig.getAccountKey().get());
+          new StorageSharedKeyCredential(azureConfig.getAccountName(), accountKeyOpt.get());
       builder.credential(credential);
       return builder.buildAsyncClient();
     }
 
     // Option 3: Service Principal (client secret credential)
-    if (azureConfig.getTenantId().isPresent()
-        && azureConfig.getClientId().isPresent()
-        && azureConfig.getClientSecret().isPresent()) {
+    Optional<String> tenantIdOpt = azureConfig.getTenantId();
+    Optional<String> clientIdOpt = azureConfig.getClientId();
+    Optional<String> clientSecretOpt = azureConfig.getClientSecret();
+    if (tenantIdOpt.isPresent() && clientIdOpt.isPresent() && clientSecretOpt.isPresent()) {
       logger.debug("Using service principal (client secret) for authentication");
       ClientSecretCredential credential =
           new ClientSecretCredentialBuilder()
-              .tenantId(azureConfig.getTenantId().get())
-              .clientId(azureConfig.getClientId().get())
-              .clientSecret(azureConfig.getClientSecret().get())
+              .tenantId(tenantIdOpt.get())
+              .clientId(clientIdOpt.get())
+              .clientSecret(clientSecretOpt.get())
               .build();
       builder.credential(credential);
       return builder.buildAsyncClient();
     }
 
     // Option 4: Managed Identity (tenantId + clientId, no secret)
-    if (azureConfig.getTenantId().isPresent() && azureConfig.getClientId().isPresent()) {
+    if (tenantIdOpt.isPresent() && clientIdOpt.isPresent()) {
       logger.debug("Using managed identity for authentication");
       DefaultAzureCredential credential =
           new DefaultAzureCredentialBuilder()
-              .tenantId(azureConfig.getTenantId().get())
-              .managedIdentityClientId(azureConfig.getClientId().get())
+              .tenantId(tenantIdOpt.get())
+              .managedIdentityClientId(clientIdOpt.get())
               .build();
       builder.credential(credential);
       return builder.buildAsyncClient();
