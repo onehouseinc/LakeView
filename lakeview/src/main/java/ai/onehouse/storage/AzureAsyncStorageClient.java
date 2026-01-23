@@ -73,33 +73,34 @@ public class AzureAsyncStorageClient extends AbstractAsyncStorageClient {
             String nextContinuationToken = null;
 
             // Get single page with continuation token
-            PagedResponse<BlobItem> page =
+            try (PagedResponse<BlobItem> page =
                 StringUtils.isNotBlank(continuationToken)
                     ? pagedFlux.byPage(continuationToken).blockFirst()
-                    : pagedFlux.byPage().blockFirst();
+                    : pagedFlux.byPage().blockFirst()) {
 
-            if (page != null) {
-              // Process items in the page
-              page.getElements()
-                  .forEach(
-                      blobItem -> {
-                        String blobName = blobItem.getName();
-                        boolean isDirectory = blobItem.isPrefix() != null && blobItem.isPrefix();
-                        String fileName = blobName.replaceFirst("^" + prefix, "");
+              if (page != null) {
+                // Process items in the page
+                page.getElements()
+                    .forEach(
+                        blobItem -> {
+                          String blobName = blobItem.getName();
+                          boolean isDirectory = blobItem.isPrefix() != null && blobItem.isPrefix();
+                          String fileName = blobName.replaceFirst("^" + prefix, "");
 
-                        files.add(
-                            File.builder()
-                                .filename(fileName)
-                                .lastModifiedAt(
-                                    isDirectory
-                                        ? Instant.EPOCH
-                                        : blobItem.getProperties().getLastModified().toInstant())
-                                .isDirectory(isDirectory)
-                                .build());
-                      });
+                          files.add(
+                              File.builder()
+                                  .filename(fileName)
+                                  .lastModifiedAt(
+                                      isDirectory
+                                          ? Instant.EPOCH
+                                          : blobItem.getProperties().getLastModified().toInstant())
+                                  .isDirectory(isDirectory)
+                                  .build());
+                        });
 
-              // Get continuation token for next page
-              nextContinuationToken = page.getContinuationToken();
+                // Get continuation token for next page
+                nextContinuationToken = page.getContinuationToken();
+              }
             }
 
             return Pair.of(nextContinuationToken, files);
@@ -179,8 +180,9 @@ public class AzureAsyncStorageClient extends AbstractAsyncStorageClient {
       }
 
       // Map to NoSuchKeyException
-      if (errorCode == BlobErrorCode.BLOB_NOT_FOUND
-          || errorCode == BlobErrorCode.CONTAINER_NOT_FOUND) {
+      if (errorCode != null
+          && (errorCode == BlobErrorCode.BLOB_NOT_FOUND
+              || errorCode == BlobErrorCode.CONTAINER_NOT_FOUND)) {
         return new NoSuchKeyException(
             String.format("NoSuchKey for operation: %s on path: %s", operation, path));
       }
