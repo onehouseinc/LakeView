@@ -72,19 +72,7 @@ public class AzureStorageClientProvider {
       return builder.buildAsyncClient();
     }
 
-    // Option 4: Managed Identity (tenantId + clientId, no secret)
-    if (tenantIdOpt.isPresent() && clientIdOpt.isPresent()) {
-      logger.debug("Using managed identity for authentication");
-      DefaultAzureCredential credential =
-          new DefaultAzureCredentialBuilder()
-              .tenantId(tenantIdOpt.get())
-              .managedIdentityClientId(clientIdOpt.get())
-              .build();
-      builder.credential(credential);
-      return builder.buildAsyncClient();
-    }
-
-    // Option 5: Default Azure Credential (fallback to environment-based auth)
+    // Option 4: Default Azure Credential (fallback to environment-based auth)
     logger.debug("Using default Azure credential chain for authentication");
     DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
     builder.credential(credential);
