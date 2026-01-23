@@ -12,4 +12,5 @@ import lombok.extern.jackson.Jacksonized;
 public class FileSystemConfiguration {
   private S3Config s3Config;
   private GCSConfig gcsConfig;
+  private AzureConfig azureConfig;
 }
