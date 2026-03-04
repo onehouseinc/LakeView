@@ -23,9 +23,11 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
+@Slf4j
 public class ActiveTimelineInstantBatcher {
   private final MetadataExtractorConfig extractorConfig;
 
@@ -158,8 +160,18 @@ public class ActiveTimelineInstantBatcher {
               || firstIncompleteCheckpointUpdated.compareTo(firstIncompleteCheckpoint) < 0) {
             firstIncompleteCheckpoint = firstIncompleteCheckpointUpdated;
           }
+          log.info(
+              "CONTINUE mode: skipping incomplete commit timestamp={} action={} firstIncompleteCheckpoint={}",
+              instant1.getTimestamp(),
+              instant1.getAction(),
+              firstIncompleteCheckpoint);
           groupSize = 1;
         } else {
+          log.warn(
+              "BLOCK mode: stopping at incomplete commit timestamp={} action={} state={}",
+              instant1.getTimestamp(),
+              instant1.getAction(),
+              instant1.getState());
           shouldStopIteration = true;
         }
       }
