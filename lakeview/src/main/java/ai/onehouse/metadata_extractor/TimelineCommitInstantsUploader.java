@@ -142,6 +142,13 @@ public class TimelineCommitInstantsUploader {
     // All commit files will be processed after firstIncompleteCommitFile, and the checkpoint will be
     // updated accordingly
     String startAfter = getStartAfterString(prefix, checkpoint, true);
+    log.info(
+        "starting paginated upload for tableId: {} table: {} timeline: {} lastUploadedFile: {} startAfter: {}",
+        tableId,
+        table,
+        commitTimelineType,
+        checkpoint.getLastUploadedFile(),
+        startAfter);
     return executePaginatedBatchUpload(
         tableId,
         table,
@@ -196,6 +203,12 @@ public class TimelineCommitInstantsUploader {
       Checkpoint checkpoint,
       CommitTimelineType commitTimelineType,
       String startAfter) {
+    log.info(
+        "fetching page for tableId: {} table: {} timeline: {} startAfter: {}",
+        tableId,
+        table,
+        commitTimelineType,
+        startAfter);
     return asyncStorageClient
         .fetchObjectsByPage(bucketName, prefix, null, startAfter)
         .thenComposeAsync(
@@ -205,6 +218,13 @@ public class TimelineCommitInstantsUploader {
               List<File> filesToUpload =
                   getFilesToUploadBasedOnPreviousCheckpoint(
                       continuationTokenAndFiles.getRight(), checkpoint, commitTimelineType, false);
+              log.info(
+                  "fetched {} files to upload for tableId: {} table: {} timeline: {} hasMorePages: {}",
+                  filesToUpload.size(),
+                  tableId,
+                  table,
+                  commitTimelineType,
+                  StringUtils.isNotBlank(nextContinuationToken));
 
               if (!filesToUpload.isEmpty()) {
                 return uploadInstantsInSequentialBatches(
@@ -340,10 +360,14 @@ public class TimelineCommitInstantsUploader {
 
                 File lastUploadedFile = getLastUploadedFileFromBatch(commitTimelineType, batch);
                 log.info(
-                    "uploading batch {} for table {} timeline: {}",
+                    "uploading batch {} for tableId: {} table: {} timeline: {} commits: {}",
                     updatedCheckpoint.getBatchId() + 1,
+                    tableId,
                     table,
-                    commitTimelineType);
+                    commitTimelineType,
+                    batch.stream()
+                        .map(file -> getFileNameWithPrefix(file, commitTimelineType))
+                        .collect(Collectors.joining(", ")));
                 return uploadBatch(
                     tableId,
                     batch,
