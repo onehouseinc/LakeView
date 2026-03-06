@@ -895,6 +895,64 @@ class TimelineCommitInstantsUploaderTest {
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     assertEquals(checkpoint1, response);
     verify(hudiMetadataExtractorMetrics, times(1)).incrementTablesProcessedCounter();
+    verify(hudiMetadataExtractorMetrics, times(1)).incrementIncompleteCommitInstantsSkippedCounter();
+  }
+
+  @Test
+  void testIncompleteCommitInstantsSkippedMetricEmittedWhenCommitsExcluded() {
+    TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
+        spy(timelineCommitInstantsUploader);
+    doReturn(4)
+        .when(timelineCommitInstantsUploaderSpy)
+        .getUploadBatchSize(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+
+    // Page: commit 111 complete (4 files), commit 222 incomplete (only requested — missing inflight + action)
+    mockListPage(
+        TABLE_PREFIX + "/.hoodie/",
+        null,
+        null,
+        Arrays.asList(
+            generateFileObj(HOODIE_PROPERTIES_FILE, false),
+            generateFileObj("111.action", false, currentTime),
+            generateFileObj("111.action.inflight", false),
+            generateFileObj("111.action.requested", false),
+            generateFileObj("222.action.requested", false)));
+
+    List<File> batch1 =
+        Arrays.asList(
+            generateFileObj(HOODIE_PROPERTIES_FILE, false),
+            generateFileObj("111.action", false, currentTime),
+            generateFileObj("111.action.inflight", false),
+            generateFileObj("111.action.requested", false));
+
+    Checkpoint checkpoint1 =
+        generateCheckpointObj(INITIAL_CHECKPOINT.getBatchId() + 1, currentTime, true, "111.action");
+
+    // filesToUpload.size()=5, totalInstantsInBatches=4 → metric fires
+    stubCreateBatches(
+        Arrays.asList(
+            generateFileObj(HOODIE_PROPERTIES_FILE, false),
+            generateFileObj("111.action", false, currentTime),
+            generateFileObj("111.action.inflight", false),
+            generateFileObj("111.action.requested", false),
+            generateFileObj("222.action.requested", false)),
+        Collections.singletonList(batch1),
+        INITIAL_CHECKPOINT,
+        INITIAL_CHECKPOINT.getFirstIncompleteCommitFile());
+
+    stubUploadInstantsCalls(
+        batch1.stream()
+            .map(f -> UploadedFile.builder().name(f.getFilename()).lastModifiedAt(f.getLastModifiedAt().toEpochMilli()).build())
+            .collect(Collectors.toList()),
+        checkpoint1,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+
+    timelineCommitInstantsUploaderSpy
+        .paginatedBatchUploadWithCheckpoint(
+            TABLE_ID.toString(), TABLE, INITIAL_CHECKPOINT, CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+        .join();
+
+    verify(hudiMetadataExtractorMetrics, times(1)).incrementIncompleteCommitInstantsSkippedCounter();
   }
 
   @Test
