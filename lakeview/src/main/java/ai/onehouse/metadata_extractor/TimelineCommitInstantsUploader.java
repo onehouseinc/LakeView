@@ -321,12 +321,24 @@ public class TimelineCommitInstantsUploader {
       return CompletableFuture.completedFuture(null);
     }
 
+    int totalInstantsInBatches = batches.stream().mapToInt(List::size).sum();
     log.info(
-        "Processing {} instants in table {} timeline {} sequentially in {} batches",
+        "Processing {} instants for tableId: {} table: {} timeline: {} lastUploadedFile: {} sequentially in {} batches totalling {} instants",
         filesToUpload.size(),
+        tableId,
         table,
         commitTimelineType,
-        numBatches);
+        checkpoint.getLastUploadedFile(),
+        numBatches,
+        totalInstantsInBatches);
+    if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE.equals(commitTimelineType)
+        && totalInstantsInBatches < filesToUpload.size()) {
+      log.warn(
+          "{} instants read from customer bucket but excluded from upload for table {} timeline {} due to incomplete commits",
+          filesToUpload.size() - totalInstantsInBatches,
+          table,
+          commitTimelineType);
+    }
 
     CompletableFuture<Checkpoint> sequentialBatchProcessingFuture =
         CompletableFuture.completedFuture(checkpoint);
@@ -340,10 +352,12 @@ public class TimelineCommitInstantsUploader {
 
                 File lastUploadedFile = getLastUploadedFileFromBatch(commitTimelineType, batch);
                 log.info(
-                    "uploading batch {} for table {} timeline: {}",
+                    "Uploading batch {} for tableId: {} table: {} timeline: {} commitCount: {}",
                     updatedCheckpoint.getBatchId() + 1,
+                    tableId,
                     table,
-                    commitTimelineType);
+                    commitTimelineType,
+                    batch.size());
                 return uploadBatch(
                     tableId,
                     batch,
