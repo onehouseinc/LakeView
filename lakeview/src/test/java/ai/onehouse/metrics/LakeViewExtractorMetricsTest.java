@@ -116,6 +116,12 @@ class LakeViewExtractorMetricsTest {
     verify(metrics).increment(FAILED_OVERRIDE_CONFIG_COUNTER, getDefaultTags());
   }
 
+  @Test
+  void testIncrementIncompleteCommitInstantsSkippedCounter() {
+    hudiMetadataExtractorMetrics.incrementIncompleteCommitInstantsSkippedCounter();
+    verify(metrics).increment(INCOMPLETE_COMMIT_INSTANTS_SKIPPED_COUNTER, getDefaultTags());
+  }
+
   private List<Tag> getDefaultTags() {
     List<Tag> tags = new ArrayList<>();
     tags.add(Tag.of(CONFIG_VERSION_TAG_KEY, ConfigVersion.V1.toString()));
