@@ -804,6 +804,99 @@ class TimelineCommitInstantsUploaderTest {
     verify(hudiMetadataExtractorMetrics, times(1)).incrementTablesProcessedCounter();
   }
 
+  /**
+   * Tests that in BLOCK mode, when a page contains a mix of complete and incomplete commits,
+   * only the complete commits form batches and get uploaded. The incomplete commit files
+   * (222.action.requested, 222.action.inflight — missing 222.action) are read from the customer
+   * bucket but excluded from the upload batch, causing filesToUpload.size() > totalInstantsInBatches.
+   */
+  @Test
+  void testUploadInstantsInActiveTimelineWithIncompleteCommitsExcludedFromBatches() {
+    TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
+        spy(timelineCommitInstantsUploader);
+
+    doReturn(4)
+        .when(timelineCommitInstantsUploaderSpy)
+        .getUploadBatchSize(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+
+    // Single page: commit 111 is complete (3 files), commit 222 is incomplete (missing .action)
+    mockListPage(
+        TABLE_PREFIX + "/.hoodie/",
+        null,
+        null,
+        Arrays.asList(
+            generateFileObj(HOODIE_PROPERTIES_FILE, false),
+            generateFileObj("111.action.requested", false),
+            generateFileObj("111.action.inflight", false),
+            generateFileObj("111.action", false, currentTime),
+            generateFileObj("222.action.requested", false),  // incomplete - no 222.action
+            generateFileObj("222.action.inflight", false)));  // incomplete - no 222.action
+
+    // filesToUpload = 6 files, but createBatches only includes complete commit 111 (4 files)
+    // Convention: [hoodie.properties, completed, inflight, requested] so getLastUploadedFileFromBatch
+    // returns batch.get(size-3) = batch.get(1) = the completed file (111.action)
+    List<File> batch1 =
+        Arrays.asList(
+            generateFileObj(HOODIE_PROPERTIES_FILE, false),
+            generateFileObj("111.action", false, currentTime),
+            generateFileObj("111.action.inflight", false),
+            generateFileObj("111.action.requested", false));
+
+    Checkpoint checkpoint1 =
+        generateCheckpointObj(
+            INITIAL_CHECKPOINT.getBatchId() + 1, currentTime, true, "111.action");
+
+    // BLOCK mode: createBatches stops at 222 (incomplete), returns only batch for 111
+    stubCreateBatches(
+        Arrays.asList(
+            generateFileObj(HOODIE_PROPERTIES_FILE, false),
+            generateFileObj("111.action.requested", false),
+            generateFileObj("111.action.inflight", false),
+            generateFileObj("111.action", false, currentTime),
+            generateFileObj("222.action.requested", false),
+            generateFileObj("222.action.inflight", false)),
+        Collections.singletonList(batch1),
+        INITIAL_CHECKPOINT,
+        INITIAL_CHECKPOINT.getFirstIncompleteCommitFile());
+
+    stubUploadInstantsCalls(
+        batch1.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
+        checkpoint1,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+
+    Checkpoint response =
+        timelineCommitInstantsUploaderSpy
+            .paginatedBatchUploadWithCheckpoint(
+                TABLE_ID.toString(),
+                TABLE,
+                INITIAL_CHECKPOINT,
+                CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+            .join();
+
+    // Only commit 111 (4 files) should be uploaded, not the 2 incomplete 222 files
+    verify(asyncStorageClient, times(1)).fetchObjectsByPage(anyString(), anyString(), any(), any());
+    verifyFilesUploaded(
+        batch1.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
+        checkpoint1,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    assertEquals(checkpoint1, response);
+    verify(hudiMetadataExtractorMetrics, times(1)).incrementTablesProcessedCounter();
+  }
+
   @Test
   void testUploadInstantsInArchivedTimelineWhenNoInstantsPresent() {
     // no files present in archived timeline
