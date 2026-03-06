@@ -40,6 +40,8 @@ public class LakeViewExtractorMetrics {
   static final String FAILED_OVERRIDE_CONFIG_COUNTER = METRICS_COMMON_PREFIX + "failed_override_config";
   static final String TABLE_METADATA_PROCESSING_FAILURE_COUNTER =
       METRICS_COMMON_PREFIX + "table_metadata_processing_failure";
+  static final String INCOMPLETE_COMMIT_INSTANTS_SKIPPED_COUNTER =
+      METRICS_COMMON_PREFIX + "incomplete_commit_instants_skipped";
 
   @Inject
   public LakeViewExtractorMetrics(
@@ -93,6 +95,10 @@ public class LakeViewExtractorMetrics {
 
   public void incrementFailedOverrideConfigCounter() {
     metrics.increment(FAILED_OVERRIDE_CONFIG_COUNTER, getDefaultTags());
+  }
+
+  public void incrementIncompleteCommitInstantsSkippedCounter() {
+    metrics.increment(INCOMPLETE_COMMIT_INSTANTS_SKIPPED_COUNTER, getDefaultTags());
   }
 
   public void incrementTableMetadataProcessingFailureCounter(

@@ -338,6 +338,7 @@ public class TimelineCommitInstantsUploader {
           filesToUpload.size() - totalInstantsInBatches,
           table,
           commitTimelineType);
+      hudiMetadataExtractorMetrics.incrementIncompleteCommitInstantsSkippedCounter();
     }
 
     CompletableFuture<Checkpoint> sequentialBatchProcessingFuture =
