@@ -867,7 +867,7 @@ class TimelineCommitInstantsUploaderTest {
                         .name(file.getFilename())
                         .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
                         .build())
-            .collect(Collectors.toList()),
+            .toList(),
         checkpoint1,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
 
@@ -890,7 +890,7 @@ class TimelineCommitInstantsUploaderTest {
                         .name(file.getFilename())
                         .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
                         .build())
-            .collect(Collectors.toList()),
+            .toList(),
         checkpoint1,
         CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
     assertEquals(checkpoint1, response);
