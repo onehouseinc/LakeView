@@ -19,12 +19,18 @@ class StorageUtilsTest {
         "path/to/file",
         storageUtils.getPathFromUrl(
             "https://account.dfs.core.windows.net/container/path/to/file"));
+    assertEquals(
+        "path/to/file",
+        storageUtils.getPathFromUrl(
+            "abfss://container@account.dfs.core.windows.net/path/to/file"));
     assertEquals("", storageUtils.getPathFromUrl("s3://bucket"));
     assertEquals("", storageUtils.getPathFromUrl("gs://bucket"));
     assertEquals(
         "", storageUtils.getPathFromUrl("https://account.blob.core.windows.net/container"));
     assertEquals(
         "", storageUtils.getPathFromUrl("https://account.dfs.core.windows.net/container"));
+    assertEquals(
+        "", storageUtils.getPathFromUrl("abfss://container@account.dfs.core.windows.net"));
     assertThrows(IllegalArgumentException.class, () -> storageUtils.getPathFromUrl("invalidUri"));
   }
 
@@ -36,10 +42,15 @@ class StorageUtilsTest {
         "https://account.blob.core.windows.net/container/dir1";
     String azureDirUriWithTrailingSlash =
         "https://account.blob.core.windows.net/container/dir1/";
+    String abfssDirUriWithoutTrailingSlash =
+        "abfss://container@account.dfs.core.windows.net/dir1";
+    String abfssDirUriWithTrailingSlash =
+        "abfss://container@account.dfs.core.windows.net/dir1/";
     String filePathWithoutPrefixSlash = "file.txt";
     String filePathWithPrefixSlash = "/file.txt";
     String expectedS3FileUri = s3DirUriWithTrailingSlash + filePathWithoutPrefixSlash;
     String expectedAzureFileUri = azureDirUriWithTrailingSlash + filePathWithoutPrefixSlash;
+    String expectedAbfssFileUri = abfssDirUriWithTrailingSlash + filePathWithoutPrefixSlash;
 
     // S3 tests
     assertEquals(
@@ -70,6 +81,21 @@ class StorageUtilsTest {
         expectedAzureFileUri,
         storageUtils.constructFileUri(azureDirUriWithTrailingSlash, filePathWithPrefixSlash));
 
+    // ABFSS tests
+    assertEquals(
+        expectedAbfssFileUri,
+        storageUtils.constructFileUri(
+            abfssDirUriWithoutTrailingSlash, filePathWithoutPrefixSlash));
+    assertEquals(
+        expectedAbfssFileUri,
+        storageUtils.constructFileUri(abfssDirUriWithTrailingSlash, filePathWithoutPrefixSlash));
+    assertEquals(
+        expectedAbfssFileUri,
+        storageUtils.constructFileUri(abfssDirUriWithoutTrailingSlash, filePathWithPrefixSlash));
+    assertEquals(
+        expectedAbfssFileUri,
+        storageUtils.constructFileUri(abfssDirUriWithTrailingSlash, filePathWithPrefixSlash));
+
     // Edge cases
     assertEquals(
         filePathWithPrefixSlash, storageUtils.constructFileUri("", filePathWithoutPrefixSlash));
@@ -93,6 +119,14 @@ class StorageUtilsTest {
         "container",
         storageUtils.getBucketNameFromUri(
             "https://account.dfs.core.windows.net/container/path/to/file"));
+    assertEquals(
+        "onehouse-customer-bucket-ed97feae",
+        storageUtils.getBucketNameFromUri(
+            "abfss://onehouse-customer-bucket-ed97feae@storage1houseed97feae.dfs.core.windows.net/internal-integration-test-0/kafka_event_test_98def769_1774259480797/kafka_event_topic_custom_transformer_98def769/v1"));
+    assertEquals(
+        "container",
+        storageUtils.getBucketNameFromUri(
+            "abfss://container@account.dfs.core.windows.net/path/to/file"));
     assertEquals("bucket", storageUtils.getBucketNameFromUri("s3://bucket"));
     assertEquals("bucket", storageUtils.getBucketNameFromUri("gs://bucket"));
     assertEquals(
@@ -101,6 +135,9 @@ class StorageUtilsTest {
     assertEquals(
         "container",
         storageUtils.getBucketNameFromUri("https://account.dfs.core.windows.net/container"));
+    assertEquals(
+        "container",
+        storageUtils.getBucketNameFromUri("abfss://container@account.dfs.core.windows.net"));
     assertThrows(
         IllegalArgumentException.class, () -> storageUtils.getBucketNameFromUri("invalidUri"));
   }
