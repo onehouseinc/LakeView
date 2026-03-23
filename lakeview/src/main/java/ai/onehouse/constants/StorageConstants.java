@@ -10,9 +10,10 @@ public class StorageConstants {
   * gcs path format: "gs://bucket/path/to/file"
   * azure blob format: "https://account.blob.core.windows.net/container/path/to/blob"
   * azure adls gen2 format: "https://account.dfs.core.windows.net/container/path/to/file"
+  * azure adls gen2 abfss format: "abfss://container@account.dfs.core.windows.net/path/to/file"
   */
   public static final Pattern OBJECT_STORAGE_URI_PATTERN =
-      Pattern.compile("^(?:(s3://|gs://)|https://[^.]+\\.(?:blob|dfs)\\.core\\.windows\\.net/)([^/]+)(/.*)?$");
+      Pattern.compile("^(?:(s3://|gs://|abfss://)|https://[^.]+\\.(?:blob|dfs)\\.core\\.windows\\.net/)([^/@]+)(?:@[^/]+)?(/.*)?$");
 
   // https://cloud.google.com/compute/docs/naming-resources#resource-name-format
   public static final String GCP_RESOURCE_NAME_FORMAT = "^[a-z]([-a-z0-9]*[a-z0-9])$";
