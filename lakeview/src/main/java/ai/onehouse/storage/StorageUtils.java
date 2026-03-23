@@ -17,6 +17,7 @@ public class StorageUtils {
    *   <li>gs://my-bucket/path/to/file.txt returns /path/to/file.txt</li>
    *   <li>https://account.blob.core.windows.net/container/path/to/file.txt returns /path/to/file.txt</li>
    *   <li>https://account.dfs.core.windows.net/container/path/to/file.txt returns /path/to/file.txt</li>
+   *   <li>abfss://container@account.dfs.core.windows.net/path/to/file.txt returns /path/to/file.txt</li>
    * </ul>
    * @param uri the storage URI to parse
    * @return the path portion of the URI, or empty string if no path
@@ -49,6 +50,7 @@ public class StorageUtils {
    *   <li>gs://my-bucket-gs/path/to/file.txt returns my-bucket-gs</li>
    *   <li>https://account.blob.core.windows.net/container/path/file.txt returns container</li>
    *   <li>https://account.dfs.core.windows.net/container/path/file.txt returns container</li>
+   *   <li>abfss://container@account.dfs.core.windows.net/path/file.txt returns container</li>
    * </ul>
    * @param uri the storage URI to parse
    * @return the bucket or container name
