@@ -2,12 +2,19 @@ package ai.onehouse.metadata_extractor;
 
 import static ai.onehouse.constants.MetadataExtractorConstants.ACTIVE_COMMIT_INSTANT_PATTERN;
 import static ai.onehouse.constants.MetadataExtractorConstants.ARCHIVED_COMMIT_INSTANT_PATTERN;
+import static ai.onehouse.constants.MetadataExtractorConstants.ARCHIVED_COMMIT_INSTANT_PATTERN_V2;
 import static ai.onehouse.constants.MetadataExtractorConstants.ARCHIVED_FOLDER_NAME;
+import static ai.onehouse.constants.MetadataExtractorConstants.HISTORY_FOLDER_NAME;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE_OBJ;
 import static ai.onehouse.constants.MetadataExtractorConstants.ROLLBACK_ACTION;
 import static ai.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
+import static ai.onehouse.constants.MetadataExtractorConstants.TIMELINE_FOLDER_NAME;
+import static ai.onehouse.constants.MetadataExtractorConstants.V1_ARCHIVED_NUMERIC_PATTERN;
+import static ai.onehouse.constants.MetadataExtractorConstants.V2_MANIFEST_NUMERIC_PATTERN;
+import static ai.onehouse.constants.MetadataExtractorConstants.V2_PARQUET_NUMERIC_PATTERN;
+import static ai.onehouse.constants.MetadataExtractorConstants.VERSION_MARKER_FILE;
 import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.areRelatedInstants;
 import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.areRelatedSavepointOrRollbackInstants;
 import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.getActiveTimeLineInstant;
@@ -43,7 +50,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
@@ -108,7 +114,8 @@ public class TimelineCommitInstantsUploader {
 
     String timelineUri =
         storageUtils.constructFileUri(
-            table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType));
+            table.getAbsoluteTableUri(),
+            getPathSuffixForTimeline(commitTimelineType, table.getTimelineLayoutVersion()));
 
     return executeFullBatchUpload(tableId, table, timelineUri, checkpoint, commitTimelineType);
   }
@@ -134,7 +141,9 @@ public class TimelineCommitInstantsUploader {
     String prefix =
         storageUtils.getPathFromUrl(
             storageUtils.constructFileUri(
-                table.getAbsoluteTableUri(), getPathSuffixForTimeline(commitTimelineType)));
+                table.getAbsoluteTableUri(),
+                getPathSuffixForTimeline(
+                    commitTimelineType, table.getTimelineLayoutVersion())));
 
     // startAfter is used only in the first call to get the objects, post that continuation token is
     // used
@@ -365,7 +374,9 @@ public class TimelineCommitInstantsUploader {
                     commitTimelineType,
                     storageUtils.constructFileUri(
                         table.getAbsoluteTableUri(),
-                        getPathSuffixForTimeline(commitTimelineType)))
+                        getPathSuffixForTimeline(
+                            commitTimelineType, table.getTimelineLayoutVersion())),
+                    table.getTimelineLayoutVersion())
                     .thenComposeAsync(
                         ignored2 ->
                             updateCheckpointAfterProcessingBatch(
@@ -377,7 +388,9 @@ public class TimelineCommitInstantsUploader {
                                         file ->
                                             UploadedFile.builder()
                                                 .name(
-                                                    getFileNameWithPrefix(file, commitTimelineType))
+                                                    getFileNameWithPrefix(
+                                                        file, commitTimelineType,
+                                                        table.getTimelineLayoutVersion()))
                                                 .lastModifiedAt(
                                                     file.getLastModifiedAt().toEpochMilli())
                                                 .build())
@@ -408,10 +421,11 @@ public class TimelineCommitInstantsUploader {
       String tableId,
       List<File> batch,
       CommitTimelineType commitTimelineType,
-      String directoryUri) {
+      String directoryUri,
+      int timelineLayoutVersion) {
     List<String> commitInstants =
         batch.stream()
-            .map(file -> getFileNameWithPrefix(file, commitTimelineType))
+            .map(file -> getFileNameWithPrefix(file, commitTimelineType, timelineLayoutVersion))
             .collect(Collectors.toList());
     return onehouseApiClient
         .generateCommitMetadataUploadUrl(
@@ -435,7 +449,8 @@ public class TimelineCommitInstantsUploader {
                 uploadFutures.add(
                     presignedUrlFileUploader.uploadFileToPresignedUrl(
                             generateCommitMetadataUploadUrlResponse.getUploadUrls().get(i),
-                            constructStorageUri(directoryUri, batch.get(i).getFilename()),
+                            constructStorageUri(
+                                directoryUri, batch.get(i).getFilename(), timelineLayoutVersion),
                             extractorConfig.getFileUploadStreamBatchSize())
                         .thenApply(result -> {
                           hudiMetadataExtractorMetrics.incrementMetadataUploadSuccessCounter();
@@ -590,49 +605,102 @@ public class TimelineCommitInstantsUploader {
 
   private boolean isInstantFile(String fileName) {
     return ACTIVE_COMMIT_INSTANT_PATTERN.matcher(fileName).matches()
-        || ARCHIVED_COMMIT_INSTANT_PATTERN.matcher(fileName).matches();
+        || ARCHIVED_COMMIT_INSTANT_PATTERN.matcher(fileName).matches()
+        || ARCHIVED_COMMIT_INSTANT_PATTERN_V2.matcher(fileName).matches();
   }
 
-  private String constructStorageUri(String directoryUri, String fileName) {
+  private String constructStorageUri(
+      String directoryUri, String fileName, int timelineLayoutVersion) {
     if (HOODIE_PROPERTIES_FILE.equals(fileName)) {
-      String archivedSuffix = ARCHIVED_FOLDER_NAME + '/';
-      String hoodieDirectoryUri =
-          directoryUri.endsWith(archivedSuffix)
-              ? directoryUri.substring(0, directoryUri.length() - "archived/".length())
-              : directoryUri;
+      String hoodieDirectoryUri = directoryUri;
+      if (timelineLayoutVersion == 2) {
+        // V2: strip "timeline/history/" or "timeline/" to get back to .hoodie/
+        String historySuffix = TIMELINE_FOLDER_NAME + '/' + HISTORY_FOLDER_NAME + '/';
+        String timelineSuffix = TIMELINE_FOLDER_NAME + '/';
+        if (directoryUri.endsWith(historySuffix)) {
+          hoodieDirectoryUri =
+              directoryUri.substring(0, directoryUri.length() - historySuffix.length());
+        } else if (directoryUri.endsWith(timelineSuffix)) {
+          hoodieDirectoryUri =
+              directoryUri.substring(0, directoryUri.length() - timelineSuffix.length());
+        }
+      } else {
+        // V1: strip "archived/" to get back to .hoodie/
+        String archivedSuffix = ARCHIVED_FOLDER_NAME + '/';
+        if (directoryUri.endsWith(archivedSuffix)) {
+          hoodieDirectoryUri =
+              directoryUri.substring(0, directoryUri.length() - archivedSuffix.length());
+        }
+      }
       return storageUtils.constructFileUri(hoodieDirectoryUri, HOODIE_PROPERTIES_FILE);
     }
     return storageUtils.constructFileUri(directoryUri, fileName);
   }
 
-  private String getPathSuffixForTimeline(CommitTimelineType commitTimelineType) {
+  private String getPathSuffixForTimeline(
+      CommitTimelineType commitTimelineType, int timelineLayoutVersion) {
     String pathSuffix = HOODIE_FOLDER_NAME + '/';
+    if (timelineLayoutVersion == 2) {
+      pathSuffix += TIMELINE_FOLDER_NAME + '/';
+      return CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
+          ? pathSuffix + HISTORY_FOLDER_NAME + '/'
+          : pathSuffix;
+    }
     return CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
         ? pathSuffix + ARCHIVED_FOLDER_NAME + '/'
         : pathSuffix;
   }
 
-  private String getFileNameWithPrefix(File file, CommitTimelineType commitTimelineType) {
-    String archivedPrefix = "archived/";
-    return CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
-        && !HOODIE_PROPERTIES_FILE.equals(file.getFilename())
-        ? archivedPrefix + file.getFilename()
-        : file.getFilename();
+  private String getFileNameWithPrefix(
+      File file, CommitTimelineType commitTimelineType, int timelineLayoutVersion) {
+    if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
+        && !HOODIE_PROPERTIES_FILE.equals(file.getFilename())) {
+      if (timelineLayoutVersion == 2) {
+        return TIMELINE_FOLDER_NAME + "/" + HISTORY_FOLDER_NAME + "/" + file.getFilename();
+      }
+      return ARCHIVED_FOLDER_NAME + "/" + file.getFilename();
+    }
+    if (timelineLayoutVersion == 2
+        && !HOODIE_PROPERTIES_FILE.equals(file.getFilename())) {
+      return TIMELINE_FOLDER_NAME + "/" + file.getFilename();
+    }
+    return file.getFilename();
   }
 
   private BigDecimal getCommitIdFromActiveTimelineInstant(String activeTimeLineInstant) {
-    return new BigDecimal(activeTimeLineInstant.split("\\.")[0]);
+    String timestampPart = activeTimeLineInstant.split("\\.")[0];
+    if (timestampPart.contains("_")) {
+      timestampPart = timestampPart.split("_")[0];
+    }
+    return new BigDecimal(timestampPart);
   }
 
-  private int getNumericPartFromArchivedCommit(String archivedCommitFileName) {
-    Pattern pattern = Pattern.compile("\\.archive\\.(\\d+)_");
-    Matcher matcher = pattern.matcher(archivedCommitFileName);
-
-    if (matcher.find()) {
-      return Integer.parseInt(matcher.group(1));
-    } else {
-      throw new IllegalArgumentException("invalid archived commit file type");
+  private long getNumericPartFromArchivedCommit(String archivedCommitFileName) {
+    // V1: .commits_.archive.5_20260101-20260115-50
+    Matcher v1Matcher = V1_ARCHIVED_NUMERIC_PATTERN.matcher(archivedCommitFileName);
+    if (v1Matcher.find()) {
+      return Long.parseLong(v1Matcher.group(1));
     }
+
+    // V2 parquet: 20260130205837315_20260201000250371_3.parquet
+    Matcher v2ParquetMatcher = V2_PARQUET_NUMERIC_PATTERN.matcher(archivedCommitFileName);
+    if (v2ParquetMatcher.find()) {
+      return Long.parseLong(v2ParquetMatcher.group(1));
+    }
+
+    // V2 manifest: manifest_4243
+    Matcher v2ManifestMatcher = V2_MANIFEST_NUMERIC_PATTERN.matcher(archivedCommitFileName);
+    if (v2ManifestMatcher.find()) {
+      return Long.parseLong(v2ManifestMatcher.group(1));
+    }
+
+    // V2 version marker: _version_
+    if (VERSION_MARKER_FILE.equals(archivedCommitFileName)) {
+      return Long.MAX_VALUE;
+    }
+
+    throw new IllegalArgumentException(
+        "invalid archived commit file type: " + archivedCommitFileName);
   }
 
   public String getStartAfterString(String prefix, Checkpoint checkpoint, boolean isFirstFetch) {

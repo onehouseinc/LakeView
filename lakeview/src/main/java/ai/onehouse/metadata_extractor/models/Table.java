@@ -15,4 +15,6 @@ public class Table {
   private final String databaseName;
   private final String lakeName;
   private String tableId;
+  @Builder.Default private final int tableVersion = 6;
+  @Builder.Default private final int timelineLayoutVersion = 1;
 }
