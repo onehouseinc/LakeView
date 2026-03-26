@@ -49,6 +49,31 @@ class HoodiePropertiesReaderTest {
     ParsedHudiProperties result = futureResult.get();
     assertEquals("test_table", result.getTableName());
     assertEquals(tableType, result.getTableType());
+    assertEquals(6, result.getTableVersion());
+    assertEquals(1, result.getTimelineLayoutVersion());
+  }
+
+  @Test
+  void testReadHoodiePropertiesV9() throws ExecutionException, InterruptedException {
+    String path = "some/path/to/properties/file";
+    String propertiesContent =
+        "hoodie.table.name=test_v9_table\n"
+            + "hoodie.table.type=MERGE_ON_READ\n"
+            + "hoodie.table.version=9\n"
+            + "hoodie.timeline.layout.version=2";
+    ByteArrayInputStream inputStream = new ByteArrayInputStream(propertiesContent.getBytes());
+
+    when(asyncStorageClient.streamFileAsync(path))
+        .thenReturn(CompletableFuture.completedFuture(getFileStreamData(inputStream)));
+
+    CompletableFuture<ParsedHudiProperties> futureResult =
+        hoodiePropertiesReader.readHoodieProperties(path);
+
+    ParsedHudiProperties result = futureResult.get();
+    assertEquals("test_v9_table", result.getTableName());
+    assertEquals(TableType.MERGE_ON_READ, result.getTableType());
+    assertEquals(9, result.getTableVersion());
+    assertEquals(2, result.getTimelineLayoutVersion());
   }
 
   @Test

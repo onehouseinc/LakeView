@@ -2,6 +2,8 @@ package ai.onehouse.metadata_extractor;
 
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_NAME_KEY;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_TYPE_KEY;
+import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_VERSION_KEY;
+import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TIMELINE_LAYOUT_VERSION_KEY;
 import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 
 import com.google.inject.Inject;
@@ -42,9 +44,15 @@ public class HoodiePropertiesReader {
               } catch (IOException e) {
                 throw new RuntimeException("Failed to load properties file", e);
               }
+              int tableVersion = Integer.parseInt(
+                  properties.getProperty(HOODIE_TABLE_VERSION_KEY, "6"));
+              int timelineLayoutVersion = Integer.parseInt(
+                  properties.getProperty(HOODIE_TIMELINE_LAYOUT_VERSION_KEY, "1"));
               return ParsedHudiProperties.builder()
                   .tableName(properties.getProperty(HOODIE_TABLE_NAME_KEY))
                   .tableType(TableType.valueOf(properties.getProperty(HOODIE_TABLE_TYPE_KEY)))
+                  .tableVersion(tableVersion)
+                  .timelineLayoutVersion(timelineLayoutVersion)
                   .build();
             })
         .exceptionally(

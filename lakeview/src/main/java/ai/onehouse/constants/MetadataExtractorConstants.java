@@ -17,6 +17,11 @@ public class MetadataExtractorConstants {
   public static final String HOODIE_PROPERTIES_FILE = "hoodie.properties";
   public static final String HOODIE_TABLE_NAME_KEY = "hoodie.table.name";
   public static final String HOODIE_TABLE_TYPE_KEY = "hoodie.table.type";
+  public static final String HOODIE_TABLE_VERSION_KEY = "hoodie.table.version";
+  public static final String HOODIE_TIMELINE_LAYOUT_VERSION_KEY =
+      "hoodie.timeline.layout.version";
+  public static final String TIMELINE_FOLDER_NAME = "timeline";
+  public static final String HISTORY_FOLDER_NAME = "history";
 
   // The default number of instants in one archived commit metadata file is 10
   // so we want to ingest 10x active instants than archived instants in one batch
@@ -39,10 +44,19 @@ public class MetadataExtractorConstants {
   // Default batch size will be 5 MB
   public static final int DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE =
       Integer.parseInt(System.getenv().getOrDefault("FILE_UPLOAD_STREAM_BATCH_SIZE", "5242880"));
+  public static final String VERSION_MARKER_FILE = "_version_";
   public static final Pattern ARCHIVED_COMMIT_INSTANT_PATTERN =
       Pattern.compile("\\.commits_\\.archive\\.\\d+_\\d+-\\d+-\\d+");
+  public static final Pattern ARCHIVED_COMMIT_INSTANT_PATTERN_V2 =
+      Pattern.compile("\\d+_\\d+_\\d+\\.parquet|manifest_\\d+|" + VERSION_MARKER_FILE);
   public static final Pattern ACTIVE_COMMIT_INSTANT_PATTERN =
-      Pattern.compile("\\d+(\\.[a-z]{1,20}){1,2}");
+      Pattern.compile("\\d+(_\\d+)?(\\.[a-z]{1,20}){1,2}");
+  public static final Pattern V1_ARCHIVED_NUMERIC_PATTERN =
+      Pattern.compile("\\.archive\\.(\\d+)_");
+  public static final Pattern V2_PARQUET_NUMERIC_PATTERN =
+      Pattern.compile("^(\\d+)_\\d+_\\d+\\.parquet$");
+  public static final Pattern V2_MANIFEST_NUMERIC_PATTERN =
+      Pattern.compile("^manifest_(\\d+)$");
   public static final Checkpoint INITIAL_CHECKPOINT =
       Checkpoint.builder()
           .batchId(0)
@@ -73,5 +87,7 @@ public class MetadataExtractorConstants {
           "restore",
           "clean",
           "compaction",
-          "replacecommit");
+          "replacecommit",
+          "clustering",
+          "logcompaction");
 }
