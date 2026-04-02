@@ -78,11 +78,21 @@ class TimelineCommitInstantsUploaderTest {
   private final ObjectMapper mapper = new ObjectMapper();
   private static final String S3_TABLE_URI = "s3://bucket/table/";
   private static final String ARCHIVED_FOLDER_PREFIX = "archived/";
+  private static final String TIMELINE_HISTORY_PREFIX = "timeline/history/";
+  private static final String TIMELINE_PREFIX = "timeline/";
   private static final Table TABLE =
       Table.builder()
           .absoluteTableUri(S3_TABLE_URI)
           .databaseName("database")
           .lakeName("lake")
+          .build();
+  private static final Table TABLE_V2 =
+      Table.builder()
+          .absoluteTableUri(S3_TABLE_URI)
+          .databaseName("database")
+          .lakeName("lake")
+          .tableVersion(9)
+          .timelineLayoutVersion(2)
           .build();
   private static final String TABLE_PREFIX = "table";
   private static final UUID TABLE_ID = UUID.nameUUIDFromBytes(S3_TABLE_URI.getBytes());
@@ -1474,6 +1484,277 @@ class TimelineCommitInstantsUploaderTest {
         .incrementTableMetadataProcessingFailureCounter(
             eq(MetricsConstants.MetadataUploadFailureReasons.UNKNOWN),
             eq("Exception when uploading instants for table " + TABLE + " timeline COMMIT_TIMELINE_TYPE_ACTIVE: java.lang.RuntimeException"));
+  }
+
+  @Test
+  void testUploadInstantsInArchivedTimelineV2() {
+    TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
+        spy(timelineCommitInstantsUploader);
+
+    doReturn(1)
+        .when(timelineCommitInstantsUploaderSpy)
+        .getUploadBatchSize(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+
+    // V2 archived timeline path: .hoodie/timeline/history/
+    mockListAllFilesInDir(
+        TABLE_V2.getAbsoluteTableUri() + ".hoodie/timeline/history/",
+        Arrays.asList(
+            generateFileObj("should_be_ignored", false),
+            generateFileObj("20260130205837315_20260201000250371_1.parquet", false),
+            generateFileObj("20260130205837315_20260201000250371_2.parquet", false),
+            generateFileObj("manifest_1", false),
+            generateFileObj("_version_", false, currentTime)));
+
+    // Sort order by getNumericPartFromArchivedCommit:
+    // manifest_1 -> 1, parquet_1 -> 20260130205837315, parquet_2 -> 20260130205837315
+    // (same timestamp, differentiated by full filename comparison), _version_ -> Long.MAX_VALUE
+    // With batchId=0, hoodie.properties is prepended
+    Checkpoint checkpoint0 = generateCheckpointObj(1, Instant.EPOCH, false, HOODIE_PROPERTIES_FILE);
+    Checkpoint checkpoint1 =
+        generateCheckpointObj(2, Instant.EPOCH, false, "manifest_1");
+    Checkpoint checkpoint2 =
+        generateCheckpointObj(
+            3, Instant.EPOCH, false, "20260130205837315_20260201000250371_1.parquet");
+    Checkpoint checkpoint3 =
+        generateCheckpointObj(
+            4, Instant.EPOCH, false, "20260130205837315_20260201000250371_2.parquet");
+    Checkpoint checkpoint4 =
+        generateCheckpointObj(5, currentTime, false, "_version_");
+
+    stubUploadInstantsCallsV2(
+        Collections.singletonList(UploadedFile.builder().name(HOODIE_PROPERTIES_FILE).build()),
+        checkpoint0,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+    stubUploadInstantsCallsV2(
+        Collections.singletonList(UploadedFile.builder().name("manifest_1").build()),
+        checkpoint1,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+    stubUploadInstantsCallsV2(
+        Collections.singletonList(
+            UploadedFile.builder()
+                .name("20260130205837315_20260201000250371_1.parquet")
+                .build()),
+        checkpoint2,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+    stubUploadInstantsCallsV2(
+        Collections.singletonList(
+            UploadedFile.builder()
+                .name("20260130205837315_20260201000250371_2.parquet")
+                .build()),
+        checkpoint3,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+    stubUploadInstantsCallsV2(
+        Collections.singletonList(
+            UploadedFile.builder()
+                .name("_version_")
+                .lastModifiedAt(currentTime.toEpochMilli())
+                .build()),
+        checkpoint4,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED);
+
+    Checkpoint response =
+        timelineCommitInstantsUploaderSpy
+            .batchUploadWithCheckpoint(
+                TABLE_ID.toString(),
+                TABLE_V2,
+                INITIAL_CHECKPOINT,
+                CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+            .join();
+
+    assertEquals(checkpoint4, response);
+  }
+
+  @Tag("Blocking")
+  @Test
+  void testUploadInstantsInActiveTimelineV2() {
+    TimelineCommitInstantsUploader timelineCommitInstantsUploaderSpy =
+        spy(timelineCommitInstantsUploader);
+
+    doReturn(4)
+        .when(timelineCommitInstantsUploaderSpy)
+        .getUploadBatchSize(CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+
+    // archived already processed
+    Checkpoint previousCheckpoint = generateCheckpointObj(3, Instant.EPOCH, false, "");
+
+    // V2 active timeline path: .hoodie/timeline/
+    // Page 1
+    mockListPage(
+        TABLE_PREFIX + "/.hoodie/timeline/",
+        CONTINUATION_TOKEN_PREFIX + "1",
+        null,
+        Arrays.asList(
+            generateFileObj("should_be_ignored", false),
+            generateFileObj("20260130205837315_20260201000250371.commit", false),
+            generateFileObj("20260130205837315_20260201000250371.inflight", false),
+            generateFileObj("20260130205837315_20260201000250371.commit.requested", false),
+            generateFileObj(
+                "20260201000250371_20260202000350471.commit", false, currentTime)));
+    // Page 2 (last page)
+    mockListPage(
+        TABLE_PREFIX + "/.hoodie/timeline/",
+        null,
+        TABLE_PREFIX
+            + "/.hoodie/timeline/"
+            + "20260130205837315_20260201000250371.commit",
+        Arrays.asList(
+            generateFileObj(
+                "20260201000250371_20260202000350471.commit", false, currentTime),
+            generateFileObj("20260201000250371_20260202000350471.inflight", false),
+            generateFileObj("20260201000250371_20260202000350471.commit.requested", false),
+            generateFileObj(HOODIE_PROPERTIES_FILE, false)));
+
+    List<File> batch1 =
+        Arrays.asList(
+            generateFileObj(
+                "20260130205837315_20260201000250371.commit", false),
+            generateFileObj(
+                "20260130205837315_20260201000250371.inflight", false),
+            generateFileObj(
+                "20260130205837315_20260201000250371.commit.requested", false));
+
+    List<File> batch2 =
+        Arrays.asList(
+            generateFileObj(
+                "20260201000250371_20260202000350471.commit", false, currentTime),
+            generateFileObj(
+                "20260201000250371_20260202000350471.inflight", false),
+            generateFileObj(
+                "20260201000250371_20260202000350471.commit.requested", false));
+
+    Checkpoint checkpoint1 =
+        generateCheckpointObj(
+            previousCheckpoint.getBatchId() + 1,
+            Instant.EPOCH,
+            true,
+            "20260130205837315_20260201000250371.commit");
+    Checkpoint checkpoint2 =
+        generateCheckpointObj(
+            previousCheckpoint.getBatchId() + 2,
+            currentTime,
+            true,
+            "20260201000250371_20260202000350471.commit");
+
+    stubCreateBatches(
+        Stream.of(
+                generateFileObj(
+                    "20260130205837315_20260201000250371.commit", false),
+                generateFileObj(
+                    "20260130205837315_20260201000250371.inflight", false),
+                generateFileObj(
+                    "20260130205837315_20260201000250371.commit.requested", false),
+                generateFileObj(
+                    "20260201000250371_20260202000350471.commit",
+                    false,
+                    currentTime))
+            .collect(Collectors.toList()),
+        Collections.singletonList(batch1),
+        previousCheckpoint,
+        previousCheckpoint.getFirstIncompleteCommitFile());
+
+    stubCreateBatches(
+        Arrays.asList(
+            generateFileObj(
+                "20260201000250371_20260202000350471.commit", false, currentTime),
+            generateFileObj(
+                "20260201000250371_20260202000350471.inflight", false),
+            generateFileObj(
+                "20260201000250371_20260202000350471.commit.requested", false)),
+        Collections.singletonList(batch2),
+        checkpoint1,
+        checkpoint1.getFirstIncompleteCommitFile());
+
+    stubUploadInstantsCallsV2(
+        batch1.stream()
+            .map(file -> UploadedFile.builder().name(file.getFilename()).build())
+            .collect(Collectors.toList()),
+        checkpoint1,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+    stubUploadInstantsCallsV2(
+        batch2.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(file.getFilename())
+                        .lastModifiedAt(file.getLastModifiedAt().toEpochMilli())
+                        .build())
+            .collect(Collectors.toList()),
+        checkpoint2,
+        CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE);
+
+    Checkpoint response =
+        timelineCommitInstantsUploaderSpy
+            .paginatedBatchUploadWithCheckpoint(
+                TABLE_ID.toString(),
+                TABLE_V2,
+                previousCheckpoint,
+                CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
+            .join();
+
+    assertEquals(checkpoint2, response);
+  }
+
+  @SneakyThrows
+  private void stubUploadInstantsCallsV2(
+      List<UploadedFile> filesUploaded,
+      Checkpoint updatedCheckpoint,
+      CommitTimelineType commitTimelineType) {
+    filesUploaded =
+        filesUploaded.stream()
+            .map(
+                file ->
+                    UploadedFile.builder()
+                        .name(
+                            addPrefixToFileNameV2(file.getName(), commitTimelineType))
+                        .lastModifiedAt(file.getLastModifiedAt())
+                        .build())
+            .collect(Collectors.toList());
+    List<String> filesUploadedWithUpdatedName =
+        filesUploaded.stream().map(UploadedFile::getName).collect(Collectors.toList());
+    List<String> presignedUrls =
+        filesUploadedWithUpdatedName.stream()
+            .map(fileName -> PRESIGNED_URL_PREFIX + fileName)
+            .collect(Collectors.toList());
+    when(onehouseApiClient.generateCommitMetadataUploadUrl(
+            GenerateCommitMetadataUploadUrlRequest.builder()
+                .tableId(TABLE_ID.toString())
+                .commitInstants(filesUploadedWithUpdatedName)
+                .commitTimelineType(commitTimelineType)
+                .build()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                GenerateCommitMetadataUploadUrlResponse.builder()
+                    .uploadUrls(presignedUrls)
+                    .build()));
+    for (String presignedUrl : presignedUrls) {
+      String fileName = presignedUrl.substring(PRESIGNED_URL_PREFIX.length());
+      String fileUri = S3_TABLE_URI + ".hoodie/" + fileName;
+      when(presignedUrlFileUploader.uploadFileToPresignedUrl(
+              presignedUrl, fileUri, metadataExtractorConfig.getFileUploadStreamBatchSize()))
+          .thenReturn(CompletableFuture.completedFuture(null));
+    }
+    when(onehouseApiClient.upsertTableMetricsCheckpoint(
+            UpsertTableMetricsCheckpointRequest.builder()
+                .commitTimelineType(commitTimelineType)
+                .tableId(TABLE_ID.toString())
+                .checkpoint(mapper.writeValueAsString(updatedCheckpoint))
+                .filesUploaded(filesUploadedWithUpdatedName)
+                .uploadedFiles(filesUploaded)
+                .build()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                UpsertTableMetricsCheckpointResponse.builder().build()));
+  }
+
+  private String addPrefixToFileNameV2(
+      String fileName, CommitTimelineType commitTimelineType) {
+    if (HOODIE_PROPERTIES_FILE.equals(fileName)) {
+      return fileName;
+    }
+    if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)) {
+      return TIMELINE_HISTORY_PREFIX + fileName;
+    }
+    return TIMELINE_PREFIX + fileName;
   }
 
   private void stubCreateBatches(

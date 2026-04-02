@@ -199,7 +199,10 @@ public class ActiveTimelineInstantBatcher {
   private List<File> sortAndFilterInstants(List<File> instants, Instant lastModifiedFilter) {
     return instants.stream()
         .filter(this::filterFile)
-        .collect(Collectors.groupingBy(file -> file.getFilename().split("\\.", 3)[0]))
+        .collect(Collectors.groupingBy(file -> {
+          String rawKey = file.getFilename().split("\\.", 3)[0];
+          return rawKey.contains("_") ? rawKey.split("_")[0] : rawKey;
+        }))
         .values()
         .stream()
         .filter(
@@ -264,6 +267,13 @@ public class ActiveTimelineInstantBatcher {
   static ActiveTimelineInstant getActiveTimeLineInstant(String instant) {
     String[] parts = instant.split("\\.", 3);
 
+    // Strip completion timestamp from V9 completed instants
+    // e.g., "20260204053206256_20260204053210895" -> "20260204053206256"
+    String timestamp = parts[0];
+    if (timestamp.contains("_")) {
+      timestamp = timestamp.split("_")[0];
+    }
+
     String action;
     String state;
     // For commit action, metadata file in inflight state is in the format of XYZ.inflight
@@ -274,7 +284,7 @@ public class ActiveTimelineInstantBatcher {
       action = parts[1];
       state = parts.length == 3 ? parts[2] : "completed";
     }
-    return ActiveTimelineInstant.builder().timestamp(parts[0]).action(action).state(state).build();
+    return ActiveTimelineInstant.builder().timestamp(timestamp).action(action).state(state).build();
   }
 
   @Builder

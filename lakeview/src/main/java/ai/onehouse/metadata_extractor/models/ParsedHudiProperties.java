@@ -14,4 +14,6 @@ public class ParsedHudiProperties {
   @NonNull String tableName;
   @NonNull TableType tableType;
   @Nullable MetricsConstants.MetadataUploadFailureReasons metadataUploadFailureReasons;
+  @Builder.Default int tableVersion = 6;
+  @Builder.Default int timelineLayoutVersion = 1;
 }
