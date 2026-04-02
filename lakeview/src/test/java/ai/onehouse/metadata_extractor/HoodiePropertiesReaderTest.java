@@ -57,10 +57,11 @@ class HoodiePropertiesReaderTest {
   void testReadHoodiePropertiesV9() throws ExecutionException, InterruptedException {
     String path = "some/path/to/properties/file";
     String propertiesContent =
-        "hoodie.table.name=test_v9_table\n"
-            + "hoodie.table.type=MERGE_ON_READ\n"
-            + "hoodie.table.version=9\n"
-            + "hoodie.timeline.layout.version=2";
+        """
+        hoodie.table.name=test_v9_table
+        hoodie.table.type=MERGE_ON_READ
+        hoodie.table.version=9
+        hoodie.timeline.layout.version=2""";
     ByteArrayInputStream inputStream = new ByteArrayInputStream(propertiesContent.getBytes());
 
     when(asyncStorageClient.streamFileAsync(path))
