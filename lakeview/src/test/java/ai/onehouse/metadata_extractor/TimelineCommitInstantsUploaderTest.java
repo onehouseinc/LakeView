@@ -1506,8 +1506,8 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj("_version_", false, currentTime)));
 
     // Sort order by getNumericPartFromArchivedCommit:
-    // manifest_1 -> 1, parquet_1 -> 20260130205837315, parquet_2 -> 20260130205837315,
-    // _version_ -> Long.MAX_VALUE
+    // manifest_1 -> 1, parquet_1 -> 20260130205837315, parquet_2 -> 20260130205837315
+    // (same timestamp, differentiated by full filename comparison), _version_ -> Long.MAX_VALUE
     // With batchId=0, hoodie.properties is prepended
     Checkpoint checkpoint0 = generateCheckpointObj(1, Instant.EPOCH, false, HOODIE_PROPERTIES_FILE);
     Checkpoint checkpoint1 =
@@ -1728,15 +1728,7 @@ class TimelineCommitInstantsUploaderTest {
                     .build()));
     for (String presignedUrl : presignedUrls) {
       String fileName = presignedUrl.substring(PRESIGNED_URL_PREFIX.length());
-      // V2: constructStorageUri for hoodie.properties strips timeline/ path
-      String fileUri;
-      if (HOODIE_PROPERTIES_FILE.equals(fileName)) {
-        fileUri = S3_TABLE_URI + ".hoodie/" + fileName;
-      } else {
-        // For V2, the directory is already timeline/ or timeline/history/
-        // constructStorageUri uses directoryUri + filename directly for non-properties
-        fileUri = S3_TABLE_URI + ".hoodie/" + fileName;
-      }
+      String fileUri = S3_TABLE_URI + ".hoodie/" + fileName;
       when(presignedUrlFileUploader.uploadFileToPresignedUrl(
               presignedUrl, fileUri, metadataExtractorConfig.getFileUploadStreamBatchSize()))
           .thenReturn(CompletableFuture.completedFuture(null));

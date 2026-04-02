@@ -13,7 +13,8 @@ import static ai.onehouse.constants.MetadataExtractorConstants.SAVEPOINT_ACTION;
 import static ai.onehouse.constants.MetadataExtractorConstants.TIMELINE_FOLDER_NAME;
 import static ai.onehouse.constants.MetadataExtractorConstants.V1_ARCHIVED_NUMERIC_PATTERN;
 import static ai.onehouse.constants.MetadataExtractorConstants.V2_MANIFEST_NUMERIC_PATTERN;
-import static ai.onehouse.constants.MetadataExtractorConstants.V2_PARQUET_NUMERIC_PATTERN;
+import static ai.onehouse.constants.MetadataExtractorConstants.TIMELINE_LAYOUT_VERSION_V2;
+import static ai.onehouse.constants.MetadataExtractorConstants.V2_ARCHIVED_PARQUET_TIMESTAMP_PATTERN;
 import static ai.onehouse.constants.MetadataExtractorConstants.VERSION_MARKER_FILE;
 import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.areRelatedInstants;
 import static ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher.areRelatedSavepointOrRollbackInstants;
@@ -596,8 +597,15 @@ public class TimelineCommitInstantsUploader {
             .compareTo(getCommitIdFromActiveTimelineInstant(checkpoint.getLastUploadedFile()))
             <= 0;
       } else {
-        return getNumericPartFromArchivedCommit(file.getFilename())
-            <= getNumericPartFromArchivedCommit(checkpoint.getLastUploadedFile());
+        long fileNumeric = getNumericPartFromArchivedCommit(file.getFilename());
+        long checkpointNumeric =
+            getNumericPartFromArchivedCommit(checkpoint.getLastUploadedFile());
+        if (fileNumeric != checkpointNumeric) {
+          return fileNumeric < checkpointNumeric;
+        }
+        // Same numeric key (e.g. V2 parquet files with same leading timestamp
+        // but different sequence numbers) — compare full filenames
+        return file.getFilename().compareTo(checkpoint.getLastUploadedFile()) <= 0;
       }
     }
     return false;
@@ -613,7 +621,7 @@ public class TimelineCommitInstantsUploader {
       String directoryUri, String fileName, int timelineLayoutVersion) {
     if (HOODIE_PROPERTIES_FILE.equals(fileName)) {
       String hoodieDirectoryUri = directoryUri;
-      if (timelineLayoutVersion == 2) {
+      if (timelineLayoutVersion == TIMELINE_LAYOUT_VERSION_V2) {
         // V2: strip "timeline/history/" or "timeline/" to get back to .hoodie/
         String historySuffix = TIMELINE_FOLDER_NAME + '/' + HISTORY_FOLDER_NAME + '/';
         String timelineSuffix = TIMELINE_FOLDER_NAME + '/';
@@ -640,7 +648,7 @@ public class TimelineCommitInstantsUploader {
   private String getPathSuffixForTimeline(
       CommitTimelineType commitTimelineType, int timelineLayoutVersion) {
     String pathSuffix = HOODIE_FOLDER_NAME + '/';
-    if (timelineLayoutVersion == 2) {
+    if (timelineLayoutVersion == TIMELINE_LAYOUT_VERSION_V2) {
       pathSuffix += TIMELINE_FOLDER_NAME + '/';
       return CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
           ? pathSuffix + HISTORY_FOLDER_NAME + '/'
@@ -655,14 +663,14 @@ public class TimelineCommitInstantsUploader {
       File file, CommitTimelineType commitTimelineType, int timelineLayoutVersion) {
     if (CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED.equals(commitTimelineType)
         && !HOODIE_PROPERTIES_FILE.equals(file.getFilename())) {
-      if (timelineLayoutVersion == 2) {
-        return TIMELINE_FOLDER_NAME + "/" + HISTORY_FOLDER_NAME + "/" + file.getFilename();
+      if (timelineLayoutVersion == TIMELINE_LAYOUT_VERSION_V2) {
+        return TIMELINE_FOLDER_NAME + '/' + HISTORY_FOLDER_NAME + '/' + file.getFilename();
       }
-      return ARCHIVED_FOLDER_NAME + "/" + file.getFilename();
+      return ARCHIVED_FOLDER_NAME + '/' + file.getFilename();
     }
-    if (timelineLayoutVersion == 2
+    if (timelineLayoutVersion == TIMELINE_LAYOUT_VERSION_V2
         && !HOODIE_PROPERTIES_FILE.equals(file.getFilename())) {
-      return TIMELINE_FOLDER_NAME + "/" + file.getFilename();
+      return TIMELINE_FOLDER_NAME + '/' + file.getFilename();
     }
     return file.getFilename();
   }
@@ -683,7 +691,8 @@ public class TimelineCommitInstantsUploader {
     }
 
     // V2 parquet: 20260130205837315_20260201000250371_3.parquet
-    Matcher v2ParquetMatcher = V2_PARQUET_NUMERIC_PATTERN.matcher(archivedCommitFileName);
+    Matcher v2ParquetMatcher =
+        V2_ARCHIVED_PARQUET_TIMESTAMP_PATTERN.matcher(archivedCommitFileName);
     if (v2ParquetMatcher.find()) {
       return Long.parseLong(v2ParquetMatcher.group(1));
     }

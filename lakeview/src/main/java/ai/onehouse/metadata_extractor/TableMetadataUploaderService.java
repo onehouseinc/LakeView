@@ -52,6 +52,7 @@ public class TableMetadataUploaderService {
   private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
+  private final Map<String, ParsedHudiProperties> propertiesCache = new ConcurrentHashMap<>();
 
   @Inject
   public TableMetadataUploaderService(
@@ -146,25 +147,51 @@ public class TableMetadataUploaderService {
                         StringUtils.isNotBlank(checkpointString)
                             ? mapper.readValue(checkpointString, Checkpoint.class)
                             : INITIAL_CHECKPOINT;
-                    processTablesFuture.add(
-                        hoodiePropertiesReader
-                            .readHoodieProperties(getHoodiePropertiesFilePath(table))
-                            .thenComposeAsync(
-                                properties -> {
-                                  Table tableWithVersion = table;
-                                  if (properties != null) {
-                                    tableWithVersion = table.toBuilder()
-                                        .tableVersion(properties.getTableVersion())
-                                        .timelineLayoutVersion(
-                                            properties.getTimelineLayoutVersion())
-                                        .build();
-                                  }
-                                  return uploadNewInstantsSinceCheckpoint(
-                                      tableWithVersion.getTableId(),
-                                      tableWithVersion,
-                                      checkpoint);
-                                },
-                                executorService));
+                    ParsedHudiProperties cachedProperties =
+                        propertiesCache.get(table.getTableId());
+                    if (cachedProperties != null) {
+                      Table tableWithVersion = table.toBuilder()
+                          .tableVersion(cachedProperties.getTableVersion())
+                          .timelineLayoutVersion(
+                              cachedProperties.getTimelineLayoutVersion())
+                          .build();
+                      processTablesFuture.add(
+                          uploadNewInstantsSinceCheckpoint(
+                              tableWithVersion.getTableId(),
+                              tableWithVersion,
+                              checkpoint));
+                    } else {
+                      processTablesFuture.add(
+                          hoodiePropertiesReader
+                              .readHoodieProperties(getHoodiePropertiesFilePath(table))
+                              .thenComposeAsync(
+                                  properties -> {
+                                    Table tableWithVersion = table;
+                                    if (properties != null
+                                        && properties.getMetadataUploadFailureReasons()
+                                            == null) {
+                                      propertiesCache.put(
+                                          table.getTableId(), properties);
+                                      tableWithVersion = table.toBuilder()
+                                          .tableVersion(
+                                              properties.getTableVersion())
+                                          .timelineLayoutVersion(
+                                              properties.getTimelineLayoutVersion())
+                                          .build();
+                                    } else {
+                                      log.warn(
+                                          "Failed to read hoodie.properties for "
+                                              + "table: {}, using default version "
+                                              + "settings",
+                                          table);
+                                    }
+                                    return uploadNewInstantsSinceCheckpoint(
+                                        tableWithVersion.getTableId(),
+                                        tableWithVersion,
+                                        checkpoint);
+                                  },
+                                  executorService));
+                    }
                   } catch (JsonProcessingException e) {
                     log.error(
                         "Error deserializing checkpoint value for table: {}, skipping table",
@@ -253,6 +280,7 @@ public class TableMetadataUploaderService {
                           .build();
                       }
                       tableIdToProperties.put(table.getTableId(), properties);
+                      propertiesCache.put(table.getTableId(), properties);
                       return InitializeTableMetricsCheckpointRequest
                           .InitializeSingleTableMetricsCheckpointRequest.builder()
                           .tableId(table.getTableId())
