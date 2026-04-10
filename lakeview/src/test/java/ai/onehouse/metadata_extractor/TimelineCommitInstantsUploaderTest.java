@@ -1586,8 +1586,8 @@ class TimelineCommitInstantsUploaderTest {
         Arrays.asList(
             generateFileObj("should_be_ignored", false),
             generateFileObj("20260130205837315_20260201000250371.commit", false),
-            generateFileObj("20260130205837315_20260201000250371.inflight", false),
-            generateFileObj("20260130205837315_20260201000250371.commit.requested", false),
+            generateFileObj("20260130205837315.commit.inflight", false),
+            generateFileObj("20260130205837315.commit.requested", false),
             generateFileObj(
                 "20260201000250371_20260202000350471.commit", false, currentTime)));
     // Page 2 (last page)
@@ -1600,8 +1600,8 @@ class TimelineCommitInstantsUploaderTest {
         Arrays.asList(
             generateFileObj(
                 "20260201000250371_20260202000350471.commit", false, currentTime),
-            generateFileObj("20260201000250371_20260202000350471.inflight", false),
-            generateFileObj("20260201000250371_20260202000350471.commit.requested", false),
+            generateFileObj("20260201000250371.commit.inflight", false),
+            generateFileObj("20260201000250371.commit.requested", false),
             generateFileObj(HOODIE_PROPERTIES_FILE, false)));
 
     List<File> batch1 =
@@ -1609,18 +1609,18 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj(
                 "20260130205837315_20260201000250371.commit", false),
             generateFileObj(
-                "20260130205837315_20260201000250371.inflight", false),
+                "20260130205837315.commit.inflight", false),
             generateFileObj(
-                "20260130205837315_20260201000250371.commit.requested", false));
+                "20260130205837315.commit.requested", false));
 
     List<File> batch2 =
         Arrays.asList(
             generateFileObj(
                 "20260201000250371_20260202000350471.commit", false, currentTime),
             generateFileObj(
-                "20260201000250371_20260202000350471.inflight", false),
+                "20260201000250371.commit.inflight", false),
             generateFileObj(
-                "20260201000250371_20260202000350471.commit.requested", false));
+                "20260201000250371.commit.requested", false));
 
     Checkpoint checkpoint1 =
         generateCheckpointObj(
@@ -1640,9 +1640,9 @@ class TimelineCommitInstantsUploaderTest {
                 generateFileObj(
                     "20260130205837315_20260201000250371.commit", false),
                 generateFileObj(
-                    "20260130205837315_20260201000250371.inflight", false),
+                    "20260130205837315.commit.inflight", false),
                 generateFileObj(
-                    "20260130205837315_20260201000250371.commit.requested", false),
+                    "20260130205837315.commit.requested", false),
                 generateFileObj(
                     "20260201000250371_20260202000350471.commit",
                     false,
@@ -1657,9 +1657,9 @@ class TimelineCommitInstantsUploaderTest {
             generateFileObj(
                 "20260201000250371_20260202000350471.commit", false, currentTime),
             generateFileObj(
-                "20260201000250371_20260202000350471.inflight", false),
+                "20260201000250371.commit.inflight", false),
             generateFileObj(
-                "20260201000250371_20260202000350471.commit.requested", false)),
+                "20260201000250371.commit.requested", false)),
         Collections.singletonList(batch2),
         checkpoint1,
         checkpoint1.getFirstIncompleteCommitFile());

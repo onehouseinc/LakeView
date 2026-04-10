@@ -783,19 +783,16 @@ public class TimelineCommitInstantsUploader {
   }
 
   private boolean isSavepointCommit(File file) {
-    String[] parts = file.getFilename().split("\\.", 3);
-    if (parts.length < 2) {
-      return false;
-    }
-    return SAVEPOINT_ACTION.equals(parts[1]);
+    return hasActionType(file, SAVEPOINT_ACTION);
   }
 
   private boolean isRollbackCommit(File file) {
+    return hasActionType(file, ROLLBACK_ACTION);
+  }
+
+  private boolean hasActionType(File file, String actionType) {
     String[] parts = file.getFilename().split("\\.", 3);
-    if (parts.length < 2) {
-      return false;
-    }
-    return ROLLBACK_ACTION.equals(parts[1]);
+    return parts.length >= 2 && actionType.equals(parts[1]);
   }
 
   @VisibleForTesting

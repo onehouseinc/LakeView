@@ -52,6 +52,8 @@ public class TableMetadataUploaderService {
   private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
+  // Cache stores a few lightweight entries (one per table). No TTL needed since table versions
+  // do not change at runtime, and LakeView restarts on upgrades.
   private final Map<String, ParsedHudiProperties> propertiesCache = new ConcurrentHashMap<>();
 
   @Inject
