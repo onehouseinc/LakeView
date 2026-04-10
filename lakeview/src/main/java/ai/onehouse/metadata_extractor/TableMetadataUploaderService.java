@@ -1,6 +1,7 @@
 package ai.onehouse.metadata_extractor;
 
 import static ai.onehouse.constants.MetadataExtractorConstants.ARCHIVED_COMMIT_INSTANT_PATTERN;
+import static ai.onehouse.constants.MetadataExtractorConstants.ARCHIVED_COMMIT_INSTANT_PATTERN_V2;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_PROPERTIES_FILE;
 import static ai.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
@@ -22,6 +23,7 @@ import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.metadata_extractor.models.Checkpoint;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
+import ai.onehouse.metadata_extractor.models.ParsedHudiProperties;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +33,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -49,6 +52,9 @@ public class TableMetadataUploaderService {
   private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
+  // Cache stores a few lightweight entries (one per table). No TTL needed since table versions
+  // do not change at runtime, and LakeView restarts on upgrades.
+  private final Map<String, ParsedHudiProperties> propertiesCache = new ConcurrentHashMap<>();
 
   @Inject
   public TableMetadataUploaderService(
@@ -139,13 +145,55 @@ public class TableMetadataUploaderService {
                     // checkpoints found, continue from previous checkpoint
                     String checkpointString =
                         tableCheckpointMap.get(table.getTableId()).getCheckpoint();
-                    processTablesFuture.add(
-                        uploadNewInstantsSinceCheckpoint(
-                            table.getTableId(),
-                            table,
-                            StringUtils.isNotBlank(checkpointString)
-                                ? mapper.readValue(checkpointString, Checkpoint.class)
-                                : INITIAL_CHECKPOINT));
+                    Checkpoint checkpoint =
+                        StringUtils.isNotBlank(checkpointString)
+                            ? mapper.readValue(checkpointString, Checkpoint.class)
+                            : INITIAL_CHECKPOINT;
+                    ParsedHudiProperties cachedProperties =
+                        propertiesCache.get(table.getTableId());
+                    if (cachedProperties != null) {
+                      Table tableWithVersion = table.toBuilder()
+                          .tableVersion(cachedProperties.getTableVersion())
+                          .timelineLayoutVersion(
+                              cachedProperties.getTimelineLayoutVersion())
+                          .build();
+                      processTablesFuture.add(
+                          uploadNewInstantsSinceCheckpoint(
+                              tableWithVersion.getTableId(),
+                              tableWithVersion,
+                              checkpoint));
+                    } else {
+                      processTablesFuture.add(
+                          hoodiePropertiesReader
+                              .readHoodieProperties(getHoodiePropertiesFilePath(table))
+                              .thenComposeAsync(
+                                  properties -> {
+                                    Table tableWithVersion = table;
+                                    if (properties != null
+                                        && properties.getMetadataUploadFailureReasons()
+                                            == null) {
+                                      propertiesCache.put(
+                                          table.getTableId(), properties);
+                                      tableWithVersion = table.toBuilder()
+                                          .tableVersion(
+                                              properties.getTableVersion())
+                                          .timelineLayoutVersion(
+                                              properties.getTimelineLayoutVersion())
+                                          .build();
+                                    } else {
+                                      log.warn(
+                                          "Failed to read hoodie.properties for "
+                                              + "table: {}, using default version "
+                                              + "settings",
+                                          table);
+                                    }
+                                    return uploadNewInstantsSinceCheckpoint(
+                                        tableWithVersion.getTableId(),
+                                        tableWithVersion,
+                                        checkpoint);
+                                  },
+                                  executorService));
+                    }
                   } catch (JsonProcessingException e) {
                     log.error(
                         "Error deserializing checkpoint value for table: {}, skipping table",
@@ -202,6 +250,7 @@ public class TableMetadataUploaderService {
                 Collections.singletonList(CompletableFuture.completedFuture(true)));
     if (!tablesToInitialise.isEmpty()) {
       log.info("Initializing following tables {}", tablesToInitialise);
+      Map<String, ParsedHudiProperties> tableIdToProperties = new ConcurrentHashMap<>();
       List<
               CompletableFuture<
                   InitializeTableMetricsCheckpointRequest
@@ -232,6 +281,8 @@ public class TableMetadataUploaderService {
                           .failureReasons(properties.getMetadataUploadFailureReasons())
                           .build();
                       }
+                      tableIdToProperties.put(table.getTableId(), properties);
+                      propertiesCache.put(table.getTableId(), properties);
                       return InitializeTableMetricsCheckpointRequest
                           .InitializeSingleTableMetricsCheckpointRequest.builder()
                           .tableId(table.getTableId())
@@ -338,9 +389,17 @@ public class TableMetadataUploaderService {
                             response.getError());
                         continue;
                       }
+                      Table updatedTable = table;
+                      ParsedHudiProperties props = tableIdToProperties.get(table.getTableId());
+                      if (props != null) {
+                        updatedTable = table.toBuilder()
+                            .tableVersion(props.getTableVersion())
+                            .timelineLayoutVersion(props.getTimelineLayoutVersion())
+                            .build();
+                      }
                       processTablesFuture.add(
                           uploadNewInstantsSinceCheckpoint(
-                              table.getTableId(), table, INITIAL_CHECKPOINT));
+                              updatedTable.getTableId(), updatedTable, INITIAL_CHECKPOINT));
                     }
                     return CompletableFuture.completedFuture(processTablesFuture);
                   },
@@ -386,7 +445,9 @@ public class TableMetadataUploaderService {
      * this allows us to continue from the previous batch id
      */
     Checkpoint activeTimelineCheckpoint =
-        ARCHIVED_COMMIT_INSTANT_PATTERN.matcher(checkpoint.getLastUploadedFile()).matches()
+        (ARCHIVED_COMMIT_INSTANT_PATTERN.matcher(checkpoint.getLastUploadedFile()).matches()
+            || ARCHIVED_COMMIT_INSTANT_PATTERN_V2.matcher(checkpoint.getLastUploadedFile())
+                .matches())
             ? resetCheckpoint(checkpoint)
             : checkpoint;
     return timelineCommitInstantsUploader

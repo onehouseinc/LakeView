@@ -576,6 +576,37 @@ class ActiveTimelineInstantBatcherTest {
   }
 
   @Test
+  void testCreateBatchWithV9CompletedInstants() {
+    // V9 completed instants have completion timestamp: {ts}_{completionTs}.action
+    // Requested and inflight files remain unchanged: {ts}.action.requested
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("20260204053206256.deltacommit.requested"),
+            generateFileObj("20260204053206256.deltacommit.inflight"),
+            generateFileObj("20260204053206256_20260204053210895.deltacommit"),
+            generateFileObj("20260204053205307.compaction.requested"),
+            generateFileObj("20260204053205307.compaction.inflight"),
+            generateFileObj("20260204053205307_20260204053222939.commit"),
+            generateFileObj("hoodie.properties"));
+
+    List<List<File>> expectedBatches =
+        Arrays.asList(
+            Arrays.asList(
+                generateFileObj("hoodie.properties"),
+                generateFileObj("20260204053205307.compaction.inflight"),
+                generateFileObj("20260204053205307.compaction.requested"),
+                generateFileObj("20260204053205307_20260204053222939.commit")),
+            Arrays.asList(
+                generateFileObj("20260204053206256.deltacommit.inflight"),
+                generateFileObj("20260204053206256.deltacommit.requested"),
+                generateFileObj("20260204053206256_20260204053210895.deltacommit")));
+
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
   void testWithInvalidBatchSize() {
     assertThrows(
         IllegalArgumentException.class,
