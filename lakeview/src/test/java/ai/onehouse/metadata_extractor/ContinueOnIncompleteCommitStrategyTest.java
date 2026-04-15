@@ -58,6 +58,7 @@ class ContinueOnIncompleteCommitStrategyTest {
   @Mock private Config config;
   @Mock private MetadataExtractorConfig metadataExtractorConfig;
   @Mock private LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
+  @Mock private LSMTimelineManifestReader lsmTimelineManifestReader;
   private TimelineCommitInstantsUploader timelineCommitInstantsUploader;
   private final ObjectMapper mapper = new ObjectMapper();
   private static final String S3_TABLE_URI = "s3://bucket/table/";
@@ -88,7 +89,8 @@ class ContinueOnIncompleteCommitStrategyTest {
         ForkJoinPool.commonPool(),
         activeTimelineInstantBatcher,
         hudiMetadataExtractorMetrics,
-        config);
+        config,
+        lsmTimelineManifestReader);
   }
 
   @BeforeEach

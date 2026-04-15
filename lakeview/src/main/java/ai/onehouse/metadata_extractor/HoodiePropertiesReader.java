@@ -2,8 +2,10 @@ package ai.onehouse.metadata_extractor;
 
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_NAME_KEY;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_TYPE_KEY;
+import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_VERSION_DEFAULT;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_VERSION_KEY;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TIMELINE_LAYOUT_VERSION_KEY;
+import static ai.onehouse.constants.MetadataExtractorConstants.TIMELINE_LAYOUT_VERSION_DEFAULT;
 import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 
 import com.google.inject.Inject;
@@ -45,9 +47,12 @@ public class HoodiePropertiesReader {
                 throw new RuntimeException("Failed to load properties file", e);
               }
               int tableVersion = Integer.parseInt(
-                  properties.getProperty(HOODIE_TABLE_VERSION_KEY, "6"));
+                  properties.getProperty(
+                      HOODIE_TABLE_VERSION_KEY, String.valueOf(HOODIE_TABLE_VERSION_DEFAULT)));
               int timelineLayoutVersion = Integer.parseInt(
-                  properties.getProperty(HOODIE_TIMELINE_LAYOUT_VERSION_KEY, "1"));
+                  properties.getProperty(
+                      HOODIE_TIMELINE_LAYOUT_VERSION_KEY,
+                      String.valueOf(TIMELINE_LAYOUT_VERSION_DEFAULT)));
               return ParsedHudiProperties.builder()
                   .tableName(properties.getProperty(HOODIE_TABLE_NAME_KEY))
                   .tableType(TableType.valueOf(properties.getProperty(HOODIE_TABLE_TYPE_KEY)))

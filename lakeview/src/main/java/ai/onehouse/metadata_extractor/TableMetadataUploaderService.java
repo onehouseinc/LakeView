@@ -53,8 +53,11 @@ public class TableMetadataUploaderService {
   private final ExecutorService executorService;
   private final ObjectMapper mapper;
   // Cache stores a few lightweight entries (one per table). No TTL needed since table versions
-  // do not change at runtime, and LakeView restarts on upgrades.
-  private final Map<String, ParsedHudiProperties> propertiesCache = new ConcurrentHashMap<>();
+  // do not change at runtime, and LakeView restarts on upgrades. Stores the in-flight future
+  // so concurrent table-batch processing dedupes reads (computeIfAbsent semantics) instead of
+  // each thread issuing its own hoodie.properties fetch.
+  private final Map<String, CompletableFuture<ParsedHudiProperties>> propertiesCache =
+      new ConcurrentHashMap<>();
 
   @Inject
   public TableMetadataUploaderService(
@@ -149,51 +152,32 @@ public class TableMetadataUploaderService {
                         StringUtils.isNotBlank(checkpointString)
                             ? mapper.readValue(checkpointString, Checkpoint.class)
                             : INITIAL_CHECKPOINT;
-                    ParsedHudiProperties cachedProperties =
-                        propertiesCache.get(table.getTableId());
-                    if (cachedProperties != null) {
-                      Table tableWithVersion = table.toBuilder()
-                          .tableVersion(cachedProperties.getTableVersion())
-                          .timelineLayoutVersion(
-                              cachedProperties.getTimelineLayoutVersion())
-                          .build();
-                      processTablesFuture.add(
-                          uploadNewInstantsSinceCheckpoint(
-                              tableWithVersion.getTableId(),
-                              tableWithVersion,
-                              checkpoint));
-                    } else {
-                      processTablesFuture.add(
-                          hoodiePropertiesReader
-                              .readHoodieProperties(getHoodiePropertiesFilePath(table))
-                              .thenComposeAsync(
-                                  properties -> {
-                                    Table tableWithVersion = table;
-                                    if (properties != null
-                                        && properties.getMetadataUploadFailureReasons()
-                                            == null) {
-                                      propertiesCache.put(
-                                          table.getTableId(), properties);
-                                      tableWithVersion = table.toBuilder()
-                                          .tableVersion(
-                                              properties.getTableVersion())
+                    processTablesFuture.add(
+                        getOrLoadProperties(table)
+                            .thenComposeAsync(
+                                properties -> {
+                                  if (properties.getMetadataUploadFailureReasons() != null) {
+                                    log.error(
+                                        "Failed to read hoodie.properties for table: {} "
+                                            + "reason: {}. Skipping table to avoid "
+                                            + "mis-detecting the timeline layout version.",
+                                        table,
+                                        properties.getMetadataUploadFailureReasons());
+                                    return CompletableFuture.completedFuture(false);
+                                  }
+                                  Table tableWithVersion =
+                                      table
+                                          .toBuilder()
+                                          .tableVersion(properties.getTableVersion())
                                           .timelineLayoutVersion(
                                               properties.getTimelineLayoutVersion())
                                           .build();
-                                    } else {
-                                      log.warn(
-                                          "Failed to read hoodie.properties for "
-                                              + "table: {}, using default version "
-                                              + "settings",
-                                          table);
-                                    }
-                                    return uploadNewInstantsSinceCheckpoint(
-                                        tableWithVersion.getTableId(),
-                                        tableWithVersion,
-                                        checkpoint);
-                                  },
-                                  executorService));
-                    }
+                                  return uploadNewInstantsSinceCheckpoint(
+                                      tableWithVersion.getTableId(),
+                                      tableWithVersion,
+                                      checkpoint);
+                                },
+                                executorService));
                   } catch (JsonProcessingException e) {
                     log.error(
                         "Error deserializing checkpoint value for table: {}, skipping table",
@@ -258,8 +242,7 @@ public class TableMetadataUploaderService {
           initializeSingleTableMetricsCheckpointRequestFutureList = new ArrayList<>();
       for (Table table : tablesToInitialise) {
         initializeSingleTableMetricsCheckpointRequestFutureList.add(
-            hoodiePropertiesReader
-                .readHoodieProperties(getHoodiePropertiesFilePath(table))
+            getOrLoadProperties(table)
                 .thenApply(
                     properties -> {
                       if (properties == null || properties.getMetadataUploadFailureReasons() != null) {
@@ -282,7 +265,6 @@ public class TableMetadataUploaderService {
                           .build();
                       }
                       tableIdToProperties.put(table.getTableId(), properties);
-                      propertiesCache.put(table.getTableId(), properties);
                       return InitializeTableMetricsCheckpointRequest
                           .InitializeSingleTableMetricsCheckpointRequest.builder()
                           .tableId(table.getTableId())
@@ -457,6 +439,34 @@ public class TableMetadataUploaderService {
             activeTimelineCheckpoint,
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE)
         .thenApply(Objects::nonNull);
+  }
+
+  /**
+   * Returns a cached or in-flight {@link ParsedHudiProperties} future for the table. Concurrent
+   * callers see the same future instead of issuing duplicate hoodie.properties reads. If the
+   * underlying read fails (parsed properties carry a non-null failure reason), the cache entry is
+   * evicted so the next sync attempt retries from scratch.
+   *
+   * <p>Eviction is dispatched via {@code whenCompleteAsync} on {@link #executorService} so the
+   * removal never runs on the same call stack as {@link java.util.concurrent.ConcurrentHashMap
+   * #computeIfAbsent} - mutating the map from inside its own mapping function would trip the
+   * "Recursive update" guard.
+   */
+  private CompletableFuture<ParsedHudiProperties> getOrLoadProperties(Table table) {
+    return propertiesCache.computeIfAbsent(
+        table.getTableId(),
+        id ->
+            hoodiePropertiesReader
+                .readHoodieProperties(getHoodiePropertiesFilePath(table))
+                .whenCompleteAsync(
+                    (result, throwable) -> {
+                      if (throwable != null
+                          || result == null
+                          || result.getMetadataUploadFailureReasons() != null) {
+                        propertiesCache.remove(id);
+                      }
+                    },
+                    executorService));
   }
 
   private String getHoodiePropertiesFilePath(Table table) {

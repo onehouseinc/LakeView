@@ -267,11 +267,15 @@ public class ActiveTimelineInstantBatcher {
   static ActiveTimelineInstant getActiveTimeLineInstant(String instant) {
     String[] parts = instant.split("\\.", 3);
 
-    // Strip completion timestamp from V9 completed instants
-    // e.g., "20260204053206256_20260204053210895" -> "20260204053206256"
+    // V9 completed instants embed completion time after an underscore in the leading token,
+    // e.g. "20260204053206256_20260204053210895". Split it out so callers see the request
+    // timestamp and the optional completion timestamp separately.
     String timestamp = parts[0];
+    String completionTime = null;
     if (timestamp.contains("_")) {
-      timestamp = timestamp.split("_")[0];
+      String[] tsParts = timestamp.split("_", 2);
+      timestamp = tsParts[0];
+      completionTime = tsParts[1];
     }
 
     String action;
@@ -284,13 +288,21 @@ public class ActiveTimelineInstantBatcher {
       action = parts[1];
       state = parts.length == 3 ? parts[2] : "completed";
     }
-    return ActiveTimelineInstant.builder().timestamp(timestamp).action(action).state(state).build();
+    return ActiveTimelineInstant.builder()
+        .timestamp(timestamp)
+        .completionTime(completionTime)
+        .action(action)
+        .state(state)
+        .build();
   }
 
   @Builder
   @Getter
   static class ActiveTimelineInstant {
     private final String timestamp;
+    // Only populated for V9 (table version >= 8) completed instants, which embed completion time
+    // alongside the request timestamp in the filename. Null for V1-V8 instants.
+    private final String completionTime;
     private final String action;
     private final String state;
   }

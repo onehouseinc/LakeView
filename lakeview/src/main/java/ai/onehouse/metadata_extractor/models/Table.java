@@ -1,5 +1,8 @@
 package ai.onehouse.metadata_extractor.models;
 
+import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_VERSION_DEFAULT;
+import static ai.onehouse.constants.MetadataExtractorConstants.TIMELINE_LAYOUT_VERSION_DEFAULT;
+
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -15,6 +18,6 @@ public class Table {
   private final String databaseName;
   private final String lakeName;
   private String tableId;
-  @Builder.Default private final int tableVersion = 6;
-  @Builder.Default private final int timelineLayoutVersion = 1;
+  @Builder.Default private final int tableVersion = HOODIE_TABLE_VERSION_DEFAULT;
+  @Builder.Default private final int timelineLayoutVersion = TIMELINE_LAYOUT_VERSION_DEFAULT;
 }

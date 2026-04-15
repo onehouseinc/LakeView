@@ -22,7 +22,11 @@ public class MetadataExtractorConstants {
       "hoodie.timeline.layout.version";
   public static final String TIMELINE_FOLDER_NAME = "timeline";
   public static final String HISTORY_FOLDER_NAME = "history";
+  public static final int TIMELINE_LAYOUT_VERSION_V1 = 1;
   public static final int TIMELINE_LAYOUT_VERSION_V2 = 2;
+  public static final int HOODIE_TABLE_VERSION_DEFAULT = 6;
+  public static final int TIMELINE_LAYOUT_VERSION_DEFAULT = TIMELINE_LAYOUT_VERSION_V1;
+  public static final String MANIFEST_FILE_PREFIX = "manifest_";
 
   // The default number of instants in one archived commit metadata file is 10
   // so we want to ingest 10x active instants than archived instants in one batch
@@ -54,10 +58,6 @@ public class MetadataExtractorConstants {
       Pattern.compile("\\d+(_\\d+)?(\\.[a-z]{1,20}){1,2}");
   public static final Pattern V1_ARCHIVED_NUMERIC_PATTERN =
       Pattern.compile("\\.archive\\.(\\d+)_");
-  public static final Pattern V2_ARCHIVED_PARQUET_TIMESTAMP_PATTERN =
-      Pattern.compile("^(\\d+)_(\\d+)_(\\d+)\\.parquet$");
-  public static final Pattern V2_MANIFEST_NUMERIC_PATTERN =
-      Pattern.compile("^manifest_(\\d+)$");
   public static final Checkpoint INITIAL_CHECKPOINT =
       Checkpoint.builder()
           .batchId(0)
@@ -65,6 +65,7 @@ public class MetadataExtractorConstants {
           .lastUploadedFile("")
           .firstIncompleteCommitFile("")
           .archivedCommitsProcessed(false)
+          .lastArchivedManifestVersion(0)
           .build();
 
   // hardcoding last modified at to prevent this from causing issues with our checkpoint logic
