@@ -194,8 +194,6 @@ class AzureAsyncStorageClientTest {
   @Test
   void testReadBlobMultipleChunks() throws ExecutionException, InterruptedException {
     // Azure SDK streams larger files as multiple ByteBuffer chunks. Previously the
-    // code used blockLast().array() which silently dropped every chunk except the
-    // last one, truncating files larger than one download chunk.
     byte[] chunk1 = "first chunk ".getBytes(StandardCharsets.UTF_8);
     byte[] chunk2 = "second chunk ".getBytes(StandardCharsets.UTF_8);
     byte[] chunk3 = "third chunk".getBytes(StandardCharsets.UTF_8);
