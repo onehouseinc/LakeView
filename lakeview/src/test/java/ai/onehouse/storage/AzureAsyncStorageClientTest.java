@@ -192,6 +192,29 @@ class AzureAsyncStorageClientTest {
   }
 
   @Test
+  void testReadBlobMultipleChunks() throws ExecutionException, InterruptedException {
+    // Azure SDK streams larger files as multiple ByteBuffer chunks. Previously the
+    // code used blockLast().array() which silently dropped every chunk except the
+    // last one, truncating files larger than one download chunk.
+    byte[] chunk1 = "first chunk ".getBytes(StandardCharsets.UTF_8);
+    byte[] chunk2 = "second chunk ".getBytes(StandardCharsets.UTF_8);
+    byte[] chunk3 = "third chunk".getBytes(StandardCharsets.UTF_8);
+    byte[] expected = "first chunk second chunk third chunk".getBytes(StandardCharsets.UTF_8);
+
+    when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
+        .thenReturn(mockFileSystemAsyncClient);
+    when(mockFileSystemAsyncClient.getFileAsyncClient(TEST_FILE)).thenReturn(mockFileAsyncClient);
+    when(mockFileAsyncClient.read())
+        .thenReturn(
+            Flux.just(ByteBuffer.wrap(chunk1), ByteBuffer.wrap(chunk2), ByteBuffer.wrap(chunk3)));
+
+    BinaryData result = azureAsyncStorageClient.readBlob(AZURE_URI).get();
+
+    assertNotNull(result);
+    assertArrayEquals(expected, result.toBytes());
+  }
+
+  @Test
   void testStreamFileAsync() throws ExecutionException, InterruptedException, IOException {
     byte[] fileContent = "test content".getBytes(StandardCharsets.UTF_8);
     ByteBuffer byteBuffer = ByteBuffer.wrap(fileContent);

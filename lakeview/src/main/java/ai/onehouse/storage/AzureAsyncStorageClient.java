@@ -119,7 +119,10 @@ public class AzureAsyncStorageClient extends AbstractAsyncStorageClient {
         () -> {
           try {
             DataLakeFileAsyncClient fileClient = getFileClient(azureUri);
-            return BinaryData.fromBytes(fileClient.read().blockLast().array());
+            // fileClient.read() returns a Flux<ByteBuffer> of chunks; use fromFlux so
+            // the full content is aggregated. Using blockLast().array() kept only the
+            // last chunk, silently truncating any file larger than one download chunk.
+            return BinaryData.fromFlux(fileClient.read()).block();
           } catch (Exception ex) {
             log.error("Failed to read file", ex);
             throw clientException(ex, "readBlob", azureUri);
