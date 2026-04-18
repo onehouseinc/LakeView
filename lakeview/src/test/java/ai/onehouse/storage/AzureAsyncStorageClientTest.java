@@ -193,23 +193,27 @@ class AzureAsyncStorageClientTest {
 
   @Test
   void testReadBlobMultipleChunks() throws ExecutionException, InterruptedException {
-    // Azure SDK streams larger files as multiple ByteBuffer chunks. Previously the
-    byte[] chunk1 = "first chunk ".getBytes(StandardCharsets.UTF_8);
-    byte[] chunk2 = "second chunk ".getBytes(StandardCharsets.UTF_8);
-    byte[] chunk3 = "third chunk".getBytes(StandardCharsets.UTF_8);
-    byte[] expected = "first chunk second chunk third chunk".getBytes(StandardCharsets.UTF_8);
+    byte[] chunk1 = new byte[8192];
+    Arrays.fill(chunk1, (byte) 'A');
+    byte[] chunk2 = "mp_completion_time".getBytes(StandardCharsets.UTF_8);
+
+    byte[] expected = new byte[chunk1.length + chunk2.length];
+    System.arraycopy(chunk1, 0, expected, 0, chunk1.length);
+    System.arraycopy(chunk2, 0, expected, chunk1.length, chunk2.length);
 
     when(mockDataLakeServiceAsyncClient.getFileSystemAsyncClient(TEST_CONTAINER))
         .thenReturn(mockFileSystemAsyncClient);
     when(mockFileSystemAsyncClient.getFileAsyncClient(TEST_FILE)).thenReturn(mockFileAsyncClient);
     when(mockFileAsyncClient.read())
-        .thenReturn(
-            Flux.just(ByteBuffer.wrap(chunk1), ByteBuffer.wrap(chunk2), ByteBuffer.wrap(chunk3)));
+        .thenReturn(Flux.just(ByteBuffer.wrap(chunk1), ByteBuffer.wrap(chunk2)));
 
     BinaryData result = azureAsyncStorageClient.readBlob(AZURE_URI).get();
 
     assertNotNull(result);
     assertArrayEquals(expected, result.toBytes());
+    assertEquals(8192 + 18, result.toBytes().length);
+    assertTrue(new String(result.toBytes(), StandardCharsets.UTF_8).startsWith("AAAA"));
+    assertTrue(new String(result.toBytes(), StandardCharsets.UTF_8).endsWith("mp_completion_time"));
   }
 
   @Test
