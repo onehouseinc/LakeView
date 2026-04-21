@@ -230,65 +230,9 @@ public class TimelineCommitInstantsUploader {
     return lsmTimelineManifestReader
         .readLatestManifest(historyUri)
         .thenComposeAsync(
-            currentSnapshot -> {
-              if (currentSnapshot.isEmpty()) {
-                log.info(
-                    "No V2 archived timeline yet for table {} (no _version_ file). Skipping.",
-                    table);
-                return CompletableFuture.completedFuture(
-                    checkpoint.toBuilder().archivedCommitsProcessed(true).build());
-              }
-
-              int previousVersion = checkpoint.getLastArchivedManifestVersion();
-              int currentVersion = currentSnapshot.getVersion();
-              if (currentVersion == previousVersion && checkpoint.isArchivedCommitsProcessed()) {
-                log.info(
-                    "V2 archived timeline already at manifest_{} for table {}; nothing to do.",
-                    currentVersion,
-                    table);
-                return CompletableFuture.completedFuture(checkpoint);
-              }
-
-              CompletableFuture<Set<String>> previouslyMirroredFuture =
-                  previousVersion > 0
-                      ? lsmTimelineManifestReader
-                          .readManifestFileNames(historyUri, previousVersion)
-                          .thenApply(HashSet::new)
-                      : CompletableFuture.completedFuture(new HashSet<>());
-
-              return previouslyMirroredFuture.thenComposeAsync(
-                  previouslyMirrored -> {
-                    List<File> filesToUpload = new ArrayList<>();
-                    if (checkpoint.getBatchId() == 0) {
-                      filesToUpload.add(HOODIE_PROPERTIES_FILE_OBJ);
-                    }
-                    int newParquetCount = 0;
-                    for (String parquet : currentSnapshot.getParquetFileNames()) {
-                      if (!previouslyMirrored.contains(parquet)) {
-                        filesToUpload.add(buildArchivedFile(parquet));
-                        newParquetCount++;
-                      }
-                    }
-                    // Upload order: parquets -> manifest -> _version_. The manifest must arrive
-                    // after every parquet it references, and _version_ must be the very last
-                    // write so a partial run never advertises an inconsistent snapshot to the
-                    // backend.
-                    filesToUpload.add(buildArchivedFile(MANIFEST_FILE_PREFIX + currentVersion));
-                    filesToUpload.add(buildArchivedFile(VERSION_MARKER_FILE));
-
-                    log.info(
-                        "V2 archived: mirroring {} new parquet(s) plus manifest_{} for table {}"
-                            + " (previous mirrored manifest version: {})",
-                        newParquetCount,
-                        currentVersion,
-                        table,
-                        previousVersion);
-
-                    return uploadV2ArchivedFilesInBatches(
-                        tableId, table, filesToUpload, checkpoint, currentVersion);
-                  },
-                  executorService);
-            },
+            currentSnapshot ->
+                processManifestSnapshot(
+                    tableId, table, historyUri, checkpoint, currentSnapshot),
             executorService)
         .exceptionally(
             throwable -> {
@@ -305,6 +249,80 @@ public class TimelineCommitInstantsUploader {
                       table, throwable.getMessage()));
               return null;
             });
+  }
+
+  private CompletableFuture<Checkpoint> processManifestSnapshot(
+      String tableId,
+      Table table,
+      String historyUri,
+      Checkpoint checkpoint,
+      LSMTimelineManifestReader.ManifestSnapshot currentSnapshot) {
+    if (currentSnapshot.isEmpty()) {
+      log.info(
+          "No V2 archived timeline yet for table {} (no _version_ file). Skipping.", table);
+      return CompletableFuture.completedFuture(
+          checkpoint.toBuilder().archivedCommitsProcessed(true).build());
+    }
+
+    int previousVersion = checkpoint.getLastArchivedManifestVersion();
+    int currentVersion = currentSnapshot.getVersion();
+    if (currentVersion == previousVersion && checkpoint.isArchivedCommitsProcessed()) {
+      log.info(
+          "V2 archived timeline already at manifest_{} for table {}; nothing to do.",
+          currentVersion,
+          table);
+      return CompletableFuture.completedFuture(checkpoint);
+    }
+
+    CompletableFuture<Set<String>> previouslyMirroredFuture =
+        previousVersion > 0
+            ? lsmTimelineManifestReader
+                .readManifestFileNames(historyUri, previousVersion)
+                .thenApply(HashSet::new)
+            : CompletableFuture.completedFuture(new HashSet<>());
+
+    return previouslyMirroredFuture.thenComposeAsync(
+        previouslyMirrored -> {
+          List<File> filesToUpload =
+              buildV2ArchivedUploadList(checkpoint, currentSnapshot, previouslyMirrored,
+                  currentVersion);
+          int newParquetCount = filesToUpload.size() - 2
+              - (checkpoint.getBatchId() == 0 ? 1 : 0);
+
+          log.info(
+              "V2 archived: mirroring {} new parquet(s) plus manifest_{} for table {}"
+                  + " (previous mirrored manifest version: {})",
+              newParquetCount,
+              currentVersion,
+              table,
+              previousVersion);
+
+          return uploadV2ArchivedFilesInBatches(
+              tableId, table, filesToUpload, checkpoint, currentVersion);
+        },
+        executorService);
+  }
+
+  private List<File> buildV2ArchivedUploadList(
+      Checkpoint checkpoint,
+      LSMTimelineManifestReader.ManifestSnapshot currentSnapshot,
+      Set<String> previouslyMirrored,
+      int currentVersion) {
+    List<File> filesToUpload = new ArrayList<>();
+    if (checkpoint.getBatchId() == 0) {
+      filesToUpload.add(HOODIE_PROPERTIES_FILE_OBJ);
+    }
+    for (String parquet : currentSnapshot.getParquetFileNames()) {
+      if (!previouslyMirrored.contains(parquet)) {
+        filesToUpload.add(buildArchivedFile(parquet));
+      }
+    }
+    // Upload order: parquets -> manifest -> _version_. The manifest must arrive after every
+    // parquet it references, and _version_ must be the very last write so a partial run never
+    // advertises an inconsistent snapshot to the backend.
+    filesToUpload.add(buildArchivedFile(MANIFEST_FILE_PREFIX + currentVersion));
+    filesToUpload.add(buildArchivedFile(VERSION_MARKER_FILE));
+    return filesToUpload;
   }
 
   private static File buildArchivedFile(String filename) {
@@ -390,49 +408,62 @@ public class TimelineCommitInstantsUploader {
           if (accumulated == null || accumulated.isEmpty()) {
             return CompletableFuture.completedFuture(null);
           }
-          // The final file uploaded is _version_, which is also the marker we use as
-          // lastUploadedFile for back-compat with the v1 checkpoint shape.
-          File lastFile = filesToUpload.get(filesToUpload.size() - 1);
-          Checkpoint updatedCheckpoint =
-              previousCheckpoint
-                  .toBuilder()
-                  .batchId(previousCheckpoint.getBatchId() + batches.size())
-                  .lastUploadedFile(lastFile.getFilename())
-                  .checkpointTimestamp(lastFile.getLastModifiedAt())
-                  .archivedCommitsProcessed(true)
-                  .lastArchivedManifestVersion(newManifestVersion)
-                  .build();
-          try {
-            return onehouseApiClient
-                .upsertTableMetricsCheckpoint(
-                    UpsertTableMetricsCheckpointRequest.builder()
-                        .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
-                        .tableId(tableId)
-                        .checkpoint(mapper.writeValueAsString(updatedCheckpoint))
-                        .filesUploaded(
-                            accumulated.stream()
-                                .map(UploadedFile::getName)
-                                .collect(Collectors.toList()))
-                        .uploadedFiles(accumulated)
-                        .build())
-                .thenApply(
-                    response -> {
-                      if (response.isFailure()) {
-                        throw new RuntimeException(
-                            String.format(
-                                "failed to update checkpoint: status_code: %d, exception: %s",
-                                response.getStatusCode(), response.getCause()));
-                      }
-                      hudiMetadataExtractorMetrics.incrementTablesProcessedCounter();
-                      return updatedCheckpoint;
-                    });
-          } catch (JsonProcessingException e) {
-            CompletableFuture<Checkpoint> failed = new CompletableFuture<>();
-            failed.completeExceptionally(new RuntimeException("failed to serialise checkpoint", e));
-            return failed;
-          }
+          return upsertV2ArchivedCheckpoint(
+              tableId, filesToUpload, accumulated, previousCheckpoint, batches.size(),
+              newManifestVersion);
         },
         executorService);
+  }
+
+  private CompletableFuture<Checkpoint> upsertV2ArchivedCheckpoint(
+      String tableId,
+      List<File> filesToUpload,
+      List<UploadedFile> accumulated,
+      Checkpoint previousCheckpoint,
+      int batchCount,
+      int newManifestVersion) {
+    // The final file uploaded is _version_, which is also the marker we use as
+    // lastUploadedFile for back-compat with the v1 checkpoint shape.
+    File lastFile = filesToUpload.get(filesToUpload.size() - 1);
+    Checkpoint updatedCheckpoint =
+        previousCheckpoint
+            .toBuilder()
+            .batchId(previousCheckpoint.getBatchId() + batchCount)
+            .lastUploadedFile(lastFile.getFilename())
+            .checkpointTimestamp(lastFile.getLastModifiedAt())
+            .archivedCommitsProcessed(true)
+            .lastArchivedManifestVersion(newManifestVersion)
+            .build();
+    try {
+      return onehouseApiClient
+          .upsertTableMetricsCheckpoint(
+              UpsertTableMetricsCheckpointRequest.builder()
+                  .commitTimelineType(CommitTimelineType.COMMIT_TIMELINE_TYPE_ARCHIVED)
+                  .tableId(tableId)
+                  .checkpoint(mapper.writeValueAsString(updatedCheckpoint))
+                  .filesUploaded(
+                      accumulated.stream()
+                          .map(UploadedFile::getName)
+                          .collect(Collectors.toList()))
+                  .uploadedFiles(accumulated)
+                  .build())
+          .thenApply(
+              response -> {
+                if (response.isFailure()) {
+                  throw new IllegalStateException(
+                      String.format(
+                          "failed to update checkpoint: status_code: %d, exception: %s",
+                          response.getStatusCode(), response.getCause()));
+                }
+                hudiMetadataExtractorMetrics.incrementTablesProcessedCounter();
+                return updatedCheckpoint;
+              });
+    } catch (JsonProcessingException e) {
+      CompletableFuture<Checkpoint> failed = new CompletableFuture<>();
+      failed.completeExceptionally(
+          new IllegalStateException("failed to serialise checkpoint", e));
+      return failed;
+    }
   }
 
   private CompletableFuture<Checkpoint> executePaginatedBatchUpload(
