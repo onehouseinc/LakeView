@@ -298,6 +298,9 @@ class TableMetadataUploaderServiceTest {
                                 .checkpoint(currentCheckpointJson)
                                 .build()))
                     .build()));
+    when(hoodiePropertiesReader.readHoodieProperties(
+            String.format("%s%s/%s", S3_TABLE_URI, HOODIE_FOLDER_NAME, HOODIE_PROPERTIES_FILE)))
+        .thenReturn(CompletableFuture.completedFuture(PARSED_HUDI_PROPERTIES));
     when(timelineCommitInstantsUploader.batchUploadWithCheckpoint(
             TABLE_ID.toString(),
             TABLE,
@@ -388,6 +391,10 @@ class TableMetadataUploaderServiceTest {
         .thenReturn(CompletableFuture.completedFuture(PARSED_HUDI_PROPERTIES));
     when(onehouseApiClient.initializeTableMetricsCheckpoint(expectedRequest))
         .thenReturn(CompletableFuture.completedFuture(initializeTableMetricsCheckpointResponse));
+    // table 2 (existing table) - read properties for version info
+    when(hoodiePropertiesReader.readHoodieProperties(
+            String.format("%s%s/%s", s3TableUri2, HOODIE_FOLDER_NAME, HOODIE_PROPERTIES_FILE)))
+        .thenReturn(CompletableFuture.completedFuture(PARSED_HUDI_PROPERTIES));
     // table 1
     when(timelineCommitInstantsUploader.batchUploadWithCheckpoint(
             TABLE_ID.toString(),
@@ -482,6 +489,9 @@ class TableMetadataUploaderServiceTest {
                                 .checkpoint(currentCheckpointJson)
                                 .build()))
                     .build()));
+    when(hoodiePropertiesReader.readHoodieProperties(
+            String.format("%s%s/%s", S3_TABLE_URI, HOODIE_FOLDER_NAME, HOODIE_PROPERTIES_FILE)))
+        .thenReturn(CompletableFuture.completedFuture(PARSED_HUDI_PROPERTIES));
     Checkpoint expectedCheckpoint =
         shouldResetCheckpoint ? currentCheckpointWithResetFields : currentCheckpoint;
     when(timelineCommitInstantsUploader.paginatedBatchUploadWithCheckpoint(

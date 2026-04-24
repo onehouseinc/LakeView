@@ -14,6 +14,7 @@ import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.config.models.configv1.ParserConfig;
 import ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher;
 import ai.onehouse.metadata_extractor.HoodiePropertiesReader;
+import ai.onehouse.metadata_extractor.LSMTimelineManifestReader;
 import ai.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
 import ai.onehouse.metadata_extractor.TableDiscoveryService;
 import ai.onehouse.metadata_extractor.TableMetadataUploaderService;
@@ -259,9 +260,11 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
         lakeViewExtractorMetrics);
     PresignedUrlFileUploader presignedUrlFileUploader = new PresignedUrlFileUploader(asyncStorageClient,
         asyncHttpClientWithRetry, lakeViewExtractorMetrics);
+    LSMTimelineManifestReader lsmTimelineManifestReader = new LSMTimelineManifestReader(asyncStorageClient,
+        storageUtils);
     TimelineCommitInstantsUploader timelineCommitInstantsUploader = new TimelineCommitInstantsUploader(asyncStorageClient,
         presignedUrlFileUploader, onehouseApiClient, storageUtils, executorService, new ActiveTimelineInstantBatcher(config),
-        lakeViewExtractorMetrics, config);
+        lakeViewExtractorMetrics, config, lsmTimelineManifestReader);
     TableMetadataUploaderService tableMetadataUploaderService = new TableMetadataUploaderService(hoodiePropertiesReader,
         onehouseApiClient, timelineCommitInstantsUploader, lakeViewExtractorMetrics, executorService);
 
