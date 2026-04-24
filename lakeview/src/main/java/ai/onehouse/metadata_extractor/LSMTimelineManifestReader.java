@@ -59,19 +59,26 @@ public class LSMTimelineManifestReader {
     String versionFileUri = storageUtils.constructFileUri(historyDirectoryUri, VERSION_MARKER_FILE);
     return asyncStorageClient
         .readFileAsBytes(versionFileUri)
-        .thenCompose(
-            versionBytes -> {
-              int version = parseVersionFile(versionBytes);
-              return readManifestForVersion(historyDirectoryUri, version)
-                  .thenApply(files -> ManifestSnapshot.of(version, files));
-            })
         .exceptionally(
             throwable -> {
+              // Only treat as empty when _version_ itself is missing (no archives written yet).
               log.info(
                   "No V2 archived timeline _version_ file at {} (treating as empty). Reason: {}",
                   versionFileUri,
                   throwable.getMessage());
-              return ManifestSnapshot.empty();
+              return null;
+            })
+        .thenCompose(
+            versionBytes -> {
+              if (versionBytes == null) {
+                return CompletableFuture.completedFuture(ManifestSnapshot.empty());
+              }
+              int version = parseVersionFile(versionBytes);
+              // Manifest read failures propagate to the caller so the upload is retried
+              // on the next sync cycle rather than silently treating a readable _version_
+              // as "no archives."
+              return readManifestForVersion(historyDirectoryUri, version)
+                  .thenApply(files -> ManifestSnapshot.of(version, files));
             });
   }
 

@@ -1,8 +1,8 @@
 package ai.onehouse.metadata_extractor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import ai.onehouse.metadata_extractor.LSMTimelineManifestReader.ManifestSnapshot;
@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -65,6 +66,20 @@ class LSMTimelineManifestReaderTest {
     assertTrue(snapshot.isEmpty());
     assertEquals(0, snapshot.getVersion());
     assertEquals(Collections.emptyList(), snapshot.getParquetFileNames());
+  }
+
+  @Test
+  void testReadLatestManifest_ManifestReadFailurePropagates() {
+    // _version_ exists but the manifest it points to is unreadable. This should NOT
+    // return empty — it should propagate the exception so the caller retries next cycle.
+    mockReadFile(HISTORY_URI + "_version_", "2");
+    when(asyncStorageClient.readFileAsBytes(HISTORY_URI + "manifest_2"))
+        .thenReturn(failedFuture(new RuntimeException("AccessDenied")));
+
+    CompletableFuture<ManifestSnapshot> future = reader.readLatestManifest(HISTORY_URI);
+
+    CompletionException ex = assertThrows(CompletionException.class, future::join);
+    assertTrue(ex.getCause().getMessage().contains("AccessDenied"));
   }
 
   @Test

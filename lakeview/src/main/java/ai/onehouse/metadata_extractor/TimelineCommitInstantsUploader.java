@@ -291,11 +291,12 @@ public class TimelineCommitInstantsUploader {
 
           log.info(
               "V2 archived: mirroring {} new parquet(s) plus manifest_{} for table {}"
-                  + " (previous mirrored manifest version: {})",
+                  + " (previous manifest version: {}, previous file count: {})",
               newParquetCount,
               currentVersion,
               table,
-              previousVersion);
+              previousVersion,
+              previouslyMirrored.size());
 
           return uploadV2ArchivedFilesInBatches(
               tableId, table, filesToUpload, checkpoint, currentVersion);
