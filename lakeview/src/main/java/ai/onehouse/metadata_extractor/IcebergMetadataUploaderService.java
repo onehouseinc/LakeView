@@ -186,6 +186,30 @@ public class IcebergMetadataUploaderService {
   }
 
   private CompletableFuture<Boolean> uploadIfNewMetadataJson(Table table, Checkpoint checkpoint) {
+    // Fast path: control plane provided the current metadata.json URI (e.g. from AWS Glue's
+    // metadata_location parameter). Skip the per-cycle LIST and PUT the file directly.
+    if (StringUtils.isNotBlank(table.getMetadataLocationHint())) {
+      String hint = table.getMetadataLocationHint();
+      String filename = lastPathSegment(hint);
+      if (filename.equals(checkpoint.getLastUploadedFile())) {
+        log.debug(
+            "Iceberg table {} already up-to-date at {} (from hint)",
+            table.getTableId(),
+            filename);
+        return CompletableFuture.completedFuture(true);
+      }
+      File synthetic =
+          File.builder()
+              .filename(filename)
+              .isDirectory(false)
+              // Hint doesn't carry lastModifiedAt; use now() since it's only used for ordering
+              // on the consumer side and is not load-bearing for correctness.
+              .lastModifiedAt(Instant.now())
+              .build();
+      return uploadAndAdvanceCheckpoint(table, hint, synthetic, checkpoint);
+    }
+
+    // Fallback path: list metadata/ and lex-sort.
     String metadataDirUri =
         storageUtils.constructFileUri(table.getAbsoluteTableUri(), ICEBERG_METADATA_FOLDER_NAME);
     return asyncStorageClient
@@ -207,13 +231,14 @@ public class IcebergMetadataUploaderService {
                     latest.get().getFilename());
                 return CompletableFuture.completedFuture(true);
               }
-              return uploadAndAdvanceCheckpoint(table, metadataDirUri, latest.get(), checkpoint);
+              String fileUri =
+                  storageUtils.constructFileUri(metadataDirUri, latest.get().getFilename());
+              return uploadAndAdvanceCheckpoint(table, fileUri, latest.get(), checkpoint);
             });
   }
 
   private CompletableFuture<Boolean> uploadAndAdvanceCheckpoint(
-      Table table, String metadataDirUri, File metadataJson, Checkpoint priorCheckpoint) {
-    String fileUri = storageUtils.constructFileUri(metadataDirUri, metadataJson.getFilename());
+      Table table, String fileUri, File metadataJson, Checkpoint priorCheckpoint) {
     return onehouseApiClient
         .generateCommitMetadataUploadUrl(
             GenerateCommitMetadataUploadUrlRequest.builder()
@@ -301,6 +326,11 @@ public class IcebergMetadataUploaderService {
         .filter(f -> !f.isDirectory())
         .filter(f -> f.getFilename().endsWith(ICEBERG_METADATA_FILE_SUFFIX))
         .max((a, b) -> a.getFilename().compareTo(b.getFilename()));
+  }
+
+  static String lastPathSegment(String uri) {
+    int idx = uri.lastIndexOf('/');
+    return idx < 0 ? uri : uri.substring(idx + 1);
   }
 
   private static String deriveTableName(String basePathUri) {

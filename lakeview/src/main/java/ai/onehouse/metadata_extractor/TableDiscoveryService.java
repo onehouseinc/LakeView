@@ -10,6 +10,7 @@ import ai.onehouse.config.ConfigProvider;
 import ai.onehouse.config.models.configv1.Database;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.config.models.configv1.ParserConfig;
+import ai.onehouse.config.models.configv1.TableHint;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import ai.onehouse.storage.AsyncStorageClient;
@@ -74,6 +75,17 @@ public class TableDiscoveryService {
     log.info("Starting table discover service, excluding {}", excludedPathPatterns);
     List<Pair<String, CompletableFuture<Set<Table>>>> pathToDiscoveredTablesFuturePairList =
         new ArrayList<>();
+    // Merge per-database tableHints into a single tableId -> hint map. Hints are
+    // optional metadata supplied by the control plane (e.g. Iceberg metadata_location)
+    // and are looked up after discovery, once the tableId is known.
+    java.util.Map<String, TableHint> tableHintsByTableId = new java.util.HashMap<>();
+    for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
+      for (Database database : parserConfig.getDatabases()) {
+        if (database.getTableHints() != null) {
+          tableHintsByTableId.putAll(database.getTableHints());
+        }
+      }
+    }
 
     for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
       for (Database database : parserConfig.getDatabases()) {
@@ -116,7 +128,12 @@ public class TableDiscoveryService {
                     continue;
                   }
                   Table table = discoveredTables.iterator().next();
-                  table = table.toBuilder().tableId(tableId).build();
+                  Table.TableBuilder builder = table.toBuilder().tableId(tableId);
+                  TableHint hint = tableHintsByTableId.get(tableId);
+                  if (hint != null && StringUtils.isNotBlank(hint.getMetadataLocationHint())) {
+                    builder.metadataLocationHint(hint.getMetadataLocationHint());
+                  }
+                  table = builder.build();
                   discoveredTables = Collections.singleton(table);
                 }
 

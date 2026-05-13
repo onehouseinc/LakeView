@@ -60,6 +60,23 @@ class TestIcebergMetadataUploaderService {
             .isPresent());
   }
 
+  @Test
+  void lastPathSegmentExtractsFilenameFromUri() {
+    assertEquals(
+        "00042-uuid.metadata.json",
+        IcebergMetadataUploaderService.lastPathSegment(
+            "s3://bucket/db/t/metadata/00042-uuid.metadata.json"));
+    assertEquals(
+        "v3.metadata.json",
+        IcebergMetadataUploaderService.lastPathSegment(
+            "s3a://bucket/db/t/metadata/v3.metadata.json"));
+  }
+
+  @Test
+  void lastPathSegmentReturnsInputWhenNoSlash() {
+    assertEquals("filename.json", IcebergMetadataUploaderService.lastPathSegment("filename.json"));
+  }
+
   private static File jsonFile(String name) {
     return File.builder().filename(name).isDirectory(false).lastModifiedAt(Instant.EPOCH).build();
   }
