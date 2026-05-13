@@ -1,11 +1,14 @@
 package ai.onehouse.metadata_extractor;
 
 import static ai.onehouse.constants.MetadataExtractorConstants.DEFAULT_FILE_UPLOAD_STREAM_BATCH_SIZE;
+import static ai.onehouse.constants.MetadataExtractorConstants.ICEBERG_HADOOP_METADATA_FILE_PREFIX;
 import static ai.onehouse.constants.MetadataExtractorConstants.ICEBERG_METADATA_FILE_SUFFIX;
 import static ai.onehouse.constants.MetadataExtractorConstants.ICEBERG_METADATA_FOLDER_NAME;
+import static ai.onehouse.constants.MetadataExtractorConstants.ICEBERG_VERSION_HINT_FILENAME;
 import static ai.onehouse.constants.MetadataExtractorConstants.INITIAL_CHECKPOINT;
 import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 
+import ai.onehouse.RuntimeModule.TableDiscoveryObjectStorageAsyncClient;
 import ai.onehouse.api.OnehouseApiClient;
 import ai.onehouse.api.models.request.CommitTimelineType;
 import ai.onehouse.api.models.request.GenerateCommitMetadataUploadUrlRequest;
@@ -15,7 +18,6 @@ import ai.onehouse.api.models.request.TableFormat;
 import ai.onehouse.api.models.request.TableType;
 import ai.onehouse.api.models.request.UploadedFile;
 import ai.onehouse.api.models.request.UpsertTableMetricsCheckpointRequest;
-import ai.onehouse.api.models.response.GenerateCommitMetadataUploadUrlResponse;
 import ai.onehouse.api.models.response.GetTableMetricsCheckpointResponse;
 import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.metadata_extractor.models.Checkpoint;
@@ -25,13 +27,14 @@ import ai.onehouse.storage.AsyncStorageClient;
 import ai.onehouse.storage.PresignedUrlFileUploader;
 import ai.onehouse.storage.StorageUtils;
 import ai.onehouse.storage.models.File;
-import ai.onehouse.RuntimeModule.TableDiscoveryObjectStorageAsyncClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.inject.Inject;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -55,6 +58,17 @@ import org.apache.commons.lang3.StringUtils;
  * manifest plumbing don't apply, so a separate service is clearer than a branching megaclass.
  * Shared primitives ({@link OnehouseApiClient}, {@link PresignedUrlFileUploader}, {@link
  * AsyncStorageClient}) are reused.
+ *
+ * <p><b>Selecting the current pointer.</b> Three paths, in order of preference:
+ * <ol>
+ *   <li>{@link Table#getMetadataLocationHint()} from the parser YAML (catalog-driven).</li>
+ *   <li>{@code metadata/version-hint.text} for Hadoop-catalog tables — its integer content names
+ *       the current {@code v{N}.metadata.json} unambiguously.</li>
+ *   <li>Numeric-aware filename comparison as a last resort. The leading integer in the filename
+ *       (after an optional {@code v} prefix) is treated as the version number. Works for both
+ *       {@code v{N}.metadata.json} (Hadoop) and {@code 00000-<uuid>.metadata.json}
+ *       (Hive/Glue/Spark) without depending on zero-padding.</li>
+ * </ol>
  */
 @Slf4j
 public class IcebergMetadataUploaderService {
@@ -202,39 +216,98 @@ public class IcebergMetadataUploaderService {
           File.builder()
               .filename(filename)
               .isDirectory(false)
-              // Hint doesn't carry lastModifiedAt; use now() since it's only used for ordering
-              // on the consumer side and is not load-bearing for correctness.
+              // Hint doesn't carry lastModifiedAt; use now() since the consumer treats this as
+              // advisory and discriminates by checkpoint batchId for ordering.
               .lastModifiedAt(Instant.now())
               .build();
       return uploadAndAdvanceCheckpoint(table, hint, synthetic, checkpoint);
     }
 
-    // Fallback path: list metadata/ and lex-sort.
+    // Fallback path: list metadata/, prefer version-hint.text, else numeric-aware sort.
     String metadataDirUri =
         storageUtils.constructFileUri(table.getAbsoluteTableUri(), ICEBERG_METADATA_FOLDER_NAME);
     return asyncStorageClient
         .listAllFilesInDir(metadataDirUri)
         .thenComposeAsync(
-            files -> {
-              Optional<File> latest = pickLatestMetadataJson(files);
-              if (!latest.isPresent()) {
-                log.warn(
-                    "Iceberg table {} has no metadata.json under {}",
-                    table.getTableId(),
-                    metadataDirUri);
-                return CompletableFuture.completedFuture(true);
+            files ->
+                resolveLatestMetadataJson(metadataDirUri, files)
+                    .thenComposeAsync(
+                        latestOpt -> {
+                          if (!latestOpt.isPresent()) {
+                            log.error(
+                                "Iceberg table {} has no *.metadata.json under {}",
+                                table.getTableId(),
+                                metadataDirUri);
+                            metrics.incrementTableMetadataProcessingFailureCounter(
+                                MetricsConstants.MetadataUploadFailureReasons.NO_SUCH_KEY,
+                                "Iceberg table missing metadata.json files");
+                            return CompletableFuture.completedFuture(false);
+                          }
+                          File latest = latestOpt.get();
+                          if (latest.getFilename().equals(checkpoint.getLastUploadedFile())) {
+                            log.debug(
+                                "Iceberg table {} already up-to-date at {}",
+                                table.getTableId(),
+                                latest.getFilename());
+                            return CompletableFuture.completedFuture(true);
+                          }
+                          String fileUri =
+                              storageUtils.constructFileUri(metadataDirUri, latest.getFilename());
+                          return uploadAndAdvanceCheckpoint(table, fileUri, latest, checkpoint);
+                        }));
+  }
+
+  /**
+   * Resolves the current {@code metadata.json} given a listing of {@code metadata/}. Reads
+   * {@code version-hint.text} when present and falls back to numeric-aware filename comparison
+   * otherwise.
+   */
+  private CompletableFuture<Optional<File>> resolveLatestMetadataJson(
+      String metadataDirUri, List<File> files) {
+    Optional<File> versionHintFile =
+        files.stream()
+            .filter(f -> !f.isDirectory() && ICEBERG_VERSION_HINT_FILENAME.equals(f.getFilename()))
+            .findFirst();
+    if (!versionHintFile.isPresent()) {
+      return CompletableFuture.completedFuture(pickLatestMetadataJson(files));
+    }
+    String hintUri = storageUtils.constructFileUri(metadataDirUri, ICEBERG_VERSION_HINT_FILENAME);
+    return asyncStorageClient
+        .readFileAsBytes(hintUri)
+        .thenApply(
+            bytes -> {
+              Optional<File> fromHint = resolveFromVersionHint(bytes, files);
+              if (fromHint.isPresent()) {
+                return fromHint;
               }
-              if (latest.get().getFilename().equals(checkpoint.getLastUploadedFile())) {
-                log.debug(
-                    "Iceberg table {} already up-to-date at {}",
-                    table.getTableId(),
-                    latest.get().getFilename());
-                return CompletableFuture.completedFuture(true);
-              }
-              String fileUri =
-                  storageUtils.constructFileUri(metadataDirUri, latest.get().getFilename());
-              return uploadAndAdvanceCheckpoint(table, fileUri, latest.get(), checkpoint);
+              log.warn(
+                  "version-hint.text at {} did not point at an existing metadata.json; falling back to numeric sort",
+                  hintUri);
+              return pickLatestMetadataJson(files);
+            })
+        .exceptionally(
+            ex -> {
+              log.warn(
+                  "Failed to read version-hint.text at {}; falling back to numeric sort",
+                  hintUri,
+                  ex);
+              return pickLatestMetadataJson(files);
             });
+  }
+
+  static Optional<File> resolveFromVersionHint(byte[] versionHintBytes, List<File> files) {
+    String content = new String(versionHintBytes, StandardCharsets.UTF_8).trim();
+    long version;
+    try {
+      version = Long.parseLong(content);
+    } catch (NumberFormatException e) {
+      log.warn("version-hint.text contained non-integer content: '{}'", content);
+      return Optional.empty();
+    }
+    String target = ICEBERG_HADOOP_METADATA_FILE_PREFIX + version + ICEBERG_METADATA_FILE_SUFFIX;
+    return files.stream()
+        .filter(f -> !f.isDirectory() && target.equals(f.getFilename()))
+        .findFirst();
   }
 
   private CompletableFuture<Boolean> uploadAndAdvanceCheckpoint(
@@ -317,15 +390,55 @@ public class IcebergMetadataUploaderService {
   }
 
   /**
-   * Picks the latest metadata.json from a {@code metadata/} listing. Both naming conventions in
-   * use today — {@code v{N}.metadata.json} (Hadoop catalog) and {@code 00000-<uuid>.metadata.json}
-   * (Hive / Glue / Spark) — sort to the same answer lexicographically.
+   * Picks the latest {@code *.metadata.json} from a {@code metadata/} listing using numeric-aware
+   * comparison. The leading integer in the filename (after an optional {@code v} prefix) is the
+   * version number; ties fall back to lexicographic order on the full filename so the result is
+   * deterministic.
+   *
+   * <p>Examples:
+   * <ul>
+   *   <li>{@code v1.metadata.json}, {@code v10.metadata.json}, {@code v2.metadata.json} →
+   *       {@code v10.metadata.json}</li>
+   *   <li>{@code 00001-a.metadata.json}, {@code 00010-b.metadata.json} →
+   *       {@code 00010-b.metadata.json}</li>
+   * </ul>
    */
   static Optional<File> pickLatestMetadataJson(List<File> files) {
+    Comparator<File> byVersionThenName =
+        Comparator.<File>comparingLong(f -> extractVersionNumber(f.getFilename()))
+            .thenComparing(File::getFilename);
     return files.stream()
         .filter(f -> !f.isDirectory())
         .filter(f -> f.getFilename().endsWith(ICEBERG_METADATA_FILE_SUFFIX))
-        .max((a, b) -> a.getFilename().compareTo(b.getFilename()));
+        .max(byVersionThenName);
+  }
+
+  /**
+   * Extracts the leading integer "version number" from an Iceberg metadata-json filename. Returns
+   * {@code -1} when no integer prefix is present (the file still participates in ordering — it
+   * just loses any tiebreak with numerically-named siblings).
+   */
+  static long extractVersionNumber(String filename) {
+    String base =
+        filename.endsWith(ICEBERG_METADATA_FILE_SUFFIX)
+            ? filename.substring(0, filename.length() - ICEBERG_METADATA_FILE_SUFFIX.length())
+            : filename;
+    int i = 0;
+    if (i < base.length() && base.charAt(i) == 'v') {
+      i++;
+    }
+    int start = i;
+    while (i < base.length() && Character.isDigit(base.charAt(i))) {
+      i++;
+    }
+    if (i == start) {
+      return -1L;
+    }
+    try {
+      return Long.parseLong(base.substring(start, i));
+    } catch (NumberFormatException e) {
+      return -1L;
+    }
   }
 
   static String lastPathSegment(String uri) {

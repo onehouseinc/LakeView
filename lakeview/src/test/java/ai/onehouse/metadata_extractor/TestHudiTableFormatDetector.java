@@ -12,6 +12,7 @@ import java.util.Collections;
 import org.junit.jupiter.api.Test;
 
 class TestHudiTableFormatDetector {
+  private static final String ANY_PATH = "s3://bucket/db/t/";
   private final HudiTableFormatDetector detector = new HudiTableFormatDetector();
 
   @Test
@@ -22,22 +23,27 @@ class TestHudiTableFormatDetector {
   @Test
   void matchesWhenHoodieFolderPresent() {
     assertTrue(
-        detector.matches(
-            Arrays.asList(
-                file(".hoodie", true),
-                file("part-0.parquet", false))));
+        detector
+            .matches(
+                ANY_PATH,
+                Arrays.asList(file(".hoodie", true), file("part-0.parquet", false)))
+            .join());
   }
 
   @Test
   void doesNotMatchWhenAbsent() {
-    assertFalse(detector.matches(Collections.singletonList(file("part-0.parquet", false))));
+    assertFalse(
+        detector
+            .matches(ANY_PATH, Collections.singletonList(file("part-0.parquet", false)))
+            .join());
   }
 
   @Test
   void doesNotMatchOnIcebergLayout() {
     assertFalse(
-        detector.matches(
-            Arrays.asList(file("metadata", true), file("data", true))));
+        detector
+            .matches(ANY_PATH, Arrays.asList(file("metadata", true), file("data", true)))
+            .join());
   }
 
   private static File file(String name, boolean dir) {

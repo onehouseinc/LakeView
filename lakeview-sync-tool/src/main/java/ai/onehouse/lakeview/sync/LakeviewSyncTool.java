@@ -257,7 +257,8 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
 
     TableDiscoveryService tableDiscoveryService = new TableDiscoveryService(asyncStorageClient, storageUtils,
             configProvider, executorService, lakeViewExtractorMetrics,
-            new HudiTableFormatDetector(), new IcebergTableFormatDetector());
+            new HudiTableFormatDetector(),
+            new IcebergTableFormatDetector(asyncStorageClient, storageUtils));
     HoodiePropertiesReader hoodiePropertiesReader = new HoodiePropertiesReader(asyncStorageClient,
         lakeViewExtractorMetrics);
     OnehouseApiClient onehouseApiClient = new OnehouseApiClient(asyncHttpClientWithRetry, config,

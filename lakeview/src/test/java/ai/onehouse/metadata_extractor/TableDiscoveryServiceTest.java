@@ -166,7 +166,7 @@ class TableDiscoveryServiceTest {
             ForkJoinPool.commonPool(),
             hudiMetadataExtractorMetrics,
             new HudiTableFormatDetector(),
-            new IcebergTableFormatDetector());
+            new IcebergTableFormatDetector(asyncStorageClient, new StorageUtils()));
 
     Set<Table> tableSet = tableDiscoveryService.discoverTables().get();
     List<Table> expectedResponseSet =
@@ -260,7 +260,7 @@ class TableDiscoveryServiceTest {
             ForkJoinPool.commonPool(),
             hudiMetadataExtractorMetrics,
             new HudiTableFormatDetector(),
-            new IcebergTableFormatDetector());
+            new IcebergTableFormatDetector(asyncStorageClient, new StorageUtils()));
 
     Set<Table> discoveredTables = tableDiscoveryService.discoverTables().join();
     assertEquals(emptySet(), discoveredTables);
@@ -300,7 +300,7 @@ class TableDiscoveryServiceTest {
             ForkJoinPool.commonPool(),
             hudiMetadataExtractorMetrics,
             new HudiTableFormatDetector(),
-            new IcebergTableFormatDetector());
+            new IcebergTableFormatDetector(s3AsyncStorageClient, new StorageUtils()));
     assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
   }
 
@@ -334,7 +334,7 @@ class TableDiscoveryServiceTest {
             ForkJoinPool.commonPool(),
             hudiMetadataExtractorMetrics,
             new HudiTableFormatDetector(),
-            new IcebergTableFormatDetector());
+            new IcebergTableFormatDetector(asyncStorageClient, new StorageUtils()));
     assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
   }
 
@@ -367,7 +367,7 @@ class TableDiscoveryServiceTest {
                     ForkJoinPool.commonPool(),
                     hudiMetadataExtractorMetrics,
                     new HudiTableFormatDetector(),
-                    new IcebergTableFormatDetector());
+                    new IcebergTableFormatDetector(asyncStorageClient, new StorageUtils()));
 
     assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
 
@@ -375,6 +375,72 @@ class TableDiscoveryServiceTest {
     verify(hudiMetadataExtractorMetrics)
             .incrementTableDiscoveryFailureCounter(
                     MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING);
+  }
+
+  @Test
+  void testDiscoverIcebergTableByDeclaredFormat() {
+    // Database declared as ICEBERG. Two children: `orders/` is a real Iceberg table (metadata/
+    // with a *.metadata.json), `docs/` is a false-positive shape (metadata/ but no .metadata.json
+    // inside) and must be skipped.
+    String basePath = "s3://bucket/iceberg_warehouse/";
+    String ordersPath = basePath + "orders/";
+    String ordersMetadata = ordersPath + "metadata";
+    String docsPath = basePath + "docs/";
+    String docsMetadata = docsPath + "metadata";
+
+    when(asyncStorageClient.listAllFilesInDir(basePath))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                Arrays.asList(generateFileObj("orders/", true), generateFileObj("docs/", true))));
+    when(asyncStorageClient.listAllFilesInDir(ordersPath))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                Arrays.asList(
+                    generateFileObj("metadata", true), generateFileObj("data", true))));
+    when(asyncStorageClient.listAllFilesInDir(ordersMetadata))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                Arrays.asList(generateFileObj("v1.metadata.json", false))));
+    when(asyncStorageClient.listAllFilesInDir(docsPath))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                Arrays.asList(generateFileObj("metadata", true))));
+    when(asyncStorageClient.listAllFilesInDir(docsMetadata))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                Arrays.asList(generateFileObj("README.md", false))));
+
+    when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
+    when(metadataExtractorConfig.getPathExclusionPatterns()).thenReturn(Optional.of(emptyList()));
+    when(metadataExtractorConfig.getParserConfig())
+        .thenReturn(
+            Collections.singletonList(
+                ParserConfig.builder()
+                    .lake(LAKE)
+                    .databases(
+                        Collections.singletonList(
+                            Database.builder()
+                                .name(DATABASE)
+                                .tableFormat(ai.onehouse.api.models.request.TableFormat.ICEBERG)
+                                .basePaths(Collections.singletonList(basePath))
+                                .build()))
+                    .build()));
+
+    tableDiscoveryService =
+        new TableDiscoveryService(
+            asyncStorageClient,
+            new StorageUtils(),
+            new ConfigProvider(config),
+            ForkJoinPool.commonPool(),
+            hudiMetadataExtractorMetrics,
+            new HudiTableFormatDetector(),
+            new IcebergTableFormatDetector(asyncStorageClient, new StorageUtils()));
+
+    Set<Table> tables = tableDiscoveryService.discoverTables().join();
+    assertEquals(1, tables.size());
+    Table only = tables.iterator().next();
+    assertEquals(ordersPath, only.getAbsoluteTableUri());
+    assertEquals(ai.onehouse.api.models.request.TableFormat.ICEBERG, only.getTableFormat());
   }
 
   private File generateFileObj(String fileName, boolean isDirectory) {
