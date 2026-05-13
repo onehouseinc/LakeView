@@ -1,24 +1,28 @@
 package ai.onehouse.metadata_extractor;
 
-import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 import static java.util.Collections.emptySet;
 
-import com.google.inject.Inject;
-import ai.onehouse.constants.MetricsConstants;
+import ai.onehouse.RuntimeModule.TableDiscoveryObjectStorageAsyncClient;
+import ai.onehouse.api.models.request.TableFormat;
 import ai.onehouse.config.ConfigProvider;
 import ai.onehouse.config.models.configv1.Database;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.config.models.configv1.ParserConfig;
+import ai.onehouse.config.models.configv1.TableHint;
+import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import ai.onehouse.storage.AsyncStorageClient;
 import ai.onehouse.storage.StorageUtils;
 import ai.onehouse.storage.models.File;
-import ai.onehouse.RuntimeModule.TableDiscoveryObjectStorageAsyncClient;
+import com.google.common.collect.ImmutableMap;
+import com.google.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,8 +34,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 /*
- * Discovers hudi tables by Parsing all folders (including nested folders) in provided base paths
- * excluded paths will be skipped.
+ * Discovers tables by walking all folders (including nested folders) in provided base paths.
+ * Each {@link Database} in the parser YAML declares its {@code tableFormat}; this service picks
+ * the single {@link TableFormatDetector} matching that format and applies it to every directory
+ * under the database's base paths. Excluded paths are skipped.
  */
 @Slf4j
 public class TableDiscoveryService {
@@ -41,6 +47,7 @@ public class TableDiscoveryService {
   private final ExecutorService executorService;
   private final ConfigProvider configProvider;
   private final LakeViewExtractorMetrics lakeviewExtractorMetrics;
+  private final Map<TableFormat, TableFormatDetector> detectorsByFormat;
 
   @Inject
   public TableDiscoveryService(
@@ -48,12 +55,18 @@ public class TableDiscoveryService {
       @Nonnull StorageUtils storageUtils,
       @Nonnull ConfigProvider configProvider,
       @Nonnull ExecutorService executorService,
-      @Nonnull LakeViewExtractorMetrics lakeviewExtractorMetrics) {
+      @Nonnull LakeViewExtractorMetrics lakeviewExtractorMetrics,
+      @Nonnull HudiTableFormatDetector hudiTableFormatDetector,
+      @Nonnull IcebergTableFormatDetector icebergTableFormatDetector) {
     this.asyncStorageClient = asyncStorageClient;
     this.storageUtils = storageUtils;
     this.executorService = executorService;
     this.configProvider = configProvider;
     this.lakeviewExtractorMetrics = lakeviewExtractorMetrics;
+    this.detectorsByFormat =
+        ImmutableMap.of(
+            TableFormat.HUDI, hudiTableFormatDetector,
+            TableFormat.ICEBERG, icebergTableFormatDetector);
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
@@ -64,9 +77,29 @@ public class TableDiscoveryService {
     log.info("Starting table discover service, excluding {}", excludedPathPatterns);
     List<Pair<String, CompletableFuture<Set<Table>>>> pathToDiscoveredTablesFuturePairList =
         new ArrayList<>();
+    // Merge per-database tableHints into a single tableId -> hint map. Hints are optional metadata
+    // supplied by the control plane (e.g. Iceberg metadata_location) and are looked up after
+    // discovery, once the tableId is known.
+    Map<String, TableHint> tableHintsByTableId = new HashMap<>();
+    for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
+      for (Database database : parserConfig.getDatabases()) {
+        if (database.getTableHints() == null) {
+          continue;
+        }
+        for (Map.Entry<String, TableHint> entry : database.getTableHints().entrySet()) {
+          TableHint previous = tableHintsByTableId.put(entry.getKey(), entry.getValue());
+          if (previous != null) {
+            log.warn(
+                "Duplicate tableHint for tableId {} across databases; later entry wins.",
+                entry.getKey());
+          }
+        }
+      }
+    }
 
     for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
       for (Database database : parserConfig.getDatabases()) {
+        TableFormatDetector detector = detectorFor(database);
         for (String basePathConfig : database.getBasePaths()) {
           String basePath = extractBasePath(basePathConfig);
 
@@ -78,7 +111,11 @@ public class TableDiscoveryService {
               Pair.of(
                   basePathConfig,
                   discoverTablesInPath(
-                      basePath, parserConfig.getLake(), database.getName(), excludedPathPatterns)));
+                      basePath,
+                      parserConfig.getLake(),
+                      database.getName(),
+                      excludedPathPatterns,
+                      detector)));
         }
       }
     }
@@ -106,7 +143,12 @@ public class TableDiscoveryService {
                     continue;
                   }
                   Table table = discoveredTables.iterator().next();
-                  table = table.toBuilder().tableId(tableId).build();
+                  Table.TableBuilder builder = table.toBuilder().tableId(tableId);
+                  TableHint hint = tableHintsByTableId.get(tableId);
+                  if (hint != null && StringUtils.isNotBlank(hint.getMetadataLocationHint())) {
+                    builder.metadataLocationHint(hint.getMetadataLocationHint());
+                  }
+                  table = builder.build();
                   discoveredTables = Collections.singleton(table);
                 }
 
@@ -114,6 +156,16 @@ public class TableDiscoveryService {
               }
               return allTablePaths;
             });
+  }
+
+  private TableFormatDetector detectorFor(Database database) {
+    TableFormat declared = database.getTableFormat() == null ? TableFormat.HUDI : database.getTableFormat();
+    TableFormatDetector detector = detectorsByFormat.get(declared);
+    if (detector == null) {
+      // Programmer error: a new TableFormat enum value was added without a matching detector.
+      throw new IllegalStateException("No detector registered for tableFormat=" + declared);
+    }
+    return detector;
   }
 
   private String extractBasePath(String basePathConfig) {
@@ -127,68 +179,74 @@ public class TableDiscoveryService {
   }
 
   private CompletableFuture<Set<Table>> discoverTablesInPath(
-      String path, String lakeName, String databaseName, List<String> excludedPathPatterns) {
+      String path,
+      String lakeName,
+      String databaseName,
+      List<String> excludedPathPatterns,
+      TableFormatDetector detector) {
     try {
       log.info(String.format("Discovering tables in %s", path));
       return asyncStorageClient
           .listAllFilesInDir(path)
           .thenComposeAsync(
-              listedFiles -> {
-                Set<Table> tablePaths = ConcurrentHashMap.newKeySet();
-                List<CompletableFuture<Void>> recursiveFutures = new ArrayList<>();
+              listedFiles ->
+                  detector
+                      .matches(path, listedFiles)
+                      .thenComposeAsync(
+                          matched -> {
+                            Set<Table> tablePaths = ConcurrentHashMap.newKeySet();
+                            if (Boolean.TRUE.equals(matched)) {
+                              Table table =
+                                  Table.builder()
+                                      .absoluteTableUri(path)
+                                      .databaseName(databaseName)
+                                      .lakeName(lakeName)
+                                      .tableFormat(detector.format())
+                                      .build();
+                              if (!isExcluded(table.getAbsoluteTableUri(), excludedPathPatterns)) {
+                                tablePaths.add(table);
+                              }
+                              return CompletableFuture.completedFuture(tablePaths);
+                            }
 
-                if (isHudiTableFolder(listedFiles)) {
-                  Table table =
-                      Table.builder()
-                          .absoluteTableUri(path)
-                          .databaseName(databaseName)
-                          .lakeName(lakeName)
-                          .build();
-                  if (!isExcluded(table.getAbsoluteTableUri(), excludedPathPatterns)) {
-                    tablePaths.add(table);
-                  }
-                  return CompletableFuture.completedFuture(tablePaths);
-                }
-
-                List<File> directories =
-                    listedFiles.stream().filter(File::isDirectory).collect(Collectors.toList());
-
-                for (File file : directories) {
-                  String filePath = storageUtils.constructFileUri(path, file.getFilename());
-                  if (!isExcluded(filePath, excludedPathPatterns)) {
-                    CompletableFuture<Void> recursiveFuture =
-                        discoverTablesInPath(filePath, lakeName, databaseName, excludedPathPatterns)
-                            .thenAccept(tablePaths::addAll);
-                    recursiveFutures.add(recursiveFuture);
-                  }
-                }
-
-                return CompletableFuture.allOf(recursiveFutures.toArray(new CompletableFuture[0]))
-                    .thenApplyAsync(ignored -> tablePaths, executorService);
-              },
+                            List<File> directories =
+                                listedFiles.stream()
+                                    .filter(File::isDirectory)
+                                    .collect(Collectors.toList());
+                            List<CompletableFuture<Void>> recursiveFutures = new ArrayList<>();
+                            for (File file : directories) {
+                              String filePath =
+                                  storageUtils.constructFileUri(path, file.getFilename());
+                              if (!isExcluded(filePath, excludedPathPatterns)) {
+                                CompletableFuture<Void> recursiveFuture =
+                                    discoverTablesInPath(
+                                            filePath,
+                                            lakeName,
+                                            databaseName,
+                                            excludedPathPatterns,
+                                            detector)
+                                        .thenAccept(tablePaths::addAll);
+                                recursiveFutures.add(recursiveFuture);
+                              }
+                            }
+                            return CompletableFuture.allOf(
+                                    recursiveFutures.toArray(new CompletableFuture[0]))
+                                .thenApplyAsync(ignored -> tablePaths, executorService);
+                          },
+                          executorService),
               executorService)
           .exceptionally(
               e -> {
                 log.error("Failed to discover tables in path: {}", path, e);
                 lakeviewExtractorMetrics.incrementTableDiscoveryFailureCounter(
-                  getMetadataExtractorFailureReason(
-                    e,
-                    MetricsConstants.MetadataUploadFailureReasons.UNKNOWN)
-                );
+                    getMetadataExtractorFailureReason(
+                        e, MetricsConstants.MetadataUploadFailureReasons.UNKNOWN));
                 return emptySet();
               });
     } catch (Exception e) {
       log.error("Failed to discover tables in path: {}", path, e);
       return CompletableFuture.completedFuture(emptySet());
     }
-  }
-
-  /*
-   *  checks the contents of a folder to see if it is a hudi table or not
-   *  a folder is a hudi table if it contains .hoodie folder within it
-   */
-  private static boolean isHudiTableFolder(List<File> listedFiles) {
-    return listedFiles.stream().anyMatch(file -> file.getFilename().startsWith(HOODIE_FOLDER_NAME));
   }
 
   private boolean isExcluded(String filePath, List<String> excludedPathPatterns) {
