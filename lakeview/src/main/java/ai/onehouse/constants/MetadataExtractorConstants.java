@@ -14,6 +14,8 @@ public class MetadataExtractorConstants {
 
   public static final String HOODIE_FOLDER_NAME = ".hoodie";
   public static final String ARCHIVED_FOLDER_NAME = "archived";
+  public static final String ICEBERG_METADATA_FOLDER_NAME = "metadata";
+  public static final String ICEBERG_METADATA_FILE_SUFFIX = ".metadata.json";
   public static final String HOODIE_PROPERTIES_FILE = "hoodie.properties";
   public static final String HOODIE_TABLE_NAME_KEY = "hoodie.table.name";
   public static final String HOODIE_TABLE_TYPE_KEY = "hoodie.table.type";
