@@ -40,6 +40,7 @@ class TableDiscoveryAndUploadJobTest {
   @Mock private TableDiscoveryService mockTableDiscoveryService;
 
   @Mock private TableMetadataUploaderService mockTableMetadataUploaderService;
+  @Mock private IcebergMetadataUploaderService mockIcebergMetadataUploaderService;
 
   @Mock private ScheduledExecutorService mockScheduler;
 
@@ -56,6 +57,12 @@ class TableDiscoveryAndUploadJobTest {
 
   @BeforeEach
   void setUp(TestInfo info) {
+    // Existing tests exercise the Hudi path; dispatch routes any Iceberg-format tables (none in
+    // these tests) to the Iceberg uploader. Default the mock to a successful no-op so the dispatch
+    // combine doesn't NPE on the (empty Iceberg set) branch.
+    lenient()
+        .when(mockIcebergMetadataUploaderService.uploadInstantsInTables(anySet()))
+        .thenReturn(CompletableFuture.completedFuture(true));
     Instant fixedInstant =
         info.getDisplayName().startsWith("2023") ? Instant.parse(info.getDisplayName()) : Instant.now();
     try (MockedStatic<Instant> mockedInstant =
@@ -65,6 +72,7 @@ class TableDiscoveryAndUploadJobTest {
           new TableDiscoveryAndUploadJob(
               mockTableDiscoveryService,
               mockTableMetadataUploaderService,
+              mockIcebergMetadataUploaderService,
               mockHudiMetadataExtractorMetrics,
               asyncStorageClient) {
             @Override

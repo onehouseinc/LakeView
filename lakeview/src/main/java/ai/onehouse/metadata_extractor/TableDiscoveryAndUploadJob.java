@@ -1,5 +1,6 @@
 package ai.onehouse.metadata_extractor;
 
+import ai.onehouse.api.models.request.TableFormat;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.storage.AsyncStorageClient;
@@ -18,13 +19,17 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,6 +39,7 @@ import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataE
 public class TableDiscoveryAndUploadJob {
   private final TableDiscoveryService tableDiscoveryService;
   private final TableMetadataUploaderService tableMetadataUploaderService;
+  private final IcebergMetadataUploaderService icebergMetadataUploaderService;
   private final ScheduledExecutorService scheduler;
   private final Object lock = new Object();
   private final LakeViewExtractorMetrics hudiMetadataExtractorMetrics;
@@ -47,14 +53,39 @@ public class TableDiscoveryAndUploadJob {
   public TableDiscoveryAndUploadJob(
       @Nonnull TableDiscoveryService tableDiscoveryService,
       @Nonnull TableMetadataUploaderService tableMetadataUploaderService,
+      @Nonnull IcebergMetadataUploaderService icebergMetadataUploaderService,
       @Nonnull LakeViewExtractorMetrics hudiMetadataExtractorMetrics,
       @Nonnull @TableDiscoveryObjectStorageAsyncClient AsyncStorageClient asyncStorageClient) {
     this.scheduler = getScheduler();
     this.tableDiscoveryService = tableDiscoveryService;
     this.tableMetadataUploaderService = tableMetadataUploaderService;
+    this.icebergMetadataUploaderService = icebergMetadataUploaderService;
     this.hudiMetadataExtractorMetrics = hudiMetadataExtractorMetrics;
     this.firstCronRunStartTime = Instant.now();
     this.asyncStorageClient = asyncStorageClient;
+  }
+
+  /**
+   * Routes discovered tables to the appropriate per-format uploader and reduces to a single
+   * success boolean (all-or-nothing). Hudi and Iceberg tables are uploaded concurrently.
+   */
+  private CompletableFuture<Boolean> dispatchUpload(Set<Table> tables) {
+    Map<TableFormat, Set<Table>> byFormat =
+        tables.stream()
+            .collect(
+                Collectors.groupingBy(
+                    t -> t.getTableFormat() == null ? TableFormat.HUDI : t.getTableFormat(),
+                    Collectors.toSet()));
+    CompletableFuture<Boolean> hudiFuture =
+        tableMetadataUploaderService.uploadInstantsInTables(
+            byFormat.getOrDefault(TableFormat.HUDI, Collections.emptySet()));
+    CompletableFuture<Boolean> icebergFuture =
+        icebergMetadataUploaderService.uploadInstantsInTables(
+            byFormat.getOrDefault(TableFormat.ICEBERG, Collections.emptySet()));
+    // Treat a null result the same as success — the legacy contract on the Hudi uploader was
+    // "throw to fail," and downstream callers only inspect exceptions, not the boolean.
+    return hudiFuture.thenCombine(
+        icebergFuture, (a, b) -> !Boolean.FALSE.equals(a) && !Boolean.FALSE.equals(b));
   }
 
   /*
@@ -96,7 +127,7 @@ public class TableDiscoveryAndUploadJob {
     Boolean isSucceeded =
         tableDiscoveryService
             .discoverTables()
-            .thenCompose(tableMetadataUploaderService::uploadInstantsInTables)
+            .thenCompose(this::dispatchUpload)
             .join();
     if (Boolean.TRUE.equals(isSucceeded)) {
       log.info("Run Completed");
@@ -178,8 +209,7 @@ public class TableDiscoveryAndUploadJob {
         log.debug("Uploading table metadata for discovered tables");
         hudiMetadataExtractorMetrics.resetTableProcessedGauge();
         AtomicBoolean hasError = new AtomicBoolean(false);
-        tableMetadataUploaderService
-            .uploadInstantsInTables(tables)
+        dispatchUpload(tables)
             .exceptionally(
                 ex -> {
                   log.error("Error uploading instants in tables: ", ex);

@@ -164,7 +164,9 @@ class TableDiscoveryServiceTest {
             new StorageUtils(),
             new ConfigProvider(config),
             ForkJoinPool.commonPool(),
-            hudiMetadataExtractorMetrics);
+            hudiMetadataExtractorMetrics,
+            new HudiTableFormatDetector(),
+            new IcebergTableFormatDetector());
 
     Set<Table> tableSet = tableDiscoveryService.discoverTables().get();
     List<Table> expectedResponseSet =
@@ -256,7 +258,9 @@ class TableDiscoveryServiceTest {
             new StorageUtils(),
             new ConfigProvider(config),
             ForkJoinPool.commonPool(),
-            hudiMetadataExtractorMetrics);
+            hudiMetadataExtractorMetrics,
+            new HudiTableFormatDetector(),
+            new IcebergTableFormatDetector());
 
     Set<Table> discoveredTables = tableDiscoveryService.discoverTables().join();
     assertEquals(emptySet(), discoveredTables);
@@ -294,7 +298,9 @@ class TableDiscoveryServiceTest {
             new StorageUtils(),
             new ConfigProvider(config),
             ForkJoinPool.commonPool(),
-            hudiMetadataExtractorMetrics);
+            hudiMetadataExtractorMetrics,
+            new HudiTableFormatDetector(),
+            new IcebergTableFormatDetector());
     assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
   }
 
@@ -326,7 +332,9 @@ class TableDiscoveryServiceTest {
             new StorageUtils(),
             new ConfigProvider(config),
             ForkJoinPool.commonPool(),
-            hudiMetadataExtractorMetrics);
+            hudiMetadataExtractorMetrics,
+            new HudiTableFormatDetector(),
+            new IcebergTableFormatDetector());
     assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
   }
 
@@ -357,7 +365,9 @@ class TableDiscoveryServiceTest {
                     new StorageUtils(),
                     new ConfigProvider(config),
                     ForkJoinPool.commonPool(),
-                    hudiMetadataExtractorMetrics);
+                    hudiMetadataExtractorMetrics,
+                    new HudiTableFormatDetector(),
+                    new IcebergTableFormatDetector());
 
     assertEquals(emptySet(), tableDiscoveryService.discoverTables().join());
 
