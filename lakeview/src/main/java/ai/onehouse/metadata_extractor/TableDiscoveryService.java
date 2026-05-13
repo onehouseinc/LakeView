@@ -1,15 +1,16 @@
 package ai.onehouse.metadata_extractor;
 
-import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_FOLDER_NAME;
 import static ai.onehouse.metadata_extractor.MetadataExtractorUtils.getMetadataExtractorFailureReason;
 import static java.util.Collections.emptySet;
 
 import com.google.inject.Inject;
+import ai.onehouse.api.models.request.TableFormat;
 import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.config.ConfigProvider;
 import ai.onehouse.config.models.configv1.Database;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.config.models.configv1.ParserConfig;
+import ai.onehouse.config.models.configv1.TableHint;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
 import ai.onehouse.storage.AsyncStorageClient;
@@ -17,8 +18,10 @@ import ai.onehouse.storage.StorageUtils;
 import ai.onehouse.storage.models.File;
 import ai.onehouse.RuntimeModule.TableDiscoveryObjectStorageAsyncClient;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,8 +33,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 /*
- * Discovers hudi tables by Parsing all folders (including nested folders) in provided base paths
- * excluded paths will be skipped.
+ * Discovers tables by Parsing all folders (including nested folders) in provided base paths.
+ * Each directory is run through the registered {@link TableFormatDetector}s; the first detector
+ * that matches determines the table's format. Excluded paths are skipped.
  */
 @Slf4j
 public class TableDiscoveryService {
@@ -41,6 +45,7 @@ public class TableDiscoveryService {
   private final ExecutorService executorService;
   private final ConfigProvider configProvider;
   private final LakeViewExtractorMetrics lakeviewExtractorMetrics;
+  private final List<TableFormatDetector> tableFormatDetectors;
 
   @Inject
   public TableDiscoveryService(
@@ -48,12 +53,18 @@ public class TableDiscoveryService {
       @Nonnull StorageUtils storageUtils,
       @Nonnull ConfigProvider configProvider,
       @Nonnull ExecutorService executorService,
-      @Nonnull LakeViewExtractorMetrics lakeviewExtractorMetrics) {
+      @Nonnull LakeViewExtractorMetrics lakeviewExtractorMetrics,
+      @Nonnull HudiTableFormatDetector hudiTableFormatDetector,
+      @Nonnull IcebergTableFormatDetector icebergTableFormatDetector) {
     this.asyncStorageClient = asyncStorageClient;
     this.storageUtils = storageUtils;
     this.executorService = executorService;
     this.configProvider = configProvider;
     this.lakeviewExtractorMetrics = lakeviewExtractorMetrics;
+    // Hudi listed first so existing tables short-circuit on the cheaper check; new formats append.
+    this.tableFormatDetectors =
+        Collections.unmodifiableList(
+            Arrays.asList(hudiTableFormatDetector, icebergTableFormatDetector));
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
@@ -64,6 +75,17 @@ public class TableDiscoveryService {
     log.info("Starting table discover service, excluding {}", excludedPathPatterns);
     List<Pair<String, CompletableFuture<Set<Table>>>> pathToDiscoveredTablesFuturePairList =
         new ArrayList<>();
+    // Merge per-database tableHints into a single tableId -> hint map. Hints are
+    // optional metadata supplied by the control plane (e.g. Iceberg metadata_location)
+    // and are looked up after discovery, once the tableId is known.
+    java.util.Map<String, TableHint> tableHintsByTableId = new java.util.HashMap<>();
+    for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
+      for (Database database : parserConfig.getDatabases()) {
+        if (database.getTableHints() != null) {
+          tableHintsByTableId.putAll(database.getTableHints());
+        }
+      }
+    }
 
     for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
       for (Database database : parserConfig.getDatabases()) {
@@ -106,7 +128,12 @@ public class TableDiscoveryService {
                     continue;
                   }
                   Table table = discoveredTables.iterator().next();
-                  table = table.toBuilder().tableId(tableId).build();
+                  Table.TableBuilder builder = table.toBuilder().tableId(tableId);
+                  TableHint hint = tableHintsByTableId.get(tableId);
+                  if (hint != null && StringUtils.isNotBlank(hint.getMetadataLocationHint())) {
+                    builder.metadataLocationHint(hint.getMetadataLocationHint());
+                  }
+                  table = builder.build();
                   discoveredTables = Collections.singleton(table);
                 }
 
@@ -137,12 +164,14 @@ public class TableDiscoveryService {
                 Set<Table> tablePaths = ConcurrentHashMap.newKeySet();
                 List<CompletableFuture<Void>> recursiveFutures = new ArrayList<>();
 
-                if (isHudiTableFolder(listedFiles)) {
+                Optional<TableFormat> detected = detectTableFormat(listedFiles);
+                if (detected.isPresent()) {
                   Table table =
                       Table.builder()
                           .absoluteTableUri(path)
                           .databaseName(databaseName)
                           .lakeName(lakeName)
+                          .tableFormat(detected.get())
                           .build();
                   if (!isExcluded(table.getAbsoluteTableUri(), excludedPathPatterns)) {
                     tablePaths.add(table);
@@ -183,12 +212,13 @@ public class TableDiscoveryService {
     }
   }
 
-  /*
-   *  checks the contents of a folder to see if it is a hudi table or not
-   *  a folder is a hudi table if it contains .hoodie folder within it
-   */
-  private static boolean isHudiTableFolder(List<File> listedFiles) {
-    return listedFiles.stream().anyMatch(file -> file.getFilename().startsWith(HOODIE_FOLDER_NAME));
+  private Optional<TableFormat> detectTableFormat(List<File> listedFiles) {
+    for (TableFormatDetector detector : tableFormatDetectors) {
+      if (detector.matches(listedFiles)) {
+        return Optional.of(detector.format());
+      }
+    }
+    return Optional.empty();
   }
 
   private boolean isExcluded(String filePath, List<String> excludedPathPatterns) {
