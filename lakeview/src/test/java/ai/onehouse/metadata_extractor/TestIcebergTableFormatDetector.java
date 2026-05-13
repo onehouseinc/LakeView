@@ -85,6 +85,21 @@ class TestIcebergTableFormatDetector {
     verify(asyncStorageClient, never()).listAllFilesInDir(eq(METADATA_PATH));
   }
 
+  @Test
+  void matchesWhenMetadataDirEntryHasTrailingSlash() {
+    // S3 ListObjectsV2 returns CommonPrefixes as e.g. "metadata/" (with the trailing slash that
+    // S3 itself uses). The storage client may surface that filename verbatim, so the detector
+    // must accept both "metadata" and "metadata/" as the folder marker.
+    when(asyncStorageClient.listAllFilesInDir(eq(METADATA_PATH)))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                Collections.singletonList(file("00000-uuid.metadata.json", false))));
+    assertTrue(
+        detector
+            .matches(TABLE_PATH, Collections.singletonList(file("metadata/", true)))
+            .join());
+  }
+
   private static File file(String name, boolean dir) {
     return File.builder().filename(name).isDirectory(dir).lastModifiedAt(Instant.EPOCH).build();
   }
