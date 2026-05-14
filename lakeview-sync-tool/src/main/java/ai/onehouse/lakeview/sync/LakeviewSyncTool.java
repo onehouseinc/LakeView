@@ -14,6 +14,9 @@ import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.config.models.configv1.ParserConfig;
 import ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher;
 import ai.onehouse.metadata_extractor.HoodiePropertiesReader;
+import ai.onehouse.metadata_extractor.HudiTableFormatDetector;
+import ai.onehouse.metadata_extractor.IcebergMetadataUploaderService;
+import ai.onehouse.metadata_extractor.IcebergTableFormatDetector;
 import ai.onehouse.metadata_extractor.LSMTimelineManifestReader;
 import ai.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
 import ai.onehouse.metadata_extractor.TableDiscoveryService;
@@ -253,7 +256,9 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
         configProvider);
 
     TableDiscoveryService tableDiscoveryService = new TableDiscoveryService(asyncStorageClient, storageUtils,
-            configProvider, executorService, lakeViewExtractorMetrics);
+            configProvider, executorService, lakeViewExtractorMetrics,
+            new HudiTableFormatDetector(),
+            new IcebergTableFormatDetector(asyncStorageClient, storageUtils));
     HoodiePropertiesReader hoodiePropertiesReader = new HoodiePropertiesReader(asyncStorageClient,
         lakeViewExtractorMetrics);
     OnehouseApiClient onehouseApiClient = new OnehouseApiClient(asyncHttpClientWithRetry, config,
@@ -267,8 +272,11 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
         lakeViewExtractorMetrics, config, lsmTimelineManifestReader);
     TableMetadataUploaderService tableMetadataUploaderService = new TableMetadataUploaderService(hoodiePropertiesReader,
         onehouseApiClient, timelineCommitInstantsUploader, lakeViewExtractorMetrics, executorService);
+    IcebergMetadataUploaderService icebergMetadataUploaderService = new IcebergMetadataUploaderService(
+        asyncStorageClient, onehouseApiClient, presignedUrlFileUploader, storageUtils, lakeViewExtractorMetrics);
 
-    return new TableDiscoveryAndUploadJob(tableDiscoveryService, tableMetadataUploaderService, lakeViewExtractorMetrics, asyncStorageClient);
+    return new TableDiscoveryAndUploadJob(tableDiscoveryService, tableMetadataUploaderService,
+        icebergMetadataUploaderService, lakeViewExtractorMetrics, asyncStorageClient);
   }
 
   private AsyncStorageClient getAsyncStorageClient(@Nonnull Config config, @Nonnull ExecutorService executorService,
