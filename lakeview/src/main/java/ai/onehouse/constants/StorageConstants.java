@@ -7,13 +7,15 @@ public class StorageConstants {
 
   /*
   * typical s3 path: "s3://bucket-name/path/to/object"
+  * hadoop-style s3 path: "s3a://bucket-name/path/to/object" (e.g. iceberg metadata_location entries
+  *   stamped by Glue/Onehouse agent — see gateway-controller commit 0761ef368d)
   * gcs path format: "gs://bucket/path/to/file"
   * azure blob format: "https://account.blob.core.windows.net/container/path/to/blob"
   * azure adls gen2 format: "https://account.dfs.core.windows.net/container/path/to/file"
   * azure adls gen2 abfss format: "abfss://container@account.dfs.core.windows.net/path/to/file"
   */
   public static final Pattern OBJECT_STORAGE_URI_PATTERN =
-      Pattern.compile("^(?:(s3://|gs://|abfss://)|https://[^.]+\\.(?:blob|dfs)\\.core\\.windows\\.net/)([^/@]+)(?:@[^/]+)?(/.*)?$");
+      Pattern.compile("^(?:(s3a?://|gs://|abfss://)|https://[^.]+\\.(?:blob|dfs)\\.core\\.windows\\.net/)([^/@]+)(?:@[^/]+)?(/.*)?$");
 
   // https://cloud.google.com/compute/docs/naming-resources#resource-name-format
   public static final String GCP_RESOURCE_NAME_FORMAT = "^[a-z]([-a-z0-9]*[a-z0-9])$";

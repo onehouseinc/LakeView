@@ -3,6 +3,7 @@ package ai.onehouse.metadata_extractor.models;
 import static ai.onehouse.constants.MetadataExtractorConstants.HOODIE_TABLE_VERSION_DEFAULT;
 import static ai.onehouse.constants.MetadataExtractorConstants.TIMELINE_LAYOUT_VERSION_DEFAULT;
 
+import ai.onehouse.api.models.request.TableFormat;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -20,4 +21,13 @@ public class Table {
   private String tableId;
   @Builder.Default private final int tableVersion = HOODIE_TABLE_VERSION_DEFAULT;
   @Builder.Default private final int timelineLayoutVersion = TIMELINE_LAYOUT_VERSION_DEFAULT;
+  // tableVersion / timelineLayoutVersion above are Hudi-specific and ignored for non-Hudi formats.
+  @Builder.Default private final TableFormat tableFormat = TableFormat.HUDI;
+  /**
+   * Optional URI of the current Iceberg {@code metadata.json}, supplied by the control plane via
+   * the parser YAML's table hints. Null when no hint was provided. {@link
+   * ai.onehouse.metadata_extractor.IcebergMetadataUploaderService} uses this to skip the per-cycle
+   * {@code metadata/} folder LIST when the hint matches the last uploaded file.
+   */
+  private final String metadataLocationHint;
 }
