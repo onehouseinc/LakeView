@@ -59,14 +59,6 @@ class TableDiscoveryAndUploadJobTest {
 
   @BeforeEach
   void setUp(TestInfo info) {
-    /*
-     * Existing tests exercise the Hudi path; dispatch routes any Iceberg-format tables (none in
-     * these tests) to the Iceberg uploader. Default the mock to a successful no-op so the dispatch
-     * combine doesn't NPE on the (empty Iceberg set) branch.
-     */
-    lenient()
-        .when(mockIcebergMetadataUploaderService.uploadInstantsInTables(anySet()))
-        .thenReturn(CompletableFuture.completedFuture(true));
     Instant fixedInstant =
         info.getDisplayName().startsWith("2023") ? Instant.parse(info.getDisplayName()) : Instant.now();
     try (MockedStatic<Instant> mockedInstant =
@@ -121,6 +113,8 @@ class TableDiscoveryAndUploadJobTest {
                 Collections.singleton(discoveredTable)))
             .thenReturn(CompletableFuture.completedFuture(null));
       }
+      when(mockIcebergMetadataUploaderService.uploadInstantsInTables(Collections.emptySet()))
+          .thenReturn(CompletableFuture.completedFuture(true));
     }
 
     when(config.getMetadataExtractorConfig().getTableDiscoveryIntervalMinutes())
@@ -179,6 +173,8 @@ class TableDiscoveryAndUploadJobTest {
     when(mockTableMetadataUploaderService.uploadInstantsInTables(
             Collections.singleton(discoveredTable)))
         .thenReturn(CompletableFuture.completedFuture(isSucceeded));
+    when(mockIcebergMetadataUploaderService.uploadInstantsInTables(Collections.emptySet()))
+        .thenReturn(CompletableFuture.completedFuture(true));
     job.runOnce();
     verify(mockTableDiscoveryService, times(1)).discoverTables();
     verify(mockTableMetadataUploaderService, times(1))
@@ -232,6 +228,8 @@ class TableDiscoveryAndUploadJobTest {
     when(mockTableMetadataUploaderService.uploadInstantsInTables(
         Collections.singleton(discoveredTable)))
         .thenReturn(CompletableFuture.completedFuture(isSucceeded));
+    when(mockIcebergMetadataUploaderService.uploadInstantsInTables(Collections.emptySet()))
+        .thenReturn(CompletableFuture.completedFuture(true));
     when(config.getMetadataExtractorConfig().getJobRunMode())
         .thenReturn(MetadataExtractorConfig.JobRunMode.ONCE_WITH_RETRY);
     if (!isSucceeded) {
