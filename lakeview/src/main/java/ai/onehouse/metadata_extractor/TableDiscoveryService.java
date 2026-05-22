@@ -183,7 +183,7 @@ public class TableDiscoveryService {
                             List<File> directories =
                                 listedFiles.stream()
                                     .filter(File::isDirectory)
-                                    .collect(Collectors.toUnmodifiableList());
+                                    .collect(Collectors.toList());
 
                             List<CompletableFuture<Void>> recursiveFutures = new ArrayList<>();
                             for (File file : directories) {
