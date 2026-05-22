@@ -4,12 +4,14 @@ import static ai.onehouse.constants.MetadataExtractorConstants.PROCESS_TABLE_MET
 import static ai.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_INTERVAL_MINUTES;
 import static org.mockito.Mockito.*;
 
+import ai.onehouse.api.models.request.TableFormat;
 import ai.onehouse.config.Config;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.exceptions.RateLimitException;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
+import com.google.common.collect.ImmutableSet;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -40,6 +42,7 @@ class TableDiscoveryAndUploadJobTest {
   @Mock private TableDiscoveryService mockTableDiscoveryService;
 
   @Mock private TableMetadataUploaderService mockTableMetadataUploaderService;
+  @Mock private IcebergMetadataUploaderService mockIcebergMetadataUploaderService;
 
   @Mock private ScheduledExecutorService mockScheduler;
 
@@ -65,6 +68,7 @@ class TableDiscoveryAndUploadJobTest {
           new TableDiscoveryAndUploadJob(
               mockTableDiscoveryService,
               mockTableMetadataUploaderService,
+              mockIcebergMetadataUploaderService,
               mockHudiMetadataExtractorMetrics,
               asyncStorageClient) {
             @Override
@@ -109,6 +113,8 @@ class TableDiscoveryAndUploadJobTest {
                 Collections.singleton(discoveredTable)))
             .thenReturn(CompletableFuture.completedFuture(null));
       }
+      when(mockIcebergMetadataUploaderService.uploadInstantsInTables(Collections.emptySet()))
+          .thenReturn(CompletableFuture.completedFuture(true));
     }
 
     when(config.getMetadataExtractorConfig().getTableDiscoveryIntervalMinutes())
@@ -167,10 +173,45 @@ class TableDiscoveryAndUploadJobTest {
     when(mockTableMetadataUploaderService.uploadInstantsInTables(
             Collections.singleton(discoveredTable)))
         .thenReturn(CompletableFuture.completedFuture(isSucceeded));
+    when(mockIcebergMetadataUploaderService.uploadInstantsInTables(Collections.emptySet()))
+        .thenReturn(CompletableFuture.completedFuture(true));
     job.runOnce();
     verify(mockTableDiscoveryService, times(1)).discoverTables();
     verify(mockTableMetadataUploaderService, times(1))
         .uploadInstantsInTables(Collections.singleton(discoveredTable));
+  }
+
+  @Test
+  void testDispatchRoutesTablesByFormat() {
+    Table hudiTable =
+        Table.builder()
+            .absoluteTableUri("s3://bucket/hudi_db/t")
+            .lakeName("lake")
+            .databaseName("hudi_db")
+            .tableFormat(TableFormat.HUDI)
+            .build();
+    Table icebergTable =
+        Table.builder()
+            .absoluteTableUri("s3://bucket/iceberg_db/t")
+            .lakeName("lake")
+            .databaseName("iceberg_db")
+            .tableFormat(TableFormat.ICEBERG)
+            .build();
+    when(mockTableDiscoveryService.discoverTables())
+        .thenReturn(
+            CompletableFuture.completedFuture(ImmutableSet.of(hudiTable, icebergTable)));
+    when(mockTableMetadataUploaderService.uploadInstantsInTables(anySet()))
+        .thenReturn(CompletableFuture.completedFuture(true));
+    when(mockIcebergMetadataUploaderService.uploadInstantsInTables(anySet()))
+        .thenReturn(CompletableFuture.completedFuture(true));
+
+    job.runOnce();
+
+    // Each uploader receives exactly its own format's partition — never the other's.
+    verify(mockTableMetadataUploaderService)
+        .uploadInstantsInTables(Collections.singleton(hudiTable));
+    verify(mockIcebergMetadataUploaderService)
+        .uploadInstantsInTables(Collections.singleton(icebergTable));
   }
 
   @ParameterizedTest(name = "{0}")
@@ -187,6 +228,8 @@ class TableDiscoveryAndUploadJobTest {
     when(mockTableMetadataUploaderService.uploadInstantsInTables(
         Collections.singleton(discoveredTable)))
         .thenReturn(CompletableFuture.completedFuture(isSucceeded));
+    when(mockIcebergMetadataUploaderService.uploadInstantsInTables(Collections.emptySet()))
+        .thenReturn(CompletableFuture.completedFuture(true));
     when(config.getMetadataExtractorConfig().getJobRunMode())
         .thenReturn(MetadataExtractorConfig.JobRunMode.ONCE_WITH_RETRY);
     if (!isSucceeded) {

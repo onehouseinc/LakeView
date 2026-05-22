@@ -9,6 +9,7 @@ import ai.onehouse.config.ConfigProvider;
 import ai.onehouse.config.models.configv1.Database;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.config.models.configv1.ParserConfig;
+import ai.onehouse.config.models.configv1.TableHint;
 import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
@@ -19,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,13 +56,17 @@ public class TableDiscoveryService {
       @Nonnull ConfigProvider configProvider,
       @Nonnull ExecutorService executorService,
       @Nonnull LakeViewExtractorMetrics lakeviewExtractorMetrics,
-      @Nonnull HudiTableFormatDetector hudiTableFormatDetector) {
+      @Nonnull HudiTableFormatDetector hudiTableFormatDetector,
+      @Nonnull IcebergTableFormatDetector icebergTableFormatDetector) {
     this.asyncStorageClient = asyncStorageClient;
     this.storageUtils = storageUtils;
     this.executorService = executorService;
     this.configProvider = configProvider;
     this.lakeviewExtractorMetrics = lakeviewExtractorMetrics;
-    this.detectorsByFormat = ImmutableMap.of(TableFormat.HUDI, hudiTableFormatDetector);
+    this.detectorsByFormat =
+        ImmutableMap.of(
+            TableFormat.HUDI, hudiTableFormatDetector,
+            TableFormat.ICEBERG, icebergTableFormatDetector);
   }
 
   public CompletableFuture<Set<Table>> discoverTables() {
@@ -71,6 +77,27 @@ public class TableDiscoveryService {
     log.info("Starting table discover service, excluding {}", excludedPathPatterns);
     List<Pair<String, CompletableFuture<Set<Table>>>> pathToDiscoveredTablesFuturePairList =
         new ArrayList<>();
+    /*
+     * Merge per-database tableHints into a single tableId -> hint map. Hints are optional metadata
+     * supplied by the control plane (e.g. Iceberg metadata_location) and are looked up after
+     * discovery, once the tableId is known.
+     */
+    Map<String, TableHint> tableHintsByTableId = new HashMap<>();
+    for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
+      for (Database database : parserConfig.getDatabases()) {
+        if (database.getTableHints() == null) {
+          continue;
+        }
+        for (Map.Entry<String, TableHint> entry : database.getTableHints().entrySet()) {
+          TableHint previous = tableHintsByTableId.put(entry.getKey(), entry.getValue());
+          if (previous != null) {
+            log.warn(
+                "Duplicate tableHint for tableId {} across databases; later entry wins.",
+                entry.getKey());
+          }
+        }
+      }
+    }
 
     for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
       for (Database database : parserConfig.getDatabases()) {
@@ -118,7 +145,17 @@ public class TableDiscoveryService {
                     continue;
                   }
                   Table table = discoveredTables.iterator().next();
-                  table = table.toBuilder().tableId(tableId).build();
+                  Table.TableBuilder builder = table.toBuilder().tableId(tableId);
+                  /*
+                   * metadataLocationHint is only applied here, on base paths pinned with an
+                   * explicit "#tableId". Auto-discovered tables (no tableId in the config) never
+                   * carry a hint and always fall back to listing metadata/ at upload time.
+                   */
+                  TableHint hint = tableHintsByTableId.get(tableId);
+                  if (hint != null && StringUtils.isNotBlank(hint.getMetadataLocationHint())) {
+                    builder.metadataLocationHint(hint.getMetadataLocationHint());
+                  }
+                  table = builder.build();
                   discoveredTables = Collections.singleton(table);
                 }
 
@@ -129,12 +166,10 @@ public class TableDiscoveryService {
   }
 
   private TableFormatDetector detectorFor(Database database) {
-    TableFormat declared =
-        database.getTableFormat() == null ? TableFormat.HUDI : database.getTableFormat();
+    TableFormat declared = database.getTableFormat() == null ? TableFormat.HUDI : database.getTableFormat();
     TableFormatDetector detector = detectorsByFormat.get(declared);
     if (detector == null) {
-      // Programmer error: a TableFormat enum value was added without a matching detector. With
-      // only HUDI registered today, this fires if a YAML declares any other format.
+      // Programmer error: a new TableFormat enum value was added without a matching detector.
       throw new IllegalStateException("No detector registered for tableFormat=" + declared);
     }
     return detector;
@@ -173,6 +208,7 @@ public class TableDiscoveryService {
                                       .absoluteTableUri(path)
                                       .databaseName(databaseName)
                                       .lakeName(lakeName)
+                                      .tableFormat(detector.format())
                                       .build();
                               if (!isExcluded(table.getAbsoluteTableUri(), excludedPathPatterns)) {
                                 tablePaths.add(table);
@@ -184,7 +220,6 @@ public class TableDiscoveryService {
                                 listedFiles.stream()
                                     .filter(File::isDirectory)
                                     .collect(Collectors.toList());
-
                             List<CompletableFuture<Void>> recursiveFutures = new ArrayList<>();
                             for (File file : directories) {
                               String filePath =
@@ -201,7 +236,6 @@ public class TableDiscoveryService {
                                 recursiveFutures.add(recursiveFuture);
                               }
                             }
-
                             return CompletableFuture.allOf(
                                     recursiveFutures.toArray(new CompletableFuture[0]))
                                 .thenApplyAsync(ignored -> tablePaths, executorService);
