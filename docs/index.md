@@ -6,6 +6,7 @@ This directory holds conceptual / architectural / operational documentation for 
 
 - [overview.md](overview.md) — what this repo does and where it fits in the OneHouse stack
 - [getting-started.md](getting-started.md) — local development setup
+- [iceberg-support.md](iceberg-support.md) — Iceberg table discovery, metadata.json selection, and deploy ordering
 
 ## Adding a doc
 

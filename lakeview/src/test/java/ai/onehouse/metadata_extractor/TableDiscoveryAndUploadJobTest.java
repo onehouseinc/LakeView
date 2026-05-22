@@ -4,6 +4,7 @@ import static ai.onehouse.constants.MetadataExtractorConstants.PROCESS_TABLE_MET
 import static ai.onehouse.constants.MetadataExtractorConstants.TABLE_DISCOVERY_INTERVAL_MINUTES;
 import static org.mockito.Mockito.*;
 
+import ai.onehouse.api.models.request.TableFormat;
 import ai.onehouse.config.Config;
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.constants.MetricsConstants;
@@ -13,6 +14,7 @@ import ai.onehouse.metrics.LakeViewExtractorMetrics;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -179,6 +181,38 @@ class TableDiscoveryAndUploadJobTest {
     verify(mockTableDiscoveryService, times(1)).discoverTables();
     verify(mockTableMetadataUploaderService, times(1))
         .uploadInstantsInTables(Collections.singleton(discoveredTable));
+  }
+
+  @Test
+  void testDispatchRoutesTablesByFormat() {
+    Table hudiTable =
+        Table.builder()
+            .absoluteTableUri("s3://bucket/hudi_db/t")
+            .lakeName("lake")
+            .databaseName("hudi_db")
+            .tableFormat(TableFormat.HUDI)
+            .build();
+    Table icebergTable =
+        Table.builder()
+            .absoluteTableUri("s3://bucket/iceberg_db/t")
+            .lakeName("lake")
+            .databaseName("iceberg_db")
+            .tableFormat(TableFormat.ICEBERG)
+            .build();
+    when(mockTableDiscoveryService.discoverTables())
+        .thenReturn(CompletableFuture.completedFuture(Set.of(hudiTable, icebergTable)));
+    when(mockTableMetadataUploaderService.uploadInstantsInTables(anySet()))
+        .thenReturn(CompletableFuture.completedFuture(true));
+    when(mockIcebergMetadataUploaderService.uploadInstantsInTables(anySet()))
+        .thenReturn(CompletableFuture.completedFuture(true));
+
+    job.runOnce();
+
+    // Each uploader receives exactly its own format's partition — never the other's.
+    verify(mockTableMetadataUploaderService)
+        .uploadInstantsInTables(Collections.singleton(hudiTable));
+    verify(mockIcebergMetadataUploaderService)
+        .uploadInstantsInTables(Collections.singleton(icebergTable));
   }
 
   @ParameterizedTest(name = "{0}")

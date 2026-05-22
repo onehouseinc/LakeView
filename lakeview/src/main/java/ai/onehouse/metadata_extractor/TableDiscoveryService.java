@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -144,6 +143,9 @@ public class TableDiscoveryService {
                   }
                   Table table = discoveredTables.iterator().next();
                   Table.TableBuilder builder = table.toBuilder().tableId(tableId);
+                  // metadataLocationHint is only applied here, on base paths pinned with an
+                  // explicit "#tableId". Auto-discovered tables (no tableId in the config) never
+                  // carry a hint and always fall back to listing metadata/ at upload time.
                   TableHint hint = tableHintsByTableId.get(tableId);
                   if (hint != null && StringUtils.isNotBlank(hint.getMetadataLocationHint())) {
                     builder.metadataLocationHint(hint.getMetadataLocationHint());
@@ -210,9 +212,7 @@ public class TableDiscoveryService {
                             }
 
                             List<File> directories =
-                                listedFiles.stream()
-                                    .filter(File::isDirectory)
-                                    .collect(Collectors.toList());
+                                listedFiles.stream().filter(File::isDirectory).toList();
                             List<CompletableFuture<Void>> recursiveFutures = new ArrayList<>();
                             for (File file : directories) {
                               String filePath =

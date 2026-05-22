@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -58,6 +57,10 @@ import org.apache.commons.lang3.StringUtils;
  * manifest plumbing don't apply, so a separate service is clearer than a branching megaclass.
  * Shared primitives ({@link OnehouseApiClient}, {@link PresignedUrlFileUploader}, {@link
  * AsyncStorageClient}) are reused.
+ *
+ * <p>The {@code thenComposeAsync}/{@code thenApply} stages below intentionally run on the default
+ * fork-join pool: they are non-blocking glue around the already-async storage and API clients, so
+ * a dedicated executor would buy nothing.
  *
  * <p><b>Selecting the current pointer.</b> Three paths, in order of preference:
  * <ol>
@@ -106,7 +109,7 @@ public class IcebergMetadataUploaderService {
     }
     log.info("Uploading Iceberg metadata for {} table(s)", tables.size());
     List<CompletableFuture<Boolean>> perTable =
-        tables.stream().map(this::processTable).collect(Collectors.toList());
+        tables.stream().map(this::processTable).toList();
     return CompletableFuture.allOf(perTable.toArray(new CompletableFuture[0]))
         .thenApply(
             ignored -> perTable.stream().map(CompletableFuture::join).allMatch(Boolean.TRUE::equals));
@@ -123,6 +126,9 @@ public class IcebergMetadataUploaderService {
                     table.getTableId(),
                     response.getStatusCode(),
                     response.getCause());
+                metrics.incrementTableMetadataProcessingFailureCounter(
+                    MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR,
+                    "Failed to fetch checkpoint for Iceberg table");
                 return CompletableFuture.completedFuture(false);
               }
               Optional<Checkpoint> existing = parseCheckpoint(response, table.getTableId());
@@ -132,7 +138,7 @@ public class IcebergMetadataUploaderService {
               return initialiseTable(table)
                   .thenComposeAsync(
                       initOk -> {
-                        if (!initOk) {
+                        if (Boolean.FALSE.equals(initOk)) {
                           return CompletableFuture.completedFuture(false);
                         }
                         return uploadIfNewMetadataJson(table, INITIAL_CHECKPOINT);
@@ -193,6 +199,9 @@ public class IcebergMetadataUploaderService {
                     table.getTableId(),
                     initResponse.getStatusCode(),
                     initResponse.getCause());
+                metrics.incrementTableMetadataProcessingFailureCounter(
+                    MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR,
+                    "Failed to initialise Iceberg table");
                 return false;
               }
               return true;
@@ -328,6 +337,9 @@ public class IcebergMetadataUploaderService {
                     metadataJson.getFilename(),
                     urlResponse.getStatusCode(),
                     urlResponse.getCause());
+                metrics.incrementTableMetadataProcessingFailureCounter(
+                    MetricsConstants.MetadataUploadFailureReasons.PRESIGNED_URL_UPLOAD_FAILURE,
+                    "Failed to obtain presigned URL for Iceberg metadata.json");
                 return CompletableFuture.completedFuture(false);
               }
               String presigned = urlResponse.getUploadUrls().get(0);
@@ -383,6 +395,9 @@ public class IcebergMetadataUploaderService {
                     table.getTableId(),
                     upsert.getStatusCode(),
                     upsert.getCause());
+                metrics.incrementTableMetadataProcessingFailureCounter(
+                    MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR,
+                    "Failed to upsert checkpoint for Iceberg table");
                 return false;
               }
               return true;
@@ -402,6 +417,11 @@ public class IcebergMetadataUploaderService {
    *   <li>{@code 00001-a.metadata.json}, {@code 00010-b.metadata.json} →
    *       {@code 00010-b.metadata.json}</li>
    * </ul>
+   *
+   * <p><b>Caveat:</b> the highest-versioned file is not guaranteed to be the catalog's committed
+   * pointer — a failed or concurrent write can leave an orphan {@code metadata.json} with a higher
+   * version. This is a best-effort last resort; the {@code metadataLocationHint} and {@code
+   * version-hint.text} paths are authoritative and preferred precisely for that reason.
    */
   static Optional<File> pickLatestMetadataJson(List<File> files) {
     Comparator<File> byVersionThenName =

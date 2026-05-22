@@ -3,7 +3,6 @@ package ai.onehouse.metadata_extractor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,7 +41,7 @@ class TestIcebergTableFormatDetector {
 
   @Test
   void matchesWhenMetadataDirHasMetadataJson() {
-    when(asyncStorageClient.listAllFilesInDir(eq(METADATA_PATH)))
+    when(asyncStorageClient.listAllFilesInDir(METADATA_PATH))
         .thenReturn(
             CompletableFuture.completedFuture(
                 Arrays.asList(
@@ -57,7 +56,7 @@ class TestIcebergTableFormatDetector {
   @Test
   void doesNotMatchWhenMetadataDirEmptyOfMetadataJson() {
     // Real false-positive: a folder happens to have a `metadata/` subdir but no Iceberg pointer.
-    when(asyncStorageClient.listAllFilesInDir(eq(METADATA_PATH)))
+    when(asyncStorageClient.listAllFilesInDir(METADATA_PATH))
         .thenReturn(
             CompletableFuture.completedFuture(
                 Arrays.asList(file("schema.csv", false), file("README.md", false))));
@@ -73,7 +72,7 @@ class TestIcebergTableFormatDetector {
     // we must not issue the validating LIST when the marker isn't present.
     assertFalse(
         detector.matches(TABLE_PATH, Collections.singletonList(file("metadata", false))).join());
-    verify(asyncStorageClient, never()).listAllFilesInDir(eq(METADATA_PATH));
+    verify(asyncStorageClient, never()).listAllFilesInDir(METADATA_PATH);
   }
 
   @Test
@@ -82,7 +81,7 @@ class TestIcebergTableFormatDetector {
         detector
             .matches(TABLE_PATH, Arrays.asList(file(".hoodie", true), file("part-0.parquet", false)))
             .join());
-    verify(asyncStorageClient, never()).listAllFilesInDir(eq(METADATA_PATH));
+    verify(asyncStorageClient, never()).listAllFilesInDir(METADATA_PATH);
   }
 
   @Test
@@ -90,7 +89,7 @@ class TestIcebergTableFormatDetector {
     // S3 ListObjectsV2 returns CommonPrefixes as e.g. "metadata/" (with the trailing slash that
     // S3 itself uses). The storage client may surface that filename verbatim, so the detector
     // must accept both "metadata" and "metadata/" as the folder marker.
-    when(asyncStorageClient.listAllFilesInDir(eq(METADATA_PATH)))
+    when(asyncStorageClient.listAllFilesInDir(METADATA_PATH))
         .thenReturn(
             CompletableFuture.completedFuture(
                 Collections.singletonList(file("00000-uuid.metadata.json", false))));
