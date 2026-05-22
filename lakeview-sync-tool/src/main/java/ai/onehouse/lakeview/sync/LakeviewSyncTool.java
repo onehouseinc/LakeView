@@ -14,6 +14,7 @@ import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
 import ai.onehouse.config.models.configv1.ParserConfig;
 import ai.onehouse.metadata_extractor.ActiveTimelineInstantBatcher;
 import ai.onehouse.metadata_extractor.HoodiePropertiesReader;
+import ai.onehouse.metadata_extractor.HudiTableFormatDetector;
 import ai.onehouse.metadata_extractor.LSMTimelineManifestReader;
 import ai.onehouse.metadata_extractor.TableDiscoveryAndUploadJob;
 import ai.onehouse.metadata_extractor.TableDiscoveryService;
@@ -253,7 +254,7 @@ public class LakeviewSyncTool extends HoodieSyncTool implements AutoCloseable {
         configProvider);
 
     TableDiscoveryService tableDiscoveryService = new TableDiscoveryService(asyncStorageClient, storageUtils,
-            configProvider, executorService, lakeViewExtractorMetrics);
+            configProvider, executorService, lakeViewExtractorMetrics, new HudiTableFormatDetector());
     HoodiePropertiesReader hoodiePropertiesReader = new HoodiePropertiesReader(asyncStorageClient,
         lakeViewExtractorMetrics);
     OnehouseApiClient onehouseApiClient = new OnehouseApiClient(asyncHttpClientWithRetry, config,
