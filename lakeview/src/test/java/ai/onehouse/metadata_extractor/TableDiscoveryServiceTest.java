@@ -379,9 +379,11 @@ class TableDiscoveryServiceTest {
 
   @Test
   void testDiscoverIcebergTableByDeclaredFormat() {
-    // Database declared as ICEBERG. Two children: `orders/` is a real Iceberg table (metadata/
-    // with a *.metadata.json), `docs/` is a false-positive shape (metadata/ but no .metadata.json
-    // inside) and must be skipped.
+    /*
+     * Database declared as ICEBERG. Two children: `orders/` is a real Iceberg table (metadata/
+     * with a *.metadata.json), `docs/` is a false-positive shape (metadata/ but no .metadata.json
+     * inside) and must be skipped.
+     */
     String basePath = "s3://bucket/iceberg_warehouse/";
     String ordersPath = basePath + "orders/";
     String ordersMetadata = ordersPath + "metadata";

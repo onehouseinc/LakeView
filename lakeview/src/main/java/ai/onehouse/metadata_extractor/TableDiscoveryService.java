@@ -77,9 +77,11 @@ public class TableDiscoveryService {
     log.info("Starting table discover service, excluding {}", excludedPathPatterns);
     List<Pair<String, CompletableFuture<Set<Table>>>> pathToDiscoveredTablesFuturePairList =
         new ArrayList<>();
-    // Merge per-database tableHints into a single tableId -> hint map. Hints are optional metadata
-    // supplied by the control plane (e.g. Iceberg metadata_location) and are looked up after
-    // discovery, once the tableId is known.
+    /*
+     * Merge per-database tableHints into a single tableId -> hint map. Hints are optional metadata
+     * supplied by the control plane (e.g. Iceberg metadata_location) and are looked up after
+     * discovery, once the tableId is known.
+     */
     Map<String, TableHint> tableHintsByTableId = new HashMap<>();
     for (ParserConfig parserConfig : metadataExtractorConfig.getParserConfig()) {
       for (Database database : parserConfig.getDatabases()) {
@@ -144,9 +146,11 @@ public class TableDiscoveryService {
                   }
                   Table table = discoveredTables.iterator().next();
                   Table.TableBuilder builder = table.toBuilder().tableId(tableId);
-                  // metadataLocationHint is only applied here, on base paths pinned with an
-                  // explicit "#tableId". Auto-discovered tables (no tableId in the config) never
-                  // carry a hint and always fall back to listing metadata/ at upload time.
+                  /*
+                   * metadataLocationHint is only applied here, on base paths pinned with an
+                   * explicit "#tableId". Auto-discovered tables (no tableId in the config) never
+                   * carry a hint and always fall back to listing metadata/ at upload time.
+                   */
                   TableHint hint = tableHintsByTableId.get(tableId);
                   if (hint != null && StringUtils.isNotBlank(hint.getMetadataLocationHint())) {
                     builder.metadataLocationHint(hint.getMetadataLocationHint());

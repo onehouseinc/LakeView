@@ -10,8 +10,10 @@ class StorageUtilsTest {
   @Test
   void testGetPathFromUrl() {
     assertEquals("path/to/file", storageUtils.getPathFromUrl("s3://bucket/path/to/file"));
-    // s3a:// is the Hadoop scheme used by the iceberg/Glue metadata_location values the agent
-    // writes into Firestore — IcebergMetadataUploaderService must be able to parse these.
+    /*
+     * s3a:// is the Hadoop scheme used by the iceberg/Glue metadata_location values the agent
+     * writes into Firestore — IcebergMetadataUploaderService must be able to parse these.
+     */
     assertEquals("path/to/file", storageUtils.getPathFromUrl("s3a://bucket/path/to/file"));
     assertEquals("path/to/file", storageUtils.getPathFromUrl("gs://bucket/path/to/file"));
     assertEquals(
@@ -114,8 +116,10 @@ class StorageUtilsTest {
   @Test
   void testGetBucketNameFromUri() {
     assertEquals("bucket", storageUtils.getBucketNameFromUri("s3://bucket/path/to/file"));
-    // s3a:// must resolve to the same bucket as s3:// — IcebergMetadataUploaderService passes
-    // the s3a:// metadata_location verbatim through this method.
+    /*
+     * s3a:// must resolve to the same bucket as s3:// — IcebergMetadataUploaderService passes
+     * the s3a:// metadata_location verbatim through this method.
+     */
     assertEquals("bucket", storageUtils.getBucketNameFromUri("s3a://bucket/path/to/file"));
     assertEquals("bucket", storageUtils.getBucketNameFromUri("gs://bucket/path/to/file"));
     assertEquals(

@@ -59,9 +59,11 @@ class TableDiscoveryAndUploadJobTest {
 
   @BeforeEach
   void setUp(TestInfo info) {
-    // Existing tests exercise the Hudi path; dispatch routes any Iceberg-format tables (none in
-    // these tests) to the Iceberg uploader. Default the mock to a successful no-op so the dispatch
-    // combine doesn't NPE on the (empty Iceberg set) branch.
+    /*
+     * Existing tests exercise the Hudi path; dispatch routes any Iceberg-format tables (none in
+     * these tests) to the Iceberg uploader. Default the mock to a successful no-op so the dispatch
+     * combine doesn't NPE on the (empty Iceberg set) branch.
+     */
     lenient()
         .when(mockIcebergMetadataUploaderService.uploadInstantsInTables(anySet()))
         .thenReturn(CompletableFuture.completedFuture(true));

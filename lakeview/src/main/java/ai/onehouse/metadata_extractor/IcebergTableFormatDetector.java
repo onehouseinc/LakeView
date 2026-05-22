@@ -44,10 +44,12 @@ public class IcebergTableFormatDetector implements TableFormatDetector {
 
   @Override
   public CompletableFuture<Boolean> matches(String path, List<File> listedFiles) {
-    // S3 ListObjectsV2 surfaces "directories" as CommonPrefixes, which the storage client
-    // maps to File objects whose filename retains the trailing slash (e.g. "metadata/"),
-    // since that is exactly the Prefix string S3 returns. Strip a trailing slash before
-    // comparing so the check works regardless of whether the client preserves it.
+    /*
+     * S3 ListObjectsV2 surfaces "directories" as CommonPrefixes, which the storage client
+     * maps to File objects whose filename retains the trailing slash (e.g. "metadata/"),
+     * since that is exactly the Prefix string S3 returns. Strip a trailing slash before
+     * comparing so the check works regardless of whether the client preserves it.
+     */
     boolean hasMetadataDir =
         listedFiles.stream()
             .anyMatch(

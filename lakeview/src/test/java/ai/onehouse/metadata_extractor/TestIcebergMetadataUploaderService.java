@@ -76,9 +76,7 @@ class TestIcebergMetadataUploaderService {
             storageClient, apiClient, uploader, storageUtils, metrics);
   }
 
-  // ---------------------------------------------------------------------------
-  // uploadInstantsInTables / aggregation
-  // ---------------------------------------------------------------------------
+  /* uploadInstantsInTables / aggregation */
 
   @Test
   void emptyTableSetCompletesTrueWithoutApiCalls() {
@@ -102,9 +100,7 @@ class TestIcebergMetadataUploaderService {
     assertFalse(service.uploadInstantsInTables(ImmutableSet.of(ok, bad)).join());
   }
 
-  // ---------------------------------------------------------------------------
-  // checkpoint fetch / parse
-  // ---------------------------------------------------------------------------
+  /* checkpoint fetch / parse */
 
   @Test
   void checkpointFetchFailureReturnsFalseAndIncrementsMetric() {
@@ -142,9 +138,7 @@ class TestIcebergMetadataUploaderService {
         .initializeTableMetricsCheckpoint(any(InitializeTableMetricsCheckpointRequest.class));
   }
 
-  // ---------------------------------------------------------------------------
-  // initialise path
-  // ---------------------------------------------------------------------------
+  /* initialise path */
 
   @Test
   void noCheckpointInitialisesThenUploads() {
@@ -172,9 +166,7 @@ class TestIcebergMetadataUploaderService {
     verify(apiClient, never()).generateCommitMetadataUploadUrl(any());
   }
 
-  // ---------------------------------------------------------------------------
-  // fallback listing path
-  // ---------------------------------------------------------------------------
+  /* fallback listing path */
 
   @Test
   void fallbackUpToDateIsNoOp() {
@@ -214,9 +206,7 @@ class TestIcebergMetadataUploaderService {
             eq(MetricsConstants.MetadataUploadFailureReasons.NO_SUCH_KEY), anyString());
   }
 
-  // ---------------------------------------------------------------------------
-  // version-hint.text resolution
-  // ---------------------------------------------------------------------------
+  /* version-hint.text resolution */
 
   @Test
   void versionHintResolvesTargetAndUploads() {
@@ -260,9 +250,7 @@ class TestIcebergMetadataUploaderService {
     verify(apiClient).generateCommitMetadataUploadUrl(argThatCommitInstantIs("v6.metadata.json"));
   }
 
-  // ---------------------------------------------------------------------------
-  // metadataLocationHint fast path
-  // ---------------------------------------------------------------------------
+  /* metadataLocationHint fast path */
 
   @Test
   void hintPathUpToDateSkipsListing() {
@@ -289,9 +277,7 @@ class TestIcebergMetadataUploaderService {
     verify(apiClient).generateCommitMetadataUploadUrl(argThatCommitInstantIs("v9.metadata.json"));
   }
 
-  // ---------------------------------------------------------------------------
-  // upload / upsert failure branches
-  // ---------------------------------------------------------------------------
+  /* upload / upsert failure branches */
 
   @Test
   void presignedUrlFailureReturnsFalse() {
@@ -327,9 +313,7 @@ class TestIcebergMetadataUploaderService {
             eq(MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_SYSTEM_ERROR), anyString());
   }
 
-  // ===========================================================================
-  // Static helper tests (pure, no mocks)
-  // ===========================================================================
+  /* Static helper tests (pure, no mocks) */
 
   @Test
   void picksLatestHiveGlueStyleMetadataJsonByNumericPrefix() {
@@ -436,9 +420,7 @@ class TestIcebergMetadataUploaderService {
     assertEquals("filename.json", IcebergMetadataUploaderService.lastPathSegment("filename.json"));
   }
 
-  // ===========================================================================
-  // helpers
-  // ===========================================================================
+  /* helpers */
 
   private static Set<Table> singleton(Table t) {
     return Collections.singleton(t);

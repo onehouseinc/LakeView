@@ -210,8 +210,10 @@ public class IcebergMetadataUploaderService {
   }
 
   private CompletableFuture<Boolean> uploadIfNewMetadataJson(Table table, Checkpoint checkpoint) {
-    // Fast path: control plane provided the current metadata.json URI (e.g. from AWS Glue's
-    // metadata_location parameter). Skip the per-cycle LIST and PUT the file directly.
+    /*
+     * Fast path: control plane provided the current metadata.json URI (e.g. from AWS Glue's
+     * metadata_location parameter). Skip the per-cycle LIST and PUT the file directly.
+     */
     if (StringUtils.isNotBlank(table.getMetadataLocationHint())) {
       String hint = table.getMetadataLocationHint();
       String filename = lastPathSegment(hint);
@@ -226,8 +228,10 @@ public class IcebergMetadataUploaderService {
           File.builder()
               .filename(filename)
               .isDirectory(false)
-              // Hint doesn't carry lastModifiedAt; use now() since the consumer treats this as
-              // advisory and discriminates by checkpoint batchId for ordering.
+              /*
+               * Hint doesn't carry lastModifiedAt; use now() since the consumer treats this as
+               * advisory and discriminates by checkpoint batchId for ordering.
+               */
               .lastModifiedAt(Instant.now())
               .build();
       return uploadAndAdvanceCheckpoint(table, hint, synthetic, checkpoint);
@@ -362,8 +366,10 @@ public class IcebergMetadataUploaderService {
             .batchId(priorCheckpoint.getBatchId() + 1)
             .checkpointTimestamp(Instant.now())
             .lastUploadedFile(metadataJson.getFilename())
-            // Iceberg has no archived/active distinction; mark archived processed so consumers
-            // that interpret the legacy field for ordering don't loop.
+            /*
+             * Iceberg has no archived/active distinction; mark archived processed so consumers
+             * that interpret the legacy field for ordering don't loop.
+             */
             .archivedCommitsProcessed(true)
             .build();
     String checkpointJson;

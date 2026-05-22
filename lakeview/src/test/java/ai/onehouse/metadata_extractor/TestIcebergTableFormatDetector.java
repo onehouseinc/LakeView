@@ -68,8 +68,10 @@ class TestIcebergTableFormatDetector {
 
   @Test
   void doesNotMatchOnFileNamedMetadata() {
-    // A non-directory entry named "metadata" must not be confused with the metadata/ folder, and
-    // we must not issue the validating LIST when the marker isn't present.
+    /*
+     * A non-directory entry named "metadata" must not be confused with the metadata/ folder, and
+     * we must not issue the validating LIST when the marker isn't present.
+     */
     assertFalse(
         detector.matches(TABLE_PATH, Collections.singletonList(file("metadata", false))).join());
     verify(asyncStorageClient, never()).listAllFilesInDir(METADATA_PATH);
@@ -86,9 +88,11 @@ class TestIcebergTableFormatDetector {
 
   @Test
   void matchesWhenMetadataDirEntryHasTrailingSlash() {
-    // S3 ListObjectsV2 returns CommonPrefixes as e.g. "metadata/" (with the trailing slash that
-    // S3 itself uses). The storage client may surface that filename verbatim, so the detector
-    // must accept both "metadata" and "metadata/" as the folder marker.
+    /*
+     * S3 ListObjectsV2 returns CommonPrefixes as e.g. "metadata/" (with the trailing slash that
+     * S3 itself uses). The storage client may surface that filename verbatim, so the detector
+     * must accept both "metadata" and "metadata/" as the folder marker.
+     */
     when(asyncStorageClient.listAllFilesInDir(METADATA_PATH))
         .thenReturn(
             CompletableFuture.completedFuture(

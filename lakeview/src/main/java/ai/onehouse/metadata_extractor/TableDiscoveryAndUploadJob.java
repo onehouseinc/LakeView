@@ -82,8 +82,10 @@ public class TableDiscoveryAndUploadJob {
     CompletableFuture<Boolean> icebergFuture =
         icebergMetadataUploaderService.uploadInstantsInTables(
             byFormat.getOrDefault(TableFormat.ICEBERG, Collections.emptySet()));
-    // Treat a null result the same as success — the legacy contract on the Hudi uploader was
-    // "throw to fail," and downstream callers only inspect exceptions, not the boolean.
+    /*
+     * Treat a null result the same as success — the legacy contract on the Hudi uploader was
+     * "throw to fail," and downstream callers only inspect exceptions, not the boolean.
+     */
     return hudiFuture.thenCombine(
         icebergFuture, (a, b) -> !Boolean.FALSE.equals(a) && !Boolean.FALSE.equals(b));
   }
