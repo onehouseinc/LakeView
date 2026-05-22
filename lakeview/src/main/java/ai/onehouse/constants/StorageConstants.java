@@ -8,7 +8,7 @@ public class StorageConstants {
   /*
   * typical s3 path: "s3://bucket-name/path/to/object"
   * hadoop-style s3 path: "s3a://bucket-name/path/to/object" (e.g. iceberg metadata_location entries
-  *   stamped by Glue/Onehouse agent — see gateway-controller commit 0761ef368d)
+  *   stamped by Glue/Onehouse agent)
   * gcs path format: "gs://bucket/path/to/file"
   * azure blob format: "https://account.blob.core.windows.net/container/path/to/blob"
   * azure adls gen2 format: "https://account.dfs.core.windows.net/container/path/to/file"
