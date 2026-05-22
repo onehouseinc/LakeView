@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -109,7 +110,7 @@ public class IcebergMetadataUploaderService {
     }
     log.info("Uploading Iceberg metadata for {} table(s)", tables.size());
     List<CompletableFuture<Boolean>> perTable =
-        tables.stream().map(this::processTable).toList();
+        tables.stream().map(this::processTable).collect(Collectors.toList());
     return CompletableFuture.allOf(perTable.toArray(new CompletableFuture[0]))
         .thenApply(
             ignored -> perTable.stream().map(CompletableFuture::join).allMatch(Boolean.TRUE::equals));

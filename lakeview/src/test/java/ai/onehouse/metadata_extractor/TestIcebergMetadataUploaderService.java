@@ -34,6 +34,7 @@ import ai.onehouse.storage.models.File;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.collect.ImmutableSet;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
@@ -98,7 +99,7 @@ class TestIcebergMetadataUploaderService {
     when(apiClient.getTableMetricsCheckpoints(Collections.singletonList("table-2")))
         .thenReturn(failed(new GetTableMetricsCheckpointResponse(), 500, "boom"));
 
-    assertFalse(service.uploadInstantsInTables(Set.of(ok, bad)).join());
+    assertFalse(service.uploadInstantsInTables(ImmutableSet.of(ok, bad)).join());
   }
 
   // ---------------------------------------------------------------------------
@@ -120,7 +121,7 @@ class TestIcebergMetadataUploaderService {
   @Test
   void processTableExceptionIncrementsUnknownAndReturnsFalse() {
     when(apiClient.getTableMetricsCheckpoints(anyList()))
-        .thenReturn(CompletableFuture.failedFuture(new RuntimeException("kaboom")));
+        .thenReturn(failedFuture(new RuntimeException("kaboom")));
 
     assertFalse(service.uploadInstantsInTables(singleton(icebergTable(TABLE_ID, null))).join());
     verify(metrics)
@@ -251,7 +252,7 @@ class TestIcebergMetadataUploaderService {
                     jsonFile("v5.metadata.json"),
                     jsonFile("v6.metadata.json"))));
     when(storageClient.readFileAsBytes(anyString()))
-        .thenReturn(CompletableFuture.failedFuture(new RuntimeException("read failed")));
+        .thenReturn(failedFuture(new RuntimeException("read failed")));
     stubGenerateUpload();
     when(apiClient.upsertTableMetricsCheckpoint(any())).thenReturn(upsertOk());
 
@@ -517,6 +518,12 @@ class TestIcebergMetadataUploaderService {
 
   private static <T> CompletableFuture<T> completed(T value) {
     return CompletableFuture.completedFuture(value);
+  }
+
+  private static <T> CompletableFuture<T> failedFuture(Throwable error) {
+    CompletableFuture<T> future = new CompletableFuture<>();
+    future.completeExceptionally(error);
+    return future;
   }
 
   private static <T extends ApiResponse> CompletableFuture<T> failed(

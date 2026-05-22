@@ -11,10 +11,10 @@ import ai.onehouse.constants.MetricsConstants;
 import ai.onehouse.exceptions.RateLimitException;
 import ai.onehouse.metadata_extractor.models.Table;
 import ai.onehouse.metrics.LakeViewExtractorMetrics;
+import com.google.common.collect.ImmutableSet;
 
 import java.time.Instant;
 import java.util.Collections;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -200,7 +200,8 @@ class TableDiscoveryAndUploadJobTest {
             .tableFormat(TableFormat.ICEBERG)
             .build();
     when(mockTableDiscoveryService.discoverTables())
-        .thenReturn(CompletableFuture.completedFuture(Set.of(hudiTable, icebergTable)));
+        .thenReturn(
+            CompletableFuture.completedFuture(ImmutableSet.of(hudiTable, icebergTable)));
     when(mockTableMetadataUploaderService.uploadInstantsInTables(anySet()))
         .thenReturn(CompletableFuture.completedFuture(true));
     when(mockIcebergMetadataUploaderService.uploadInstantsInTables(anySet()))
