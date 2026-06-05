@@ -203,12 +203,18 @@ public class ActiveTimelineInstantBatcher {
   /**
    * Splits {@code sortedInstants} into (a) non-savepoint files retained in their original sort
    * order and (b) zero or more 2-file batches each containing one fully-paired savepoint
-   * ({@code <ts>.savepoint.inflight} + {@code <ts>_<completionTs>.savepoint}). Partial savepoint
-   * files (only inflight or only completed) stay in the non-savepoint list so the existing
-   * single-savepoint code path can still process them.
+   * ({@code <ts>.savepoint.inflight} + {@code <ts>_<completionTs>.savepoint}).
+   *
+   * <p>Only a complete savepoint pair that <em>collides</em> with a same-instant non-savepoint
+   * commit is peeled out — that collision is the V9 case where the savepoint's files interleave
+   * with the deltacommit/commit triplet and break the (inflight, requested, completed) check. A
+   * savepoint at its own unique instant time, or a partial savepoint (only inflight or only
+   * completed), is left in the non-savepoint list so the existing inline savepoint code path keeps
+   * processing it in instant-time order.
    */
   private Pair<List<File>, List<List<File>>> extractSavepointPairs(List<File> sortedInstants) {
     Map<String, List<File>> savepointFilesByTimestamp = new LinkedHashMap<>();
+    Set<String> nonSavepointTimestamps = new HashSet<>();
     List<File> nonSavepoint = new ArrayList<>();
     for (File f : sortedInstants) {
       ActiveTimelineInstant inst = getActiveTimeLineInstant(f.getFilename());
@@ -217,11 +223,13 @@ public class ActiveTimelineInstantBatcher {
             .computeIfAbsent(inst.getTimestamp(), k -> new ArrayList<>())
             .add(f);
       } else {
+        nonSavepointTimestamps.add(inst.getTimestamp());
         nonSavepoint.add(f);
       }
     }
     List<List<File>> savepointBatches = new ArrayList<>();
-    for (List<File> spFiles : savepointFilesByTimestamp.values()) {
+    for (Map.Entry<String, List<File>> entry : savepointFilesByTimestamp.entrySet()) {
+      List<File> spFiles = entry.getValue();
       boolean hasInflight =
           spFiles.stream()
               .anyMatch(
@@ -230,7 +238,10 @@ public class ActiveTimelineInstantBatcher {
           spFiles.stream()
               .anyMatch(
                   f -> "completed".equals(getActiveTimeLineInstant(f.getFilename()).getState()));
-      if (spFiles.size() == 2 && hasInflight && hasCompleted) {
+      if (spFiles.size() == 2
+          && hasInflight
+          && hasCompleted
+          && nonSavepointTimestamps.contains(entry.getKey())) {
         savepointBatches.add(spFiles);
       } else {
         nonSavepoint.addAll(spFiles);

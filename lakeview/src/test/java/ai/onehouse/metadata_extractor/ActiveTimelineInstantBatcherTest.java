@@ -607,6 +607,58 @@ class ActiveTimelineInstantBatcherTest {
   }
 
   @Test
+  void testCreateBatchWithV9SavepointSharingInstantTimeWithDeltacommit() {
+    // V9/V2 daily-savepoint workload (e.g. Concentric permissions_bronze): a savepoint is pinned
+    // to the same instant time T as a deltacommit. The savepoint writes <T>.savepoint.inflight +
+    // <T>_<completionTs>.savepoint, which lex-sort into the middle of the deltacommit's triplet and
+    // previously broke the (inflight, requested, completed) check — yielding ZERO batches and
+    // silently halting upload. The fix peels the colliding savepoint pair into its own batch so the
+    // deltacommit triplet groups cleanly; the savepoint pair is appended afterwards.
+    String t1 = "20260430010000000";
+    String t1Complete = "20260430010005000";
+    String t1SavepointComplete = "20260430010010000";
+    String t2 = "20260501010000000";
+    String t2Complete = "20260501010005000";
+    String t2SavepointComplete = "20260501010010000";
+
+    List<File> files =
+        Arrays.asList(
+            generateFileObj("hoodie.properties"),
+            generateFileObj(t1 + ".deltacommit.requested"),
+            generateFileObj(t1 + ".deltacommit.inflight"),
+            generateFileObj(t1 + "_" + t1Complete + ".deltacommit"),
+            generateFileObj(t1 + ".savepoint.inflight"),
+            generateFileObj(t1 + "_" + t1SavepointComplete + ".savepoint"),
+            generateFileObj(t2 + ".deltacommit.requested"),
+            generateFileObj(t2 + ".deltacommit.inflight"),
+            generateFileObj(t2 + "_" + t2Complete + ".deltacommit"),
+            generateFileObj(t2 + ".savepoint.inflight"),
+            generateFileObj(t2 + "_" + t2SavepointComplete + ".savepoint"));
+
+    List<List<File>> expectedBatches =
+        Arrays.asList(
+            Arrays.asList(
+                generateFileObj("hoodie.properties"),
+                generateFileObj(t1 + ".deltacommit.inflight"),
+                generateFileObj(t1 + ".deltacommit.requested"),
+                generateFileObj(t1 + "_" + t1Complete + ".deltacommit")),
+            Arrays.asList(
+                generateFileObj(t2 + ".deltacommit.inflight"),
+                generateFileObj(t2 + ".deltacommit.requested"),
+                generateFileObj(t2 + "_" + t2Complete + ".deltacommit")),
+            Arrays.asList(
+                generateFileObj(t1 + ".savepoint.inflight"),
+                generateFileObj(t1 + "_" + t1SavepointComplete + ".savepoint")),
+            Arrays.asList(
+                generateFileObj(t2 + ".savepoint.inflight"),
+                generateFileObj(t2 + "_" + t2SavepointComplete + ".savepoint")));
+
+    List<List<File>> actualBatches =
+        activeTimelineInstantBatcher.createBatches(files, 4, getCheckpoint()).getRight();
+    assertEquals(expectedBatches, actualBatches);
+  }
+
+  @Test
   void testWithInvalidBatchSize() {
     assertThrows(
         IllegalArgumentException.class,
