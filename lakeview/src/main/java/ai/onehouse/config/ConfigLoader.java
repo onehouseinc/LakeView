@@ -28,7 +28,7 @@ public class ConfigLoader {
     try (InputStream in = Files.newInputStream(Paths.get(configFilePath))) {
       return loadConfigFromJsonNode(MAPPER.readTree(in));
     } catch (Exception e) {
-      throw new RuntimeException("Failed to load config", e);
+      throw new RuntimeException("Failed to load config from " + configFilePath, e);
     }
   }
 
@@ -41,7 +41,20 @@ public class ConfigLoader {
   }
 
   private Config loadConfigFromJsonNode(JsonNode jsonNode) throws IOException {
-    ConfigVersion version = ConfigVersion.valueOf(jsonNode.get("version").asText());
+    if (jsonNode == null || jsonNode.isMissingNode() || jsonNode.isNull()) {
+      throw new IllegalArgumentException("Config is empty or could not be parsed");
+    }
+    JsonNode versionNode = jsonNode.get("version");
+    if (versionNode == null || versionNode.isNull() || StringUtils.isBlank(versionNode.asText())) {
+      throw new IllegalArgumentException("Config missing required 'version' field");
+    }
+    String versionString = versionNode.asText();
+    ConfigVersion version;
+    try {
+      version = ConfigVersion.valueOf(versionString);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("Unsupported config version: " + versionString, e);
+    }
     switch (version) {
       case V1:
         ConfigV1 configV1 = MAPPER.treeToValue(jsonNode, ConfigV1.class);

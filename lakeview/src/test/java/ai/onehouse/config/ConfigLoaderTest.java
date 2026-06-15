@@ -211,6 +211,61 @@ class ConfigLoaderTest {
         exception.getCause().getMessage());
   }
 
+  @Test
+  void testLoadConfig_emptyYaml_throwsIllegalArgumentException() {
+    RuntimeException exception =
+        assertThrows(RuntimeException.class, () -> configLoader.loadConfigFromString(""));
+    assertInstanceOf(IllegalArgumentException.class, exception.getCause());
+    assertEquals(
+        "Config is empty or could not be parsed", exception.getCause().getMessage());
+  }
+
+  @Test
+  void testLoadConfig_missingVersion_throwsIllegalArgumentException() {
+    // valid-looking YAML but no `version` field
+    String yamlString =
+        "{onehouseClientConfig: {projectId: p, apiKey: k, apiSecret: s, userId: u}}";
+    RuntimeException exception =
+        assertThrows(
+            RuntimeException.class, () -> configLoader.loadConfigFromString(yamlString));
+    assertInstanceOf(IllegalArgumentException.class, exception.getCause());
+    assertEquals(
+        "Config missing required 'version' field", exception.getCause().getMessage());
+  }
+
+  @Test
+  void testLoadConfig_blankVersion_throwsIllegalArgumentException() {
+    String yamlString = "{version: \"\", onehouseClientConfig: {projectId: p}}";
+    RuntimeException exception =
+        assertThrows(
+            RuntimeException.class, () -> configLoader.loadConfigFromString(yamlString));
+    assertInstanceOf(IllegalArgumentException.class, exception.getCause());
+    assertEquals(
+        "Config missing required 'version' field", exception.getCause().getMessage());
+  }
+
+  @Test
+  void testLoadConfig_invalidVersion_throwsIllegalArgumentExceptionWithVersionInMessage() {
+    String yamlString = "{version: V99, onehouseClientConfig: {projectId: p}}";
+    RuntimeException exception =
+        assertThrows(
+            RuntimeException.class, () -> configLoader.loadConfigFromString(yamlString));
+    assertInstanceOf(IllegalArgumentException.class, exception.getCause());
+    assertEquals(
+        "Unsupported config version: V99", exception.getCause().getMessage());
+  }
+
+  @Test
+  void testLoadConfigFromConfigFile_missingFile_errorMessageIncludesFilePath() {
+    String missingPath = "/tmp/does-not-exist-" + System.nanoTime() + ".yaml";
+    RuntimeException exception =
+        assertThrows(
+            RuntimeException.class, () -> configLoader.loadConfigFromConfigFile(missingPath));
+    assertTrue(
+        exception.getMessage().contains(missingPath),
+        "Error message should include the file path; was: " + exception.getMessage());
+  }
+
   enum Filesystem {
     S3,
     GCS
