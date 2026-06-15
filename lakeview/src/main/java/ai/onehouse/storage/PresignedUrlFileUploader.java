@@ -78,8 +78,8 @@ public class PresignedUrlFileUploader {
     if (fileStreamData.getFileSize() <= fileUploadStreamBatchSize) {
       // if the file size is less than the stream batch size, upload it directly
       RequestBody requestBody;
-      try {
-        requestBody = RequestBody.create(mediaType, IOUtils.toByteArray(fileStreamData.getInputStream()));
+      try (InputStream is = fileStreamData.getInputStream()) {
+        requestBody = RequestBody.create(mediaType, IOUtils.toByteArray(is));
         request = new Request.Builder().url(presignedUrl).put(requestBody).build();
       } catch (IOException e) {
         throw new FileUploadException(e);
