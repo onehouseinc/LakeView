@@ -27,6 +27,11 @@ public class LakeViewExtractorMetrics {
   static final String EXTRACTOR_JOB_RUN_MODE_TAG_KEY = "extractor_job_run_mode";
   static final String METADATA_UPLOAD_FAILURE_REASON_TAG_KEY = "metadata_upload_failure_reason";
   static final String METADATA_DISCOVER_FAILURE_REASON_TAG_KEY = "metadata_discover_failure_reason";
+  static final String TABLE_BASE_PATH_TAG_KEY = "table_base_path";
+
+  // Sentinel used when a discovery failure is raised above the per-path scan (e.g. a run-level
+  // AwsServiceException), so the counter's tag set stays consistent across all call sites.
+  static final String UNKNOWN_TABLE_BASE_PATH = "unknown";
 
 
   // Metrics
@@ -76,8 +81,15 @@ public class LakeViewExtractorMetrics {
 
   public void incrementTableDiscoveryFailureCounter(
         MetricsConstants.MetadataUploadFailureReasons metadataUploadFailureReasons) {
+    incrementTableDiscoveryFailureCounter(metadataUploadFailureReasons, UNKNOWN_TABLE_BASE_PATH);
+  }
+
+  public void incrementTableDiscoveryFailureCounter(
+        MetricsConstants.MetadataUploadFailureReasons metadataUploadFailureReasons,
+        String tableBasePath) {
     List<Tag> tags = getDefaultTags();
     tags.add(Tag.of(METADATA_DISCOVER_FAILURE_REASON_TAG_KEY, metadataUploadFailureReasons.name()));
+    tags.add(Tag.of(TABLE_BASE_PATH_TAG_KEY, tableBasePath));
     metrics.increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
   }
 

@@ -69,6 +69,20 @@ class LakeViewExtractorMetricsTest {
     hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(reason);
     List<Tag> tags = getDefaultTags();
     tags.add(Tag.of(METADATA_DISCOVER_FAILURE_REASON_TAG_KEY, reason.name()));
+    tags.add(Tag.of(TABLE_BASE_PATH_TAG_KEY, UNKNOWN_TABLE_BASE_PATH));
+    verify(metrics).increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
+  }
+
+  @Test
+  void testIncrementTableDiscoveryFailureCounterWithTableBasePath() {
+    MetricsConstants.MetadataUploadFailureReasons reason =
+        MetricsConstants.MetadataUploadFailureReasons.ACCESS_DENIED;
+    String tableBasePath =
+        "s3://dp-datalake-gold-use1-prod/Domain=CustomerOfferEvent/Table=customerofferevent_daily";
+    hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(reason, tableBasePath);
+    List<Tag> tags = getDefaultTags();
+    tags.add(Tag.of(METADATA_DISCOVER_FAILURE_REASON_TAG_KEY, reason.name()));
+    tags.add(Tag.of(TABLE_BASE_PATH_TAG_KEY, tableBasePath));
     verify(metrics).increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
   }
 
