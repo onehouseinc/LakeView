@@ -69,20 +69,20 @@ class LakeViewExtractorMetricsTest {
     hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(reason);
     List<Tag> tags = getDefaultTags();
     tags.add(Tag.of(METADATA_DISCOVER_FAILURE_REASON_TAG_KEY, reason.name()));
-    tags.add(Tag.of(TABLE_BASE_PATH_TAG_KEY, UNKNOWN_TABLE_BASE_PATH));
+    tags.add(Tag.of(DISCOVERY_PATH_TAG_KEY, UNKNOWN_DISCOVERY_PATH));
     verify(metrics).increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
   }
 
   @Test
-  void testIncrementTableDiscoveryFailureCounterWithTableBasePath() {
+  void testIncrementTableDiscoveryFailureCounterWithDiscoveryPath() {
     MetricsConstants.MetadataUploadFailureReasons reason =
         MetricsConstants.MetadataUploadFailureReasons.ACCESS_DENIED;
-    String tableBasePath =
+    String discoveryPath =
         "s3://dp-datalake-gold-use1-prod/Domain=CustomerOfferEvent/Table=customerofferevent_daily";
-    hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(reason, tableBasePath);
+    hudiMetadataExtractorMetrics.incrementTableDiscoveryFailureCounter(reason, discoveryPath);
     List<Tag> tags = getDefaultTags();
     tags.add(Tag.of(METADATA_DISCOVER_FAILURE_REASON_TAG_KEY, reason.name()));
-    tags.add(Tag.of(TABLE_BASE_PATH_TAG_KEY, tableBasePath));
+    tags.add(Tag.of(DISCOVERY_PATH_TAG_KEY, discoveryPath));
     verify(metrics).increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
   }
 
