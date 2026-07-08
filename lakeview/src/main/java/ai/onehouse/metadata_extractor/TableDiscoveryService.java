@@ -247,7 +247,8 @@ public class TableDiscoveryService {
                 log.error("Failed to discover tables in path: {}", path, e);
                 lakeviewExtractorMetrics.incrementTableDiscoveryFailureCounter(
                     getMetadataExtractorFailureReason(
-                        e, MetricsConstants.MetadataUploadFailureReasons.UNKNOWN));
+                        e, MetricsConstants.MetadataUploadFailureReasons.UNKNOWN),
+                    path);
                 return emptySet();
               });
     } catch (Exception e) {

@@ -374,7 +374,7 @@ class TableDiscoveryServiceTest {
     // Verify the mock
     verify(hudiMetadataExtractorMetrics)
             .incrementTableDiscoveryFailureCounter(
-                    MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING);
+                    MetricsConstants.MetadataUploadFailureReasons.RATE_LIMITING, basePath);
   }
 
   @Test
