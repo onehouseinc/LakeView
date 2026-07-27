@@ -27,6 +27,8 @@ public class LakeViewExtractorMetrics {
   static final String EXTRACTOR_JOB_RUN_MODE_TAG_KEY = "extractor_job_run_mode";
   static final String METADATA_UPLOAD_FAILURE_REASON_TAG_KEY = "metadata_upload_failure_reason";
   static final String METADATA_DISCOVER_FAILURE_REASON_TAG_KEY = "metadata_discover_failure_reason";
+  // Why a table was intentionally skipped for a cycle (expected outcome, not a failure).
+  static final String TABLE_SKIP_REASON_TAG_KEY = "table_skip_reason";
   // The failing path from the discovery walk. Named discovery_path (not table_base_path) because
   // it is the prefix whose listing failed — which may be a table root or, when a Deny lands on a
   // parent prefix before the walk descends, a container of many tables.
@@ -48,6 +50,7 @@ public class LakeViewExtractorMetrics {
   static final String FAILED_OVERRIDE_CONFIG_COUNTER = METRICS_COMMON_PREFIX + "failed_override_config";
   static final String TABLE_METADATA_PROCESSING_FAILURE_COUNTER =
       METRICS_COMMON_PREFIX + "table_metadata_processing_failure";
+  static final String TABLE_SKIPPED_COUNTER = METRICS_COMMON_PREFIX + "table_skipped";
   static final String INCOMPLETE_COMMIT_INSTANTS_SKIPPED_COUNTER =
       METRICS_COMMON_PREFIX + "incomplete_commit_instants_skipped";
 
@@ -122,6 +125,18 @@ public class LakeViewExtractorMetrics {
     tags.add(Tag.of(METADATA_UPLOAD_FAILURE_REASON_TAG_KEY, metadataUploadFailureReasons.name()));
     metrics.increment(TABLE_METADATA_PROCESSING_FAILURE_COUNTER, tags);
     log.error("Table metadata processing failed with reason: {} - {}", metadataUploadFailureReasons.name(), failureReason);
+  }
+
+  /**
+   * Records that a table was intentionally skipped for this cycle — an expected outcome, not a
+   * failure. Deliberately separate from {@link #incrementTableMetadataProcessingFailureCounter}
+   * so the failure counter keeps meaning "something went wrong", and deliberately does not log:
+   * callers log at INFO with the table context they have.
+   */
+  public void incrementTableSkippedCounter(MetricsConstants.TableSkipReasons tableSkipReason) {
+    List<Tag> tags = getDefaultTags();
+    tags.add(Tag.of(TABLE_SKIP_REASON_TAG_KEY, tableSkipReason.name()));
+    metrics.increment(TABLE_SKIPPED_COUNTER, tags);
   }
 
   public void resetTableProcessedGauge() {
