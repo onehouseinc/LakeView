@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -237,6 +238,93 @@ class TableMetadataUploaderServiceTest {
             FINAL_ARCHIVED_TIMELINE_CHECKPOINT_WITH_RESET_FIELDS,
             CommitTimelineType.COMMIT_TIMELINE_TYPE_ACTIVE))
         .thenReturn(CompletableFuture.completedFuture(FINAL_ACTIVE_TIMELINE_CHECKPOINT));
+  }
+
+  /**
+   * A table the control plane reports as deleted must be skipped quietly: counted on the
+   * table-skipped counter, never on the processing-failure counter, and never uploaded. Regression
+   * test for ENG-45879, where this benign advisory was classified as API_FAILURE_USER_ERROR and
+   * logged at ERROR once per deleted table per cycle.
+   */
+  @Test
+  void testUploadMetadataSkipsTableDeletedInControlPlane() {
+    setupInitialiseTableMetricsCheckpointErrorMocks(
+        TABLE_ID.toString(), S3_TABLE_URI, TABLE, "Table can be skipped as it is deleted");
+
+    // Nothing left to process is not a failure — the batch reports success.
+    Assertions.assertTrue(
+        tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join());
+
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableSkippedCounter(MetricsConstants.TableSkipReasons.DELETED);
+    verify(hudiMetadataExtractorMetrics, never())
+        .incrementTableMetadataProcessingFailureCounter(
+            any(MetricsConstants.MetadataUploadFailureReasons.class), anyString());
+    // The table must not be uploaded after being skipped.
+    verify(timelineCommitInstantsUploader, never())
+        .batchUploadWithCheckpoint(any(), any(), any(), any());
+  }
+
+  /**
+   * A genuine per-table initialise error must still be counted as a processing failure — the
+   * ENG-45879 fix must not swallow real errors.
+   */
+  @Test
+  void testUploadMetadataCountsRealInitialiseErrorAsFailure() {
+    setupInitialiseTableMetricsCheckpointErrorMocks(
+        TABLE_ID.toString(), S3_TABLE_URI, TABLE, "Internal server error");
+
+    tableMetadataUploaderService.uploadInstantsInTables(Collections.singleton(TABLE)).join();
+
+    verify(hudiMetadataExtractorMetrics)
+        .incrementTableMetadataProcessingFailureCounter(
+            eq(MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR), anyString());
+    verify(hudiMetadataExtractorMetrics, never())
+        .incrementTableSkippedCounter(any(MetricsConstants.TableSkipReasons.class));
+  }
+
+  /**
+   * Sets up a newly-discovered table whose initialize-tables response carries a per-table {@code
+   * error} on an otherwise successful response.
+   */
+  private void setupInitialiseTableMetricsCheckpointErrorMocks(
+      String tableId, String tableBasePath, Table table, String perTableError) {
+    when(onehouseApiClient.getTableMetricsCheckpoints(Collections.singletonList(tableId)))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                GetTableMetricsCheckpointResponse.builder()
+                    .checkpoints(Collections.emptyList())
+                    .build()));
+    when(hoodiePropertiesReader.readHoodieProperties(
+            String.format("%s%s/%s", tableBasePath, HOODIE_FOLDER_NAME, HOODIE_PROPERTIES_FILE)))
+        .thenReturn(CompletableFuture.completedFuture(PARSED_HUDI_PROPERTIES));
+
+    InitializeTableMetricsCheckpointRequest expectedRequest =
+        InitializeTableMetricsCheckpointRequest.builder()
+            .tables(
+                Collections.singletonList(
+                    InitializeTableMetricsCheckpointRequest
+                        .InitializeSingleTableMetricsCheckpointRequest.builder()
+                        .tableId(tableId)
+                        .tableName(PARSED_HUDI_PROPERTIES.getTableName())
+                        .tableType(PARSED_HUDI_PROPERTIES.getTableType())
+                        .databaseName(table.getDatabaseName())
+                        .lakeName(table.getLakeName())
+                        .tableBasePath(tableBasePath)
+                        .build()))
+            .build();
+    when(onehouseApiClient.initializeTableMetricsCheckpoint(expectedRequest))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                InitializeTableMetricsCheckpointResponse.builder()
+                    .response(
+                        Collections.singletonList(
+                            InitializeTableMetricsCheckpointResponse
+                                .InitializeSingleTableMetricsCheckpointResponse.builder()
+                                .tableId(tableId)
+                                .error(perTableError)
+                                .build()))
+                    .build()));
   }
 
   @Test

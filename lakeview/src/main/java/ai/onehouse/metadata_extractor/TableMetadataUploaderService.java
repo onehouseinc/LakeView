@@ -362,6 +362,19 @@ public class TableMetadataUploaderService {
                         continue;
                       }
                       if (!StringUtils.isBlank(response.getError())) {
+                        // A deleted table is the control plane telling us there is nothing left to
+                        // upload — an expected outcome on a successful (HTTP 200) response, not a
+                        // failure. Counting it as one produced an ERROR log plus a
+                        // API_FAILURE_USER_ERROR increment per deleted table per cycle (ENG-45879).
+                        if (MetadataExtractorUtils.isTableDeletedError(response.getError())) {
+                          hudiMetadataExtractorMetrics.incrementTableSkippedCounter(
+                              MetricsConstants.TableSkipReasons.DELETED);
+                          log.info(
+                              "Skipping table {}: reported as deleted by the control plane ({})",
+                              table.getAbsoluteTableUri(),
+                              response.getError());
+                          continue;
+                        }
                         hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
                             MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR,
                             String.format("Error initialising table %s: %s", table, response.getError()));
