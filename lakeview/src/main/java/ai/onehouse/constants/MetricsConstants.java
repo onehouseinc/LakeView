@@ -20,4 +20,15 @@ public class MetricsConstants {
     NO_SUCH_KEY,
     UNKNOWN,
   }
+
+  /**
+   * Why a table was intentionally skipped for a cycle. These are expected, non-error outcomes and
+   * are deliberately kept out of {@link MetadataUploadFailureReasons} so that the
+   * {@code lakeView_table_metadata_processing_failure} counter keeps meaning "something went
+   * wrong".
+   */
+  public enum TableSkipReasons {
+    /** The control plane reports the table as deleted, so there is nothing to upload for it. */
+    DELETED,
+  }
 }
