@@ -25,10 +25,11 @@ jobs:
         with:
           submodules: recursive
           token: ${{ github.token }}
-      - name: Set up JDK 17 (for sonar analysis) & 8 (default)
+      - name: Set up JDK 21 (for sonar analysis), 17 & 8 (default)
         uses: actions/setup-java@v4
         with:
           java-version: |
+            21
             17
             8
           distribution: 'adopt'
@@ -39,8 +40,10 @@ jobs:
         run: ./gradlew clean check jacocoRootReport
       - name: Publish Coverage
         run: |
-          # As sonar scanner analysis should be done by jdk 17
-          export JAVA_HOME="${{env.JAVA_HOME_17_ARM64}}"
+          # SonarQube Cloud requires the scanner to run on JDK 21+ (JDK 17 is no longer supported).
+          export JAVA_HOME="${{env.JAVA_HOME_21_ARM64}}"
+          # Keep compiling/testing against the toolchains the build targets, not the scanner JDK.
+          echo "org.gradle.java.installations.paths=${JAVA_HOME_8_ARM64},${JAVA_HOME_17_ARM64},${JAVA_HOME_21_ARM64}" >> gradle.properties
           if [ ${{ github.event_name }} == 'pull_request' ]; then
             ./gradlew -Psonar_token=${{ secrets.SONAR_TOKEN }} -Ppullrequest_key=${{ github.event.number }} -Ppullrequest_branch=${{ github.HEAD_REF }} -Ppullrequest_base=${{ github.BASE_REF }} sonar
           else
