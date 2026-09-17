@@ -51,7 +51,7 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-api'
     }
 
-    implementation platform('software.amazon.awssdk:bom:2.25.69')
+    implementation platform('software.amazon.awssdk:bom:2.54.18')
     implementation 'software.amazon.awssdk:s3'
     implementation 'software.amazon.awssdk:sso'
     implementation 'software.amazon.awssdk:sts'
