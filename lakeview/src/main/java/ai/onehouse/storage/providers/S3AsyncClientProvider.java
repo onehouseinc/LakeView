@@ -7,6 +7,8 @@ import ai.onehouse.config.Config;
 import ai.onehouse.config.models.common.FileSystemConfiguration;
 import ai.onehouse.config.models.common.S3Config;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
@@ -83,6 +85,15 @@ public class S3AsyncClientProvider {
         .retryCondition(RetryCondition.defaultRetryCondition())
         .build();
 
+    if (s3Config.getEndpoint().isPresent()) {
+      logger.info("Using S3 endpoint override {}", s3Config.getEndpoint().get());
+      s3AsyncClientBuilder.endpointOverride(URI.create(s3Config.getEndpoint().get()));
+    }
+    if (s3Config.isPathStyleAccess()) {
+      logger.info("Using path-style S3 addressing");
+      s3AsyncClientBuilder.forcePathStyle(true);
+    }
+
     return s3AsyncClientBuilder
       .overrideConfiguration(builder -> builder.retryPolicy(retryPolicy))
       .httpClient(NettyNioAsyncHttpClient.builder()
@@ -120,6 +131,25 @@ public class S3AsyncClientProvider {
 
     if (StringUtils.isBlank(s3Config.getRegion())) {
       throw new IllegalArgumentException("Aws region cannot be empty");
+    }
+
+    if (s3Config.getEndpoint().isPresent()) {
+      validateEndpoint(s3Config.getEndpoint().get());
+    }
+  }
+
+  private static void validateEndpoint(String endpoint) {
+    URI uri;
+    try {
+      uri = new URI(endpoint);
+    } catch (URISyntaxException e) {
+      throw new IllegalArgumentException("Invalid S3 endpoint: " + endpoint, e);
+    }
+    if (!uri.isAbsolute()
+        || !("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
+        || StringUtils.isBlank(uri.getHost())) {
+      throw new IllegalArgumentException(
+          "S3 endpoint must be an absolute http(s) URL with a host, got: " + endpoint);
     }
   }
 
