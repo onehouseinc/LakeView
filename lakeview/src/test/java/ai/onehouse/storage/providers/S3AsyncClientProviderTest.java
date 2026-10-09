@@ -2,6 +2,10 @@ package ai.onehouse.storage.providers;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -9,8 +13,14 @@ import static org.mockito.Mockito.when;
 import ai.onehouse.config.models.common.FileSystemConfiguration;
 import ai.onehouse.config.models.common.S3Config;
 import ai.onehouse.config.models.configv1.ConfigV1;
+import com.sun.net.httpserver.HttpServer;
+import java.net.InetSocketAddress;
+import java.net.URI;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import ai.onehouse.config.models.configv1.MetadataExtractorConfig;
@@ -19,12 +29,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
+import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.StsClientBuilder;
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
@@ -118,5 +132,130 @@ class S3AsyncClientProviderTest {
         Arguments.of(true, false),
         Arguments.of(false, false),
         Arguments.of(false,true));
+  }
+
+  private S3AsyncClientProvider providerFor(S3Config realS3Config) {
+    lenient().when(config.getFileSystemConfiguration()).thenReturn(fileSystemConfiguration);
+    lenient().when(fileSystemConfiguration.getS3Config()).thenReturn(realS3Config);
+    lenient().when(config.getMetadataExtractorConfig()).thenReturn(metadataExtractorConfig);
+    lenient().when(metadataExtractorConfig.getObjectStoreNumRetries()).thenReturn(0);
+    lenient().when(metadataExtractorConfig.getNettyMaxConcurrency()).thenReturn(10);
+    lenient().when(metadataExtractorConfig.getNettyConnectionTimeoutSeconds()).thenReturn(5L);
+    return new S3AsyncClientProvider(config, Executors.newSingleThreadExecutor());
+  }
+
+  @Test
+  void doesNotSetEndpointOrPathStyleWhenAbsent() {
+    S3AsyncClientProvider provider =
+        providerFor(S3Config.builder().region("us-west-2").build());
+    S3AsyncClientBuilder builder = mock(S3AsyncClientBuilder.class, Answers.RETURNS_SELF);
+    doReturn(mock(S3AsyncClient.class)).when(builder).build();
+
+    try (MockedStatic<S3AsyncClient> mockedStatic = Mockito.mockStatic(S3AsyncClient.class)) {
+      mockedStatic.when(S3AsyncClient::builder).thenReturn(builder);
+      provider.createS3AsyncClient();
+    }
+
+    verify(builder, never()).endpointOverride(any());
+    verify(builder, never()).forcePathStyle(any());
+    verify(builder, never()).serviceConfiguration(any(S3Configuration.class));
+  }
+
+  @Test
+  void setsEndpointAndPathStyleWhenConfigured() {
+    S3AsyncClientProvider provider =
+        providerFor(
+            S3Config.builder()
+                .region("us-east-1")
+                .endpoint(Optional.of("https://s3.example.internal:8333"))
+                .pathStyleAccess(true)
+                .build());
+    S3AsyncClientBuilder builder = mock(S3AsyncClientBuilder.class, Answers.RETURNS_SELF);
+    doReturn(mock(S3AsyncClient.class)).when(builder).build();
+
+    try (MockedStatic<S3AsyncClient> mockedStatic = Mockito.mockStatic(S3AsyncClient.class)) {
+      mockedStatic.when(S3AsyncClient::builder).thenReturn(builder);
+      provider.createS3AsyncClient();
+    }
+
+    verify(builder).endpointOverride(URI.create("https://s3.example.internal:8333"));
+    verify(builder).forcePathStyle(true);
+  }
+
+  @Test
+  void resolvedClientUsesEndpointOverride() {
+    S3AsyncClient client =
+        providerFor(
+                S3Config.builder()
+                    .region("us-east-1")
+                    .endpoint(Optional.of("https://s3.example.internal:8333"))
+                    .build())
+            .createS3AsyncClient();
+    try {
+      assertEquals(
+          Optional.of(URI.create("https://s3.example.internal:8333")),
+          client.serviceClientConfiguration().endpointOverride());
+    } finally {
+      client.close();
+    }
+  }
+
+  @Test
+  void resolvedClientHasNoEndpointOverrideWhenAbsent() {
+    S3AsyncClient client =
+        providerFor(S3Config.builder().region("us-east-1").build()).createS3AsyncClient();
+    try {
+      assertFalse(client.serviceClientConfiguration().endpointOverride().isPresent());
+    } finally {
+      client.close();
+    }
+  }
+
+  @Test
+  void sendsPathStyleRequestsToEndpoint() throws Exception {
+    AtomicReference<String> requestPath = new AtomicReference<>();
+    AtomicReference<String> hostHeader = new AtomicReference<>();
+    HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    server.createContext(
+        "/",
+        exchange -> {
+          requestPath.set(exchange.getRequestURI().getPath());
+          hostHeader.set(exchange.getRequestHeaders().getFirst("Host"));
+          exchange.sendResponseHeaders(200, -1);
+          exchange.close();
+        });
+    server.start();
+    int port = server.getAddress().getPort();
+    S3AsyncClient client =
+        providerFor(
+                S3Config.builder()
+                    .region("us-east-1")
+                    .accessKey(Optional.of("access-key"))
+                    .accessSecret(Optional.of("access-secret"))
+                    .endpoint(Optional.of("http://127.0.0.1:" + port))
+                    .pathStyleAccess(true)
+                    .build())
+            .createS3AsyncClient();
+    try {
+      client
+          .headObject(HeadObjectRequest.builder().bucket("my-bucket").key("a/b.txt").build())
+          .get(30, TimeUnit.SECONDS);
+    } finally {
+      client.close();
+      server.stop(0);
+    }
+
+    assertEquals("/my-bucket/a/b.txt", requestPath.get());
+    assertEquals("127.0.0.1:" + port, hostHeader.get());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "s3.example.internal:8333", "ftp://host", "https://", "not a url"})
+  void rejectsInvalidEndpoint(String endpoint) {
+    S3AsyncClientProvider provider =
+        providerFor(
+            S3Config.builder().region("us-east-1").endpoint(Optional.of(endpoint)).build());
+
+    assertThrows(IllegalArgumentException.class, provider::createS3AsyncClient);
   }
 }

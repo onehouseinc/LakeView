@@ -1,6 +1,7 @@
 package ai.onehouse.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -253,6 +254,33 @@ class ConfigLoaderTest {
     assertInstanceOf(IllegalArgumentException.class, exception.getCause());
     assertEquals(
         "Unsupported config version: V99", exception.getCause().getMessage());
+  }
+
+  @Test
+  void testLoadingS3EndpointAndPathStyleAccess() {
+    String yamlString =
+        "{version: V1, onehouseClientConfig: {projectId: p, apiKey: k, apiSecret: s, userId: u}, fileSystemConfiguration: {s3Config: {region: us-east-1, endpoint: 'https://s3.example.internal:8333', pathStyleAccess: true}}, metadataExtractorConfig: {parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+    S3Config s3Config =
+        configLoader.loadConfigFromString(yamlString).getFileSystemConfiguration().getS3Config();
+    assertEquals(Optional.of("https://s3.example.internal:8333"), s3Config.getEndpoint());
+    assertTrue(s3Config.isPathStyleAccess());
+  }
+
+  @Test
+  void testS3EndpointAndPathStyleAccessDefaultWhenAbsent() {
+    String yamlString =
+        "{version: V1, onehouseClientConfig: {projectId: p, apiKey: k, apiSecret: s, userId: u}, fileSystemConfiguration: {s3Config: {region: us-east-1}}, metadataExtractorConfig: {parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+    S3Config s3Config =
+        configLoader.loadConfigFromString(yamlString).getFileSystemConfiguration().getS3Config();
+    assertEquals(Optional.empty(), s3Config.getEndpoint());
+    assertFalse(s3Config.isPathStyleAccess());
+  }
+
+  @Test
+  void testUnknownS3ConfigKeyIsRejected() {
+    String yamlString =
+        "{version: V1, onehouseClientConfig: {projectId: p, apiKey: k, apiSecret: s, userId: u}, fileSystemConfiguration: {s3Config: {region: us-east-1, notARealKey: x}}, metadataExtractorConfig: {parserConfig: [{lake: lake1, databases: [{name: database1, basePaths: ['s3://lake_bucket/tables']}]}]}}";
+    assertThrows(RuntimeException.class, () -> configLoader.loadConfigFromString(yamlString));
   }
 
   @Test

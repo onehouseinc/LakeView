@@ -269,7 +269,18 @@ Below are explanations for the superset of all configurations across the three d
 >   - **userId:** The user ID for accessing the service. Get this by clicking on your profile in the top right of the Onehouse console.
 > - **fileSystemConfiguration:** Authentication configuration to access file system. Include only one of the s3Config (for AWS) or gcsConfig (for GCP).
 >   - **s3Config:**
->     - **region:** AWS region of the S3 bucket.
+>     - **region:** AWS region of the S3 bucket. For S3-compatible stores, the region the store expects for request signing (often `us-east-1`).
+>     - **endpoint:** (optional) Absolute `http(s)://` URL of an S3-compatible endpoint (e.g. `https://storagegrid.example.com:8082`). When omitted, the standard AWS S3 endpoint for the region is used.
+>     - **pathStyleAccess:** (optional, default `false`) Set to `true` to address buckets as `<endpoint>/<bucket>/<key>` instead of the virtual-hosted `<bucket>.<host>`. Needed for S3-compatible stores without wildcard DNS / TLS certificates.
+>
+>     Example for an S3-compatible store:
+>     ```yaml
+>     fileSystemConfiguration:
+>       s3Config:
+>         region: us-east-1
+>         endpoint: https://s3.example.internal:8333
+>         pathStyleAccess: true
+>     ```
 >   - **gcsConfig:**
 >     - **projectId:** <optional projectId>
 > - **metadataExtractorConfig:**

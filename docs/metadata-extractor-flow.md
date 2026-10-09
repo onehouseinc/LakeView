@@ -287,6 +287,11 @@ Files within an upload batch run in parallel via `CompletableFuture.allOf`. Batc
 | `version` | yes | Must be `V1`. As of [ENG-43320 hardening PR], missing/blank/invalid values surface a clear `IllegalArgumentException` at load time instead of a buried `NullPointerException`. |
 | `onehouseClientConfig` | yes | Either inline `{projectId, apiKey, apiSecret, userId, region?, requestId?}` or `{file: <path>}` pointing to a separate YAML/JSON. Mixing the two is allowed — inline values win. |
 | `fileSystemConfiguration` | yes | One of `s3Config`, `gcsConfig`, `azureBlobConfig`, or `fileSystemHadoopConfig` (for non-cloud filesystems). |
+| `fileSystemConfiguration.s3Config.region` | yes (S3) | Signing region. Must be non-blank. |
+| `fileSystemConfiguration.s3Config.endpoint` | no | Absolute `http(s)://host[:port]` URL of an S3-compatible store (StorageGRID, SeaweedFS, MinIO). Applied as the `S3AsyncClient` `endpointOverride`; takes precedence over the `AWS_ENDPOINT_URL_S3` env var. Validated when the client is built — a non-absolute / non-http(s) / host-less value fails fast. Absent ⇒ default AWS endpoint resolution. |
+| `fileSystemConfiguration.s3Config.pathStyleAccess` | no | Default `false`. `true` ⇒ `forcePathStyle(true)`: requests go to `<endpoint>/<bucket>/<key>` instead of `<bucket>.<host>`, so no wildcard DNS / wildcard TLS cert is needed. Used by the GENERIC_K8S cloud type ([ENG-49592]). |
+
+Unknown keys anywhere in the config (including inside `s3Config`) are **rejected** — `ConfigLoader` uses Jackson's default `FAIL_ON_UNKNOWN_PROPERTIES=true`, so an image older than the one that introduced a key fails to start when handed that key. Roll out a new LakeView image before rendering new config keys.
 | `metadataExtractorConfig.parserConfig[]` | yes | List of `{lake?, databases: [{name, basePaths, tableFormat?, tableHints?}]}`. |
 | `metadataExtractorConfig.tableDiscoveryIntervalMinutes` | no | Default 30. Must be ≥ 1. |
 | `metadataExtractorConfig.tableMetadataUploadIntervalMinutes` | no | Default 5. Must be ≥ 1. |
