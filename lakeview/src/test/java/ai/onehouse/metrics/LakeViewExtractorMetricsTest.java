@@ -1,6 +1,9 @@
 package ai.onehouse.metrics;
 
 import static ai.onehouse.metrics.LakeViewExtractorMetrics.*;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -84,6 +87,18 @@ class LakeViewExtractorMetricsTest {
     tags.add(Tag.of(METADATA_DISCOVER_FAILURE_REASON_TAG_KEY, reason.name()));
     tags.add(Tag.of(DISCOVERY_PATH_TAG_KEY, discoveryPath));
     verify(metrics).increment(TABLE_DISCOVERY_FAILURE_COUNTER, tags);
+  }
+
+  @ParameterizedTest
+  @EnumSource(MetricsConstants.TableSkipReasons.class)
+  void testIncrementTableSkippedCounter(MetricsConstants.TableSkipReasons reason) {
+    hudiMetadataExtractorMetrics.incrementTableSkippedCounter(reason);
+    List<Tag> tags = getDefaultTags();
+    tags.add(Tag.of(TABLE_SKIP_REASON_TAG_KEY, reason.name()));
+    verify(metrics).increment(TABLE_SKIPPED_COUNTER, tags);
+    // A skip is not a failure — it must never touch the processing-failure counter.
+    verify(metrics, never())
+        .increment(eq(TABLE_METADATA_PROCESSING_FAILURE_COUNTER), anyList());
   }
 
 
