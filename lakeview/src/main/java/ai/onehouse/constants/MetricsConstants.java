@@ -21,14 +21,8 @@ public class MetricsConstants {
     UNKNOWN,
   }
 
-  /**
-   * Why a table was intentionally skipped for a cycle. These are expected, non-error outcomes and
-   * are deliberately kept out of {@link MetadataUploadFailureReasons} so that the
-   * {@code lakeView_table_metadata_processing_failure} counter keeps meaning "something went
-   * wrong".
-   */
+  /** Expected reasons to skip a table. These are not failures. */
   public enum TableSkipReasons {
-    /** The control plane reports the table as deleted, so there is nothing to upload for it. */
     DELETED,
   }
 }

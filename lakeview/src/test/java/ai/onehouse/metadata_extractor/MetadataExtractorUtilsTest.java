@@ -63,7 +63,6 @@ class MetadataExtractorUtilsTest {
         "TABLE CAN BE SKIPPED AS IT IS DELETED",
         // Tolerates a reworded prefix around the distinctive core.
         "This table can be skipped as it is deleted",
-        "table is deleted",
     })
     void testIsTableDeletedErrorMatchesDeletedAdvisory(String error) {
         assertTrue(isTableDeletedError(error));
@@ -78,6 +77,7 @@ class MetadataExtractorUtilsTest {
         // Mentions deletion but is a genuine failure, not the skip advisory.
         "Failed to delete table metadata",
         "could not determine whether table was deleted",
+        "table is deleted",
     })
     void testIsTableDeletedErrorDoesNotMatchRealFailures(String error) {
         assertFalse(isTableDeletedError(error));

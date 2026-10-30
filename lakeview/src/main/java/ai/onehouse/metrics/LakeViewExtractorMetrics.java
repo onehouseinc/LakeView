@@ -127,12 +127,7 @@ public class LakeViewExtractorMetrics {
     log.error("Table metadata processing failed with reason: {} - {}", metadataUploadFailureReasons.name(), failureReason);
   }
 
-  /**
-   * Records that a table was intentionally skipped for this cycle — an expected outcome, not a
-   * failure. Deliberately separate from {@link #incrementTableMetadataProcessingFailureCounter}
-   * so the failure counter keeps meaning "something went wrong", and deliberately does not log:
-   * callers log at INFO with the table context they have.
-   */
+  /** Records an expected table skip. This is not a failure and does not log. */
   public void incrementTableSkippedCounter(MetricsConstants.TableSkipReasons tableSkipReason) {
     List<Tag> tags = getDefaultTags();
     tags.add(Tag.of(TABLE_SKIP_REASON_TAG_KEY, tableSkipReason.name()));
