@@ -20,4 +20,9 @@ public class MetricsConstants {
     NO_SUCH_KEY,
     UNKNOWN,
   }
+
+  /** Expected reasons to skip a table. These are not failures. */
+  public enum TableSkipReasons {
+    DELETED,
+  }
 }

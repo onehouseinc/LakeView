@@ -362,6 +362,16 @@ public class TableMetadataUploaderService {
                         continue;
                       }
                       if (!StringUtils.isBlank(response.getError())) {
+                        // A deleted table is an expected skip, not a failure.
+                        if (MetadataExtractorUtils.isTableDeletedError(response.getError())) {
+                          hudiMetadataExtractorMetrics.incrementTableSkippedCounter(
+                              MetricsConstants.TableSkipReasons.DELETED);
+                          log.debug(
+                              "Skipping table {}: reported as deleted by the control plane ({})",
+                              table.getAbsoluteTableUri(),
+                              response.getError());
+                          continue;
+                        }
                         hudiMetadataExtractorMetrics.incrementTableMetadataProcessingFailureCounter(
                             MetricsConstants.MetadataUploadFailureReasons.API_FAILURE_USER_ERROR,
                             String.format("Error initialising table %s: %s", table, response.getError()));
